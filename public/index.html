@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Constructora</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-title" onclick="toggleMenu()">
+        ☰ Empresa Constructora
+    </div>
+    <div id="menu-items">
+        <a href="#" class="active" onclick="show('dashboard',this)"> Panel Principal</a>
+        <a href="#" onclick="show('empleados',this)"> Empleados</a>
+        <a href="#" onclick="show('proyectos',this)"> Proyectos</a>
+        <a href="#" onclick="show('materiales',this)"> Materiales</a>
+        <a href="#" onclick="show('contratos',this)"> Contratos</a>
+        <a href="#" onclick="show('proveedores',this)"> Proveedores</a>
+        <a href="#" onclick="show('inventario',this)"> Inventario</a>
+    </div>
+</div>
+
+<div class="main">
+    <div class="topbar"><h2 id="page-title">Dashboard</h2></div>
+
+    <div class="section active" id="section-dashboard">
+        <div class="stat-grid">
+            <div class="stat-box"><div class="num" id="s-emp">-</div><div class="lbl">Empleados</div></div>
+            <div class="stat-box"><div class="num" id="s-proy">-</div><div class="lbl">Proyectos</div></div>
+            <div class="stat-box"><div class="num" id="s-cont">-</div><div class="lbl">Contratos</div></div>
+            <div class="stat-box"><div class="num" id="s-prov">-</div><div class="lbl">Proveedores</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>Proyectos en curso</h3></div>
+            <div id="dash-proyectos"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-empleados">
+        <div class="card">
+            <div class="card-header">
+                <h3>Empleados</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-emp',this.value)">
+            </div>
+            <div id="cont-empleados"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-proyectos">
+        <div class="card">
+            <div class="card-header">
+                <h3>Proyectos</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-proy',this.value)">
+            </div>
+            <div id="cont-proyectos"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-materiales">
+        <div class="card">
+            <div class="card-header">
+                <h3>Materiales</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-mat',this.value)">
+            </div>
+            <div id="cont-materiales"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-contratos">
+        <div class="card">
+            <div class="card-header">
+                <h3>Contratos</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-cont',this.value)">
+            </div>
+            <div id="cont-contratos"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-proveedores">
+        <div class="card">
+            <div class="card-header">
+                <h3>Proveedores</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-prov',this.value)">
+            </div>
+            <div id="cont-proveedores"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="section-inventario">
+        <div class="card">
+            <div class="card-header">
+                <h3>Inventario</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-inv',this.value)">
+            </div>
+            <div id="cont-inventario"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
