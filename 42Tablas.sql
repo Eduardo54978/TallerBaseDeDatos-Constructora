@@ -1,50 +1,19 @@
+
+-- BASE DE DATOS: constructora
+-- Migración COMPLETA v2 de MySQL a SQL Server (T-SQL)
+-- Incluye tablas actualizadas del equipo + alertas_inventario
 USE master;
 GO
 
--- Crear la base de datos si no existe
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'constructora')
     CREATE DATABASE constructora;
 GO
 
 USE constructora;
 GO
--- TABLA: cargo
-IF OBJECT_ID('dbo.cargo', 'U') IS NULL
-CREATE TABLE dbo.cargo (
-    idCargo             INT             NOT NULL IDENTITY(1,1),
-    nombreCargo         NVARCHAR(100)   NOT NULL,
-    descripcionCargo    NVARCHAR(255)   NULL,
-    CONSTRAINT PK_cargo PRIMARY KEY (idCargo)
-);
-GO
--- TABLA: departamento
-IF OBJECT_ID('dbo.departamento', 'U') IS NULL
-CREATE TABLE dbo.departamento (
-    idDepartamento              INT             NOT NULL IDENTITY(1,1),
-    nombreDepartamento          NVARCHAR(100)   NOT NULL,
-    descripcionDepartamento     NVARCHAR(255)   NULL,
-    CONSTRAINT PK_departamento PRIMARY KEY (idDepartamento)
-);
-GO
--- TABLA: estadoempleado
-IF OBJECT_ID('dbo.estadoempleado', 'U') IS NULL
-CREATE TABLE dbo.estadoempleado (
-    idEstadoEmpleado            INT             NOT NULL IDENTITY(1,1),
-    nombreEstadoEmpleado        NVARCHAR(50)    NOT NULL,
-    descripcionEstadoEmpleado   NVARCHAR(255)   NULL,
-    CONSTRAINT PK_estadoempleado PRIMARY KEY (idEstadoEmpleado)
-);
-GO
--- TABLA: estadopago
-IF OBJECT_ID('dbo.estadopago', 'U') IS NULL
-CREATE TABLE dbo.estadopago (
-    idEstadoPago            INT             NOT NULL IDENTITY(1,1),
-    nombreEstadoPago        NVARCHAR(50)    NOT NULL,
-    descripcionEstadoPago   NVARCHAR(255)   NULL,
-    CONSTRAINT PK_estadopago PRIMARY KEY (idEstadoPago)
-);
-GO
--- TABLA: tipocliente
+
+-- TABLAS CATÁLOGO (sin dependencias)
+
 IF OBJECT_ID('dbo.tipocliente', 'U') IS NULL
 CREATE TABLE dbo.tipocliente (
     idTipoCliente           INT             NOT NULL IDENTITY(1,1),
@@ -53,16 +22,7 @@ CREATE TABLE dbo.tipocliente (
     CONSTRAINT PK_tipocliente PRIMARY KEY (idTipoCliente)
 );
 GO
--- TABLA: estadocontrato
-IF OBJECT_ID('dbo.estadocontrato', 'U') IS NULL
-CREATE TABLE dbo.estadocontrato (
-    idEstadoContrato            INT             NOT NULL IDENTITY(1,1),
-    nombreEstadoContrato        NVARCHAR(50)    NOT NULL,
-    descripcionEstadoContrato   NVARCHAR(255)   NULL,
-    CONSTRAINT PK_estadocontrato PRIMARY KEY (idEstadoContrato)
-);
-GO
--- TABLA: estadoproyecto
+
 IF OBJECT_ID('dbo.estadoproyecto', 'U') IS NULL
 CREATE TABLE dbo.estadoproyecto (
     idEstadoProyecto            INT             NOT NULL IDENTITY(1,1),
@@ -71,7 +31,7 @@ CREATE TABLE dbo.estadoproyecto (
     CONSTRAINT PK_estadoproyecto PRIMARY KEY (idEstadoProyecto)
 );
 GO
--- TABLA: tipoproyecto
+
 IF OBJECT_ID('dbo.tipoproyecto', 'U') IS NULL
 CREATE TABLE dbo.tipoproyecto (
     idTipoProyecto              INT             NOT NULL IDENTITY(1,1),
@@ -80,7 +40,16 @@ CREATE TABLE dbo.tipoproyecto (
     CONSTRAINT PK_tipoproyecto PRIMARY KEY (idTipoProyecto)
 );
 GO
--- TABLA: tipocontrato
+
+IF OBJECT_ID('dbo.estadocontrato', 'U') IS NULL
+CREATE TABLE dbo.estadocontrato (
+    idEstadoContrato            INT             NOT NULL IDENTITY(1,1),
+    nombreEstadoContrato        NVARCHAR(50)    NOT NULL,
+    descripcionEstadoContrato   NVARCHAR(255)   NULL,
+    CONSTRAINT PK_estadocontrato PRIMARY KEY (idEstadoContrato)
+);
+GO
+
 IF OBJECT_ID('dbo.tipocontrato', 'U') IS NULL
 CREATE TABLE dbo.tipocontrato (
     idTipoContrato              INT             NOT NULL IDENTITY(1,1),
@@ -89,7 +58,7 @@ CREATE TABLE dbo.tipocontrato (
     CONSTRAINT PK_tipocontrato PRIMARY KEY (idTipoContrato)
 );
 GO
--- TABLA: estadocotizacion
+
 IF OBJECT_ID('dbo.estadocotizacion', 'U') IS NULL
 CREATE TABLE dbo.estadocotizacion (
     idEstadoCotizacion              INT             NOT NULL IDENTITY(1,1),
@@ -98,25 +67,16 @@ CREATE TABLE dbo.estadocotizacion (
     CONSTRAINT PK_estadocotizacion PRIMARY KEY (idEstadoCotizacion)
 );
 GO
--- TABLA: tipomaterial
-IF OBJECT_ID('dbo.tipomaterial', 'U') IS NULL
-CREATE TABLE dbo.tipomaterial (
-    idTipoMaterial              INT             NOT NULL IDENTITY(1,1),
-    nombreTipoMaterial          NVARCHAR(100)   NOT NULL,
-    descripcionTipoMaterial     NVARCHAR(255)   NULL,
-    CONSTRAINT PK_tipomaterial PRIMARY KEY (idTipoMaterial)
+
+IF OBJECT_ID('dbo.departamento', 'U') IS NULL
+CREATE TABLE dbo.departamento (
+    idDepartamento              INT             NOT NULL IDENTITY(1,1),
+    nombreDepartamento          NVARCHAR(100)   NOT NULL,
+    descripcionDepartamento     NVARCHAR(255)   NULL,
+    CONSTRAINT PK_departamento PRIMARY KEY (idDepartamento)
 );
 GO
--- TABLA: unidadmedida
-IF OBJECT_ID('dbo.unidadmedida', 'U') IS NULL
-CREATE TABLE dbo.unidadmedida (
-    idUnidadMedida              INT             NOT NULL IDENTITY(1,1),
-    nombreUnidadMedida          NVARCHAR(50)    NOT NULL,
-    descripcionUnidadMedida     NVARCHAR(255)   NULL,
-    CONSTRAINT PK_unidadmedida PRIMARY KEY (idUnidadMedida)
-);
-GO
--- TABLA: estadoorden
+
 IF OBJECT_ID('dbo.estadoorden', 'U') IS NULL
 CREATE TABLE dbo.estadoorden (
     idEstadoOrden           INT             NOT NULL IDENTITY(1,1),
@@ -125,7 +85,43 @@ CREATE TABLE dbo.estadoorden (
     CONSTRAINT PK_estadoorden PRIMARY KEY (idEstadoOrden)
 );
 GO
--- TABLA: metodopago
+
+IF OBJECT_ID('dbo.tipomaterial', 'U') IS NULL
+CREATE TABLE dbo.tipomaterial (
+    idTipoMaterial              INT             NOT NULL IDENTITY(1,1),
+    nombreTipoMaterial          NVARCHAR(100)   NOT NULL,
+    descripcionTipoMaterial     NVARCHAR(255)   NULL,
+    CONSTRAINT PK_tipomaterial PRIMARY KEY (idTipoMaterial)
+);
+GO
+
+IF OBJECT_ID('dbo.unidadmedida', 'U') IS NULL
+CREATE TABLE dbo.unidadmedida (
+    idUnidadMedida              INT             NOT NULL IDENTITY(1,1),
+    nombreUnidadMedida          NVARCHAR(50)    NOT NULL,
+    descripcionUnidadMedida     NVARCHAR(255)   NULL,
+    CONSTRAINT PK_unidadmedida PRIMARY KEY (idUnidadMedida)
+);
+GO
+
+IF OBJECT_ID('dbo.estadoempleado', 'U') IS NULL
+CREATE TABLE dbo.estadoempleado (
+    idEstadoEmpleado            INT             NOT NULL IDENTITY(1,1),
+    nombreEstadoEmpleado        NVARCHAR(50)    NOT NULL,
+    descripcionEstadoEmpleado   NVARCHAR(255)   NULL,
+    CONSTRAINT PK_estadoempleado PRIMARY KEY (idEstadoEmpleado)
+);
+GO
+
+IF OBJECT_ID('dbo.estadopago', 'U') IS NULL
+CREATE TABLE dbo.estadopago (
+    idEstadoPago            INT             NOT NULL IDENTITY(1,1),
+    nombreEstadoPago        NVARCHAR(50)    NOT NULL,
+    descripcionEstadoPago   NVARCHAR(255)   NULL,
+    CONSTRAINT PK_estadopago PRIMARY KEY (idEstadoPago)
+);
+GO
+
 IF OBJECT_ID('dbo.metodopago', 'U') IS NULL
 CREATE TABLE dbo.metodopago (
     idMetodoPago            INT             NOT NULL IDENTITY(1,1),
@@ -134,7 +130,7 @@ CREATE TABLE dbo.metodopago (
     CONSTRAINT PK_metodopago PRIMARY KEY (idMetodoPago)
 );
 GO
--- TABLA: rolproyecto
+
 IF OBJECT_ID('dbo.rolproyecto', 'U') IS NULL
 CREATE TABLE dbo.rolproyecto (
     idRolProyecto           INT             NOT NULL IDENTITY(1,1),
@@ -143,6 +139,21 @@ CREATE TABLE dbo.rolproyecto (
     CONSTRAINT PK_rolproyecto PRIMARY KEY (idRolProyecto)
 );
 GO
+
+
+-- TABLA: cargo
+-- NUEVA: ahora incluye pagoPorHora (cambio del compañero)
+
+IF OBJECT_ID('dbo.cargo', 'U') IS NULL
+CREATE TABLE dbo.cargo (
+    idCargo             INT             NOT NULL IDENTITY(1,1),
+    nombreCargo         NVARCHAR(100)   NOT NULL,
+    descripcionCargo    NVARCHAR(255)   NULL,
+    pagoPorHora         DECIMAL(10,2)   NOT NULL DEFAULT 0.00,  -- ← NUEVO
+    CONSTRAINT PK_cargo PRIMARY KEY (idCargo)
+);
+GO
+
 -- TABLA: proveedor
 IF OBJECT_ID('dbo.proveedor', 'U') IS NULL
 CREATE TABLE dbo.proveedor (
@@ -156,7 +167,10 @@ CREATE TABLE dbo.proveedor (
     CONSTRAINT PK_proveedor PRIMARY KEY (idProveedor)
 );
 GO
+
 -- TABLA: empleado
+-- NUEVO: salarioReferencial reemplaza salario
+
 IF OBJECT_ID('dbo.empleado', 'U') IS NULL
 CREATE TABLE dbo.empleado (
     idEmpleado          INT             NOT NULL IDENTITY(1,1),
@@ -168,13 +182,14 @@ CREATE TABLE dbo.empleado (
     numCelular          NVARCHAR(20)    NULL,
     email               NVARCHAR(100)   NULL,
     direccion           NVARCHAR(255)   NULL,
-    salario             DECIMAL(12,2)   NOT NULL,
+    salarioReferencial  DECIMAL(10,2)   NULL,           -- ← NUEVO (antes era salario)
     fechaContratacion   DATE            NOT NULL,
     idEstadoEmpleado    INT             NOT NULL,
     idCargo             INT             NOT NULL,
     idDepartamento      INT             NOT NULL,
     CONSTRAINT PK_empleado              PRIMARY KEY (idEmpleado),
     CONSTRAINT UQ_empleado_ci           UNIQUE (ci),
+    CONSTRAINT CHK_empleado_email       CHECK (email LIKE '%@%.%'),
     CONSTRAINT FK_empleado_estado       FOREIGN KEY (idEstadoEmpleado)
         REFERENCES dbo.estadoempleado (idEstadoEmpleado),
     CONSTRAINT FK_empleado_cargo        FOREIGN KEY (idCargo)
@@ -183,34 +198,9 @@ CREATE TABLE dbo.empleado (
         REFERENCES dbo.departamento (idDepartamento)
 );
 GO
--- TABLA: bonificacionempleado
--- NOTA: ENUM de MySQL → CHECK constraint en SQL Server
---       GENERATED ALWAYS AS (columna calculada)
-IF OBJECT_ID('dbo.bonificacionempleado', 'U') IS NULL
-CREATE TABLE dbo.bonificacionempleado (
-    idBonificacion      INT             NOT NULL IDENTITY(1,1),
-    idEmpleado          INT             NOT NULL,
-    tipoBonificacion    NVARCHAR(20)    NOT NULL,
-    aniosAntiguedad     INT             NULL,
-    porcentajeBono      DECIMAL(5,2)    NOT NULL,
-    salarioBase         DECIMAL(10,2)   NOT NULL,
-    montoCalculado      AS (CAST((salarioBase * porcentajeBono) / 100 AS DECIMAL(12,2))) PERSISTED,
-    gestion             SMALLINT        NOT NULL,   -- YEAR → SMALLINT en SQL Server
-    descripcion         NVARCHAR(200)   NULL,
-    idEstadoPago        INT             NULL,
-    CONSTRAINT PK_bonificacionempleado      PRIMARY KEY (idBonificacion),
-    CONSTRAINT CHK_tipoBonificacion         CHECK (tipoBonificacion IN (N'Antigüedad', N'Aguinaldo', N'Legal')),
-    CONSTRAINT FK_bonificacion_empleado     FOREIGN KEY (idEmpleado)
-        REFERENCES dbo.empleado (idEmpleado),
-    CONSTRAINT FK_bonificacion_estadopago   FOREIGN KEY (idEstadoPago)
-        REFERENCES dbo.estadopago (idEstadoPago)
-);
-GO
 
-CREATE INDEX idx_bonificacion_empleado ON dbo.bonificacionempleado (idEmpleado);
-CREATE INDEX idx_bonificacion_estado   ON dbo.bonificacionempleado (idEstadoPago);
-GO
 -- TABLA: cliente
+
 IF OBJECT_ID('dbo.cliente', 'U') IS NULL
 CREATE TABLE dbo.cliente (
     idCliente       INT             NOT NULL IDENTITY(1,1),
@@ -228,6 +218,7 @@ CREATE TABLE dbo.cliente (
 GO
 
 -- TABLA: proyecto
+
 IF OBJECT_ID('dbo.proyecto', 'U') IS NULL
 CREATE TABLE dbo.proyecto (
     idProyecto          INT             NOT NULL IDENTITY(1,1),
@@ -241,12 +232,26 @@ CREATE TABLE dbo.proyecto (
     idEstadoProyecto    INT             NOT NULL,
     idCliente           INT             NOT NULL,
     CONSTRAINT PK_proyecto                  PRIMARY KEY (idProyecto),
+    CONSTRAINT CHK_proyecto_fechas          CHECK (fechaFinEstimada > fechaInicio),
     CONSTRAINT FK_proyecto_tipoproyecto     FOREIGN KEY (idTipoProyecto)
         REFERENCES dbo.tipoproyecto (idTipoProyecto),
     CONSTRAINT FK_proyecto_estadoproyecto   FOREIGN KEY (idEstadoProyecto)
         REFERENCES dbo.estadoproyecto (idEstadoProyecto),
     CONSTRAINT FK_proyecto_cliente          FOREIGN KEY (idCliente)
         REFERENCES dbo.cliente (idCliente)
+);
+GO
+
+-- TABLA: margenproyecto
+-- NUEVA: tabla que agregó el compañero
+
+IF OBJECT_ID('dbo.margenproyecto', 'U') IS NULL
+CREATE TABLE dbo.margenproyecto (
+    idProyecto          INT             NOT NULL,
+    porcentajeGanancia  DECIMAL(5,2)    NOT NULL DEFAULT 18.00,
+    CONSTRAINT PK_margenproyecto        PRIMARY KEY (idProyecto),
+    CONSTRAINT FK_margen_proyecto       FOREIGN KEY (idProyecto)
+        REFERENCES dbo.proyecto (idProyecto)
 );
 GO
 -- TABLA: contrato
@@ -264,6 +269,10 @@ CREATE TABLE dbo.contrato (
     idProyecto          INT             NOT NULL,
     CONSTRAINT PK_contrato                  PRIMARY KEY (idContrato),
     CONSTRAINT UQ_contrato_numero           UNIQUE (numeroContrato),
+    CONSTRAINT CHK_contrato_monto           CHECK (montoTotal > 0),
+    CONSTRAINT CHK_contrato_fechas          CHECK (fechaVencimiento > fechaInicio),
+    CONSTRAINT CHK_contrato_firma           CHECK (fechaFirma >= fechaContrato),
+    CONSTRAINT CHK_contrato_inicio          CHECK (fechaInicio >= fechaFirma),
     CONSTRAINT FK_contrato_tipocontrato     FOREIGN KEY (idTipoContrato)
         REFERENCES dbo.tipocontrato (idTipoContrato),
     CONSTRAINT FK_contrato_estadocontrato   FOREIGN KEY (idEstadoContrato)
@@ -272,6 +281,7 @@ CREATE TABLE dbo.contrato (
         REFERENCES dbo.proyecto (idProyecto)
 );
 GO
+
 -- TABLA: cotizacioncliente
 IF OBJECT_ID('dbo.cotizacioncliente', 'U') IS NULL
 CREATE TABLE dbo.cotizacioncliente (
@@ -282,14 +292,15 @@ CREATE TABLE dbo.cotizacioncliente (
     observaciones               NVARCHAR(MAX)   NULL,
     idProyecto                  INT             NOT NULL,
     idEstadoCotizacion          INT             NOT NULL,
-    CONSTRAINT PK_cotizacioncliente             PRIMARY KEY (idCotizacionCliente),
-    CONSTRAINT UQ_numeroCotizacionCliente       UNIQUE (numeroCotizacionCliente),
-    CONSTRAINT FK_cotcli_proyecto               FOREIGN KEY (idProyecto)
+    CONSTRAINT PK_cotizacioncliente         PRIMARY KEY (idCotizacionCliente),
+    CONSTRAINT UQ_numeroCotizacionCliente   UNIQUE (numeroCotizacionCliente),
+    CONSTRAINT FK_cotcli_proyecto           FOREIGN KEY (idProyecto)
         REFERENCES dbo.proyecto (idProyecto),
-    CONSTRAINT FK_cotcli_estadocotizacion       FOREIGN KEY (idEstadoCotizacion)
+    CONSTRAINT FK_cotcli_estadocotizacion   FOREIGN KEY (idEstadoCotizacion)
         REFERENCES dbo.estadocotizacion (idEstadoCotizacion)
 );
 GO
+
 -- TABLA: cotizacioninterna
 IF OBJECT_ID('dbo.cotizacioninterna', 'U') IS NULL
 CREATE TABLE dbo.cotizacioninterna (
@@ -299,15 +310,14 @@ CREATE TABLE dbo.cotizacioninterna (
     observaciones               NVARCHAR(MAX)   NULL,
     idProyecto                  INT             NOT NULL,
     idEstadoCotizacion          INT             NOT NULL,
-    CONSTRAINT PK_cotizacioninterna             PRIMARY KEY (idCotizacionInterna),
-    CONSTRAINT UQ_numeroCotizacionInterna       UNIQUE (numeroCotizacionInterna),
-    CONSTRAINT FK_cotint_proyecto               FOREIGN KEY (idProyecto)
+    CONSTRAINT PK_cotizacioninterna         PRIMARY KEY (idCotizacionInterna),
+    CONSTRAINT UQ_numeroCotizacionInterna   UNIQUE (numeroCotizacionInterna),
+    CONSTRAINT FK_cotint_proyecto           FOREIGN KEY (idProyecto)
         REFERENCES dbo.proyecto (idProyecto),
-    CONSTRAINT FK_cotint_estadocotizacion       FOREIGN KEY (idEstadoCotizacion)
+    CONSTRAINT FK_cotint_estadocotizacion   FOREIGN KEY (idEstadoCotizacion)
         REFERENCES dbo.estadocotizacion (idEstadoCotizacion)
 );
 GO
-
 -- TABLA: cuota
 IF OBJECT_ID('dbo.cuota', 'U') IS NULL
 CREATE TABLE dbo.cuota (
@@ -319,12 +329,15 @@ CREATE TABLE dbo.cuota (
     saldoPendiente      DECIMAL(15,2)   NOT NULL,
     idEstadoPago        INT             NOT NULL,
     CONSTRAINT PK_cuota             PRIMARY KEY (idCuota),
+    CONSTRAINT CHK_cuota_monto      CHECK (montoCuota > 0),
+    CONSTRAINT CHK_cuota_saldo      CHECK (saldoPendiente >= 0),
     CONSTRAINT FK_cuota_contrato    FOREIGN KEY (idContrato)
         REFERENCES dbo.contrato (idContrato),
     CONSTRAINT FK_cuota_estadopago  FOREIGN KEY (idEstadoPago)
         REFERENCES dbo.estadopago (idEstadoPago)
 );
 GO
+
 -- TABLA: material
 IF OBJECT_ID('dbo.material', 'U') IS NULL
 CREATE TABLE dbo.material (
@@ -335,6 +348,7 @@ CREATE TABLE dbo.material (
     precioUnitario      DECIMAL(12,2)   NOT NULL,
     descripcion         NVARCHAR(500)   NULL,
     CONSTRAINT PK_material              PRIMARY KEY (idMaterial),
+    CONSTRAINT CHK_material_precio      CHECK (precioUnitario > 0),
     CONSTRAINT FK_material_tipo         FOREIGN KEY (idTipoMaterial)
         REFERENCES dbo.tipomaterial (idTipoMaterial),
     CONSTRAINT FK_material_unidad       FOREIGN KEY (idUnidadMedida)
@@ -350,14 +364,16 @@ CREATE TABLE dbo.ordencompra (
     idProveedor     INT             NOT NULL,
     montoTotal      DECIMAL(15,2)   NOT NULL,
     CONSTRAINT PK_ordencompra           PRIMARY KEY (idOrdenCompra),
+    CONSTRAINT CHK_orden_monto          CHECK (montoTotal > 0),
     CONSTRAINT FK_orden_estadoorden     FOREIGN KEY (idEstadoOrden)
         REFERENCES dbo.estadoorden (idEstadoOrden),
     CONSTRAINT FK_orden_proveedor       FOREIGN KEY (idProveedor)
         REFERENCES dbo.proveedor (idProveedor)
 );
 GO
+
 -- TABLA: detallecompra
--- NOTA: columna calculada total = cantidad * precioUnitario
+
 IF OBJECT_ID('dbo.detallecompra', 'U') IS NULL
 CREATE TABLE dbo.detallecompra (
     idDetalleCompra INT             NOT NULL IDENTITY(1,1),
@@ -366,11 +382,44 @@ CREATE TABLE dbo.detallecompra (
     cantidad        DECIMAL(12,3)   NOT NULL,
     precioUnitario  DECIMAL(12,2)   NOT NULL,
     total           AS (CAST(cantidad * precioUnitario AS DECIMAL(15,2))) PERSISTED,
-    CONSTRAINT PK_detallecompra         PRIMARY KEY (idDetalleCompra),
-    CONSTRAINT FK_detcompra_orden       FOREIGN KEY (idOrdenCompra)
+    CONSTRAINT PK_detallecompra             PRIMARY KEY (idDetalleCompra),
+    CONSTRAINT CHK_detcompra_cantidad       CHECK (cantidad > 0),
+    CONSTRAINT CHK_detcompra_precio         CHECK (precioUnitario > 0),
+    CONSTRAINT FK_detcompra_orden           FOREIGN KEY (idOrdenCompra)
         REFERENCES dbo.ordencompra (idOrdenCompra),
-    CONSTRAINT FK_detcompra_material    FOREIGN KEY (idMaterial)
+    CONSTRAINT FK_detcompra_material        FOREIGN KEY (idMaterial)
         REFERENCES dbo.material (idMaterial)
+);
+GO
+-- TABLA: inventario
+-- NUEVO: incluye stockInicial (cambio del compañero)
+IF OBJECT_ID('dbo.inventario', 'U') IS NULL
+CREATE TABLE dbo.inventario (
+    idInventario        INT             NOT NULL IDENTITY(1,1),
+    idMaterial          INT             NOT NULL,
+    stockInicial        DECIMAL(10,3)   NULL DEFAULT 0.000,     -- ← NUEVO
+    stockActual         DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+    stockMinimo         DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+    ubicacion           NVARCHAR(100)   NULL,
+    fechaActualizacion  DATE            NULL DEFAULT CAST(GETDATE() AS DATE),
+    CONSTRAINT PK_inventario            PRIMARY KEY (idInventario),
+    CONSTRAINT CHK_inventario_stock     CHECK (stockActual >= 0),
+    CONSTRAINT CHK_inventario_minimo    CHECK (stockMinimo >= 0),
+    CONSTRAINT FK_inventario_mat        FOREIGN KEY (idMaterial)
+        REFERENCES dbo.material (idMaterial)
+);
+GO
+-- TABLA: alertas_inventario
+-- NUEVA: para los triggers de control de inventario
+IF OBJECT_ID('dbo.alertas_inventario', 'U') IS NULL
+CREATE TABLE dbo.alertas_inventario (
+    idAlerta        INT             NOT NULL IDENTITY(1,1),
+    idMaterial      INT             NOT NULL,
+    stockActual     DECIMAL(10,2)   NOT NULL,
+    stockMinimo     DECIMAL(10,2)   NOT NULL,
+    fechaAlerta     DATETIME        NOT NULL DEFAULT GETDATE(),
+    mensaje         NVARCHAR(255)   NOT NULL,
+    CONSTRAINT PK_alertas_inventario PRIMARY KEY (idAlerta)
 );
 GO
 -- TABLA: detallecotizacioncliente
@@ -382,13 +431,16 @@ CREATE TABLE dbo.detallecotizacioncliente (
     descripcion                 NVARCHAR(500)   NULL,
     cantidad                    DECIMAL(12,3)   NOT NULL,
     precioUnitario              DECIMAL(12,2)   NOT NULL,
-    CONSTRAINT PK_detallecotizacioncliente  PRIMARY KEY (idDetalleCotizacionCliente),
-    CONSTRAINT FK_detcotcli_cotizacion      FOREIGN KEY (idCotizacionCliente)
+    CONSTRAINT PK_detallecotizacioncliente      PRIMARY KEY (idDetalleCotizacionCliente),
+    CONSTRAINT CHK_detcotcli_cantidad           CHECK (cantidad > 0),
+    CONSTRAINT CHK_detcotcli_precio             CHECK (precioUnitario > 0),
+    CONSTRAINT FK_detcotcli_cotizacion          FOREIGN KEY (idCotizacionCliente)
         REFERENCES dbo.cotizacioncliente (idCotizacionCliente)
 );
 GO
 
 -- TABLA: detallecotizacioninterna
+
 IF OBJECT_ID('dbo.detallecotizacioninterna', 'U') IS NULL
 CREATE TABLE dbo.detallecotizacioninterna (
     idDetalleCotizacionInterna  INT             NOT NULL IDENTITY(1,1),
@@ -396,14 +448,19 @@ CREATE TABLE dbo.detallecotizacioninterna (
     idMaterial                  INT             NOT NULL,
     cantidadEstimada            DECIMAL(12,3)   NOT NULL,
     costoUnitarioEstimado       DECIMAL(12,2)   NOT NULL,
-    CONSTRAINT PK_detallecotizacioninterna  PRIMARY KEY (idDetalleCotizacionInterna),
-    CONSTRAINT FK_detcotint_cotizacion      FOREIGN KEY (idCotizacionInterna)
+    CONSTRAINT PK_detallecotizacioninterna      PRIMARY KEY (idDetalleCotizacionInterna),
+    CONSTRAINT CHK_detcotint_cantidad           CHECK (cantidadEstimada > 0),
+    CONSTRAINT CHK_detcotint_costo              CHECK (costoUnitarioEstimado > 0),
+    CONSTRAINT FK_detcotint_cotizacion          FOREIGN KEY (idCotizacionInterna)
         REFERENCES dbo.cotizacioninterna (idCotizacionInterna),
-    CONSTRAINT FK_detcotint_material        FOREIGN KEY (idMaterial)
+    CONSTRAINT FK_detcotint_material            FOREIGN KEY (idMaterial)
         REFERENCES dbo.material (idMaterial)
 );
 GO
+
 -- TABLA: detallecotizacionmanoobra
+-- NUEVO: ya no tiene pagoPorHora ni totalEstimado
+
 IF OBJECT_ID('dbo.detallecotizacionmanoobra', 'U') IS NULL
 CREATE TABLE dbo.detallecotizacionmanoobra (
     idDetalleManoObra   INT             NOT NULL IDENTITY(1,1),
@@ -411,16 +468,18 @@ CREATE TABLE dbo.detallecotizacionmanoobra (
     idCargo             INT             NOT NULL,
     cantidadPersonas    INT             NOT NULL,
     horasEstimadas      DECIMAL(10,2)   NOT NULL,
-    pagoPorHora         DECIMAL(10,2)   NOT NULL,
-    totalEstimado       DECIMAL(12,2)   NULL,
     CONSTRAINT PK_detallecotizacionmanoobra     PRIMARY KEY (idDetalleManoObra),
+    CONSTRAINT CHK_manoobra_horas               CHECK (horasEstimadas > 0),
+    CONSTRAINT CHK_manoobra_personas            CHECK (cantidadPersonas > 0),
     CONSTRAINT FK_detmanoobra_cotizacion        FOREIGN KEY (idCotizacionInterna)
         REFERENCES dbo.cotizacioninterna (idCotizacionInterna),
     CONSTRAINT FK_detmanoobra_cargo             FOREIGN KEY (idCargo)
         REFERENCES dbo.cargo (idCargo)
 );
 GO
+
 -- TABLA: empleadoproyecto
+
 IF OBJECT_ID('dbo.empleadoproyecto', 'U') IS NULL
 CREATE TABLE dbo.empleadoproyecto (
     idEmpleadoProyecto  INT     NOT NULL IDENTITY(1,1),
@@ -429,30 +488,16 @@ CREATE TABLE dbo.empleadoproyecto (
     idRolProyecto       INT     NOT NULL,
     fechaInicio         DATE    NULL,
     fechaFin            DATE    NULL,
-    CONSTRAINT PK_empleadoproyecto          PRIMARY KEY (idEmpleadoProyecto),
-    CONSTRAINT FK_empproy_empleado          FOREIGN KEY (idEmpleado)
+    CONSTRAINT PK_empleadoproyecto  PRIMARY KEY (idEmpleadoProyecto),
+    CONSTRAINT FK_empproy_empleado  FOREIGN KEY (idEmpleado)
         REFERENCES dbo.empleado (idEmpleado),
-    CONSTRAINT FK_empproy_proyecto          FOREIGN KEY (idProyecto)
+    CONSTRAINT FK_empproy_proyecto  FOREIGN KEY (idProyecto)
         REFERENCES dbo.proyecto (idProyecto),
-    CONSTRAINT FK_empproy_rol               FOREIGN KEY (idRolProyecto)
+    CONSTRAINT FK_empproy_rol       FOREIGN KEY (idRolProyecto)
         REFERENCES dbo.rolproyecto (idRolProyecto)
 );
 GO
--- TABLA: inventario
--- NOTA: DEFAULT curdate() → DEFAULT CAST(GETDATE() AS DATE)
-IF OBJECT_ID('dbo.inventario', 'U') IS NULL
-CREATE TABLE dbo.inventario (
-    idInventario        INT             NOT NULL IDENTITY(1,1),
-    idMaterial          INT             NOT NULL,
-    stockActual         DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-    stockMinimo         DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-    ubicacion           NVARCHAR(100)   NULL,
-    fechaActualizacion  DATE            NULL DEFAULT CAST(GETDATE() AS DATE),
-    CONSTRAINT PK_inventario        PRIMARY KEY (idInventario),
-    CONSTRAINT FK_inventario_mat    FOREIGN KEY (idMaterial)
-        REFERENCES dbo.material (idMaterial)
-);
-GO
+
 -- TABLA: materialproyecto
 IF OBJECT_ID('dbo.materialproyecto', 'U') IS NULL
 CREATE TABLE dbo.materialproyecto (
@@ -462,11 +507,53 @@ CREATE TABLE dbo.materialproyecto (
     cantidadUtilizada   DECIMAL(12,3)   NOT NULL,
     fechaRegistro       DATE            NOT NULL,
     costoTotal          DECIMAL(15,2)   NOT NULL,
-    CONSTRAINT PK_materialproyecto      PRIMARY KEY (idMaterialProyecto),
-    CONSTRAINT FK_matproy_proyecto      FOREIGN KEY (idProyecto)
+    CONSTRAINT PK_materialproyecto  PRIMARY KEY (idMaterialProyecto),
+    CONSTRAINT FK_matproy_proyecto  FOREIGN KEY (idProyecto)
         REFERENCES dbo.proyecto (idProyecto),
-    CONSTRAINT FK_matproy_material      FOREIGN KEY (idMaterial)
+    CONSTRAINT FK_matproy_material  FOREIGN KEY (idMaterial)
         REFERENCES dbo.material (idMaterial)
+);
+GO
+-- TABLA: registrohoras
+-- NUEVO: ya no tiene pagoPorHora ni totalPago
+-- (el pago se calcula desde cargo.pagoPorHora)
+IF OBJECT_ID('dbo.registrohoras', 'U') IS NULL
+CREATE TABLE dbo.registrohoras (
+    idRegistroHoras INT             NOT NULL IDENTITY(1,1),
+    idEmpleado      INT             NOT NULL,
+    idProyecto      INT             NOT NULL,
+    fecha           DATE            NOT NULL,
+    horasTrabajadas DECIMAL(5,2)    NOT NULL,
+    CONSTRAINT PK_registrohoras         PRIMARY KEY (idRegistroHoras),
+    CONSTRAINT CHK_horas_trabajadas     CHECK (horasTrabajadas > 0 AND horasTrabajadas <= 8),
+    CONSTRAINT FK_reghoras_empleado     FOREIGN KEY (idEmpleado)
+        REFERENCES dbo.empleado (idEmpleado),
+    CONSTRAINT FK_reghoras_proyecto     FOREIGN KEY (idProyecto)
+        REFERENCES dbo.proyecto (idProyecto)
+);
+GO
+-- TABLA: bonoantiguedadproyecto
+-- NUEVA: tabla nueva que agregó el compañero
+-- NOTA: GENERATED ALWAYS AS → columnas calculadas PERSISTED
+--       YEAR → SMALLINT
+IF OBJECT_ID('dbo.bonoantiguedadproyecto', 'U') IS NULL
+CREATE TABLE dbo.bonoantiguedadproyecto (
+    idBonoAntiguedadProyecto    INT             NOT NULL IDENTITY(1,1),
+    idEmpleado                  INT             NOT NULL,
+    idProyecto                  INT             NOT NULL,
+    gestion                     SMALLINT        NOT NULL,
+    aniosAntiguedad             INT             NOT NULL,
+    porcentajeBono              DECIMAL(5,2)    NOT NULL,
+    salarioBaseProyecto         DECIMAL(12,2)   NOT NULL,
+    montoBono                   AS (CAST((salarioBaseProyecto * porcentajeBono) / 100 AS DECIMAL(12,2))) PERSISTED,
+    salarioFinalProyecto        AS (CAST(salarioBaseProyecto + ((salarioBaseProyecto * porcentajeBono) / 100) AS DECIMAL(12,2))) PERSISTED,
+    descripcion                 NVARCHAR(255)   NULL,
+    CONSTRAINT PK_bonoantiguedadproyecto        PRIMARY KEY (idBonoAntiguedadProyecto),
+    CONSTRAINT UQ_bono_empleado_proyecto_gestion UNIQUE (idEmpleado, idProyecto, gestion),
+    CONSTRAINT FK_bonoant_emp                   FOREIGN KEY (idEmpleado)
+        REFERENCES dbo.empleado (idEmpleado),
+    CONSTRAINT FK_bonoant_proy                  FOREIGN KEY (idProyecto)
+        REFERENCES dbo.proyecto (idProyecto)
 );
 GO
 -- TABLA: pagocliente
@@ -480,6 +567,7 @@ CREATE TABLE dbo.pagocliente (
     idMetodoPago    INT             NOT NULL,
     idEstadoPago    INT             NOT NULL,
     CONSTRAINT PK_pagocliente           PRIMARY KEY (idPagoCliente),
+    CONSTRAINT CHK_pagocli_monto        CHECK (monto > 0),
     CONSTRAINT FK_pagocli_contrato      FOREIGN KEY (idContrato)
         REFERENCES dbo.contrato (idContrato),
     CONSTRAINT FK_pagocli_cuota         FOREIGN KEY (idCuota)
@@ -490,41 +578,52 @@ CREATE TABLE dbo.pagocliente (
         REFERENCES dbo.estadopago (idEstadoPago)
 );
 GO
--- TABLA: pagoplanilla
-IF OBJECT_ID('dbo.pagoplanilla', 'U') IS NULL
-CREATE TABLE dbo.pagoplanilla (
-    idPagoPlanilla  INT             NOT NULL IDENTITY(1,1),
-    idEmpleado      INT             NOT NULL,
-    idBonificacion  INT             NOT NULL,
-    fechaPago       DATE            NOT NULL,
-    monto           DECIMAL(12,2)   NOT NULL,
-    idMetodoPago    INT             NULL,
-    idEstadoPago    INT             NULL,
-    CONSTRAINT PK_pagoplanilla              PRIMARY KEY (idPagoPlanilla),
-    CONSTRAINT FK_pagoplanilla_empleado     FOREIGN KEY (idEmpleado)
-        REFERENCES dbo.empleado (idEmpleado),
-    CONSTRAINT FK_pagoplanilla_bonif        FOREIGN KEY (idBonificacion)
-        REFERENCES dbo.bonificacionempleado (idBonificacion),
-    CONSTRAINT FK_pagoplanilla_metodo       FOREIGN KEY (idMetodoPago)
-        REFERENCES dbo.metodopago (idMetodoPago),
-    CONSTRAINT FK_pagoplanilla_estado       FOREIGN KEY (idEstadoPago)
-        REFERENCES dbo.estadopago (idEstadoPago)
-);
-GO
 -- TABLA: pagoproveedor
+-- NUEVO: ahora incluye idOrdenCompra
 IF OBJECT_ID('dbo.pagoproveedor', 'U') IS NULL
 CREATE TABLE dbo.pagoproveedor (
     idPagoProveedor INT             NOT NULL IDENTITY(1,1),
     idProveedor     INT             NOT NULL,
+    idOrdenCompra   INT             NULL,               -- ← NUEVO
     fechaPago       DATE            NOT NULL,
     monto           DECIMAL(15,2)   NOT NULL,
     idMetodoPago    INT             NOT NULL,
     factura         NVARCHAR(100)   NULL,
-    CONSTRAINT PK_pagoproveedor         PRIMARY KEY (idPagoProveedor),
-    CONSTRAINT FK_pagoprov_proveedor    FOREIGN KEY (idProveedor)
+    CONSTRAINT PK_pagoproveedor             PRIMARY KEY (idPagoProveedor),
+    CONSTRAINT CHK_pagoprov_monto           CHECK (monto > 0),
+    CONSTRAINT FK_pagoprov_proveedor        FOREIGN KEY (idProveedor)
         REFERENCES dbo.proveedor (idProveedor),
-    CONSTRAINT FK_pagoprov_metodo       FOREIGN KEY (idMetodoPago)
+    CONSTRAINT FK_pagoprov_ordencompra      FOREIGN KEY (idOrdenCompra)
+        REFERENCES dbo.ordencompra (idOrdenCompra),
+    CONSTRAINT FK_pagoprov_metodo           FOREIGN KEY (idMetodoPago)
         REFERENCES dbo.metodopago (idMetodoPago)
+);
+GO
+-- TABLA: pagoplanillaproyecto
+-- NUEVA: reemplaza pagoplanilla, ahora vincula con
+--        bonoantiguedadproyecto y proyecto
+
+IF OBJECT_ID('dbo.pagoplanillaproyecto', 'U') IS NULL
+CREATE TABLE dbo.pagoplanillaproyecto (
+    idPagoPlanillaProyecto      INT             NOT NULL IDENTITY(1,1),
+    idEmpleado                  INT             NOT NULL,
+    idProyecto                  INT             NOT NULL,
+    idBonoAntiguedadProyecto    INT             NOT NULL,
+    fechaPago                   DATE            NOT NULL,
+    montoPagado                 DECIMAL(12,2)   NOT NULL,
+    idMetodoPago                INT             NOT NULL,
+    idEstadoPago                INT             NOT NULL,
+    CONSTRAINT PK_pagoplanillaproyecto          PRIMARY KEY (idPagoPlanillaProyecto),
+    CONSTRAINT FK_pagoplan_empleado             FOREIGN KEY (idEmpleado)
+        REFERENCES dbo.empleado (idEmpleado),
+    CONSTRAINT FK_pagoplan_proyecto             FOREIGN KEY (idProyecto)
+        REFERENCES dbo.proyecto (idProyecto),
+    CONSTRAINT FK_pagoplan_bono                 FOREIGN KEY (idBonoAntiguedadProyecto)
+        REFERENCES dbo.bonoantiguedadproyecto (idBonoAntiguedadProyecto),
+    CONSTRAINT FK_pagoplan_metodo               FOREIGN KEY (idMetodoPago)
+        REFERENCES dbo.metodopago (idMetodoPago),
+    CONSTRAINT FK_pagoplan_estado               FOREIGN KEY (idEstadoPago)
+        REFERENCES dbo.estadopago (idEstadoPago)
 );
 GO
 -- TABLA: proveedormaterial
@@ -536,38 +635,16 @@ CREATE TABLE dbo.proveedormaterial (
     precioProveedor     DECIMAL(12,2)   NOT NULL,
     tiempoEntrega       INT             NULL,
     CONSTRAINT PK_proveedormaterial     PRIMARY KEY (idProveedorMaterial),
+    CONSTRAINT CHK_provmat_precio       CHECK (precioProveedor > 0),
+    CONSTRAINT CHK_provmat_entrega      CHECK (tiempoEntrega >= 0),
     CONSTRAINT FK_provmat_proveedor     FOREIGN KEY (idProveedor)
         REFERENCES dbo.proveedor (idProveedor),
     CONSTRAINT FK_provmat_material      FOREIGN KEY (idMaterial)
         REFERENCES dbo.material (idMaterial)
 );
 GO
--- TABLA: registrohoras
-IF OBJECT_ID('dbo.registrohoras', 'U') IS NULL
-CREATE TABLE dbo.registrohoras (
-    idRegistroHoras INT             NOT NULL IDENTITY(1,1),
-    idEmpleado      INT             NOT NULL,
-    idProyecto      INT             NOT NULL,
-    fecha           DATE            NOT NULL,
-    horasTrabajadas DECIMAL(5,2)    NOT NULL,
-    pagoPorHora     DECIMAL(10,2)   NOT NULL,
-    totalPago       DECIMAL(10,2)   NULL,
-    CONSTRAINT PK_registrohoras         PRIMARY KEY (idRegistroHoras),
-    CONSTRAINT FK_reghoras_empleado     FOREIGN KEY (idEmpleado)
-        REFERENCES dbo.empleado (idEmpleado),
-    CONSTRAINT FK_reghoras_proyecto     FOREIGN KEY (idProyecto)
-        REFERENCES dbo.proyecto (idProyecto)
-);
-GO
--- STORED PROCEDURES (equivalentes a los de MySQL)
--- NOTA: SIGNAL SQLSTATE → RAISERROR / THROW en T-SQL
-
--- SP: intentar_eliminar_cliente
-IF OBJECT_ID('dbo.intentar_eliminar_cliente', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.intentar_eliminar_cliente;
-GO
-
-CREATE PROCEDURE dbo.intentar_eliminar_cliente
+-- STORED PROCEDURES
+CREATE OR ALTER PROCEDURE dbo.intentar_eliminar_cliente
     @p_usuario NVARCHAR(50)
 AS
 BEGIN
@@ -587,12 +664,7 @@ BEGIN
 END;
 GO
 
--- SP: intentar_modificar_contrato
-IF OBJECT_ID('dbo.intentar_modificar_contrato', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.intentar_modificar_contrato;
-GO
-
-CREATE PROCEDURE dbo.intentar_modificar_contrato
+CREATE OR ALTER PROCEDURE dbo.intentar_modificar_contrato
     @p_usuario NVARCHAR(50)
 AS
 BEGIN
@@ -612,12 +684,7 @@ BEGIN
 END;
 GO
 
--- SP: intentar_modificar_empleado
-IF OBJECT_ID('dbo.intentar_modificar_empleado', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.intentar_modificar_empleado;
-GO
-
-CREATE PROCEDURE dbo.intentar_modificar_empleado
+CREATE OR ALTER PROCEDURE dbo.intentar_modificar_empleado
     @p_usuario NVARCHAR(50)
 AS
 BEGIN
@@ -637,18 +704,13 @@ BEGIN
 END;
 GO
 
--- SP: intentar_ver_pagos
-IF OBJECT_ID('dbo.intentar_ver_pagos', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.intentar_ver_pagos;
-GO
-
-CREATE PROCEDURE dbo.intentar_ver_pagos
+CREATE OR ALTER PROCEDURE dbo.intentar_ver_pagos
     @p_usuario NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
     IF @p_usuario = 'jefe_obra_constructora'
-        THROW 50001, 'ACCESO DENEGADO: El Jefe de Obra solo gestiona proyectos. Los pagos son responsabilidad del Contador.', 1;
+        THROW 50001, 'ACCESO DENEGADO: El Jefe de Obra solo gestiona proyectos y materiales. Los pagos son responsabilidad del Contador.', 1;
     ELSE IF @p_usuario = 'logistica_constructora'
         THROW 50002, 'ACCESO DENEGADO: Logistica no tiene acceso a informacion financiera. Contacta al Contador.', 1;
     ELSE IF @p_usuario = 'secretaria_constructora'
@@ -661,3 +723,14 @@ BEGIN
         SELECT 'ACCESO PERMITIDO: Puedes ver los pagos del sistema.' AS resultado;
 END;
 GO
+-- VERIFICACIÓN FINAL
+SELECT
+    t.name AS Tabla,
+    p.rows AS TotalFilas
+FROM sys.tables t
+INNER JOIN sys.partitions p ON t.object_id = p.object_id
+WHERE p.index_id IN (0,1)
+ORDER BY t.name;
+GO
+
+

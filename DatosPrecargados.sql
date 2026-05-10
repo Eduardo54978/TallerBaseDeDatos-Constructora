@@ -1,13 +1,14 @@
--- DATOS COMPLETOS - Sistema Empresa Constructora
--- Migración de MySQL a SQL Server (T-SQL)
+-- DATOS PRECARGADOS - Sistema Empresa Constructora
+-- Schema v2 - 42 tablas completas
+-- Compatible con T-SQL / SQL Server
 USE constructora;
 GO
 
--- Desactivar constraints temporalmente para inserción
+-- Desactivar constraints temporalmente
 EXEC sp_msforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL';
 GO
--- GRUPO 1: CATÁLOGOS
 
+-- GRUPO 1: CATÁLOGOS 
 SET IDENTITY_INSERT dbo.tipocliente ON;
 INSERT INTO dbo.tipocliente (idTipoCliente, nombreTipoCliente, descripcionTipoCliente) VALUES
 (1, 'Persona Natural', 'Cliente individual, persona física'),
@@ -134,25 +135,25 @@ INSERT INTO dbo.metodopago (idMetodoPago, nombreMetodoPago, descripcionMetodoPag
 SET IDENTITY_INSERT dbo.metodopago OFF;
 GO
 
+-- CARGO: ahora incluye pagoPorHora
 SET IDENTITY_INSERT dbo.cargo ON;
-INSERT INTO dbo.cargo (idCargo, nombreCargo, descripcionCargo) VALUES
-(1,  'Gerente General',          'Responsable de la dirección general'),
-(2,  'Jefe de Obra',             'Supervisa la ejecución de obras en campo'),
-(3,  'Arquitecto',               'Diseño y planificación de proyectos'),
-(4,  'Ingeniero Civil',          'Cálculo estructural y supervisión técnica'),
-(5,  'Electricista',             'Instalaciones eléctricas en obra'),
-(6,  'Albañil',                  'Trabajos de mampostería y acabados'),
-(7,  'Contador',                 'Gestión contable y financiera'),
-(8,  'Asistente Administrativo', 'Apoyo en tareas administrativas'),
-(9,  'Plomero',                  'Instalaciones sanitarias y tuberías'),
-(10, 'Soldador',                 'Trabajos de soldadura y metalurgia'),
-(11, 'Carpintero',               'Trabajos en madera y carpintería'),
-(12, 'Pintor',                   'Trabajos de pintura y acabados');
+INSERT INTO dbo.cargo (idCargo, nombreCargo, descripcionCargo, pagoPorHora) VALUES
+(1,  'Gerente General',          'Responsable de la dirección general',        85.00),
+(2,  'Jefe de Obra',             'Supervisa la ejecución de obras en campo',   55.00),
+(3,  'Arquitecto',               'Diseño y planificación de proyectos',        50.00),
+(4,  'Ingeniero Civil',          'Cálculo estructural y supervisión técnica',  60.00),
+(5,  'Electricista',             'Instalaciones eléctricas en obra',           30.00),
+(6,  'Albañil',                  'Trabajos de mampostería y acabados',         18.00),
+(7,  'Contador',                 'Gestión contable y financiera',              45.00),
+(8,  'Asistente Administrativo', 'Apoyo en tareas administrativas',            28.00),
+(9,  'Plomero',                  'Instalaciones sanitarias y tuberías',        25.00),
+(10, 'Soldador',                 'Trabajos de soldadura y metalurgia',         32.00),
+(11, 'Carpintero',               'Trabajos en madera y carpintería',           27.00),
+(12, 'Pintor',                   'Trabajos de pintura y acabados',             22.00);
 SET IDENTITY_INSERT dbo.cargo OFF;
 GO
 
 -- GRUPO 2: CLIENTES
-
 SET IDENTITY_INSERT dbo.cliente ON;
 INSERT INTO dbo.cliente (idCliente, nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro) VALUES
 (1,  N'Carlos Mendoza Ríos',          1, '7823451',    '70012345', 'carlos.mendoza@gmail.com',      N'Av. Heroínas 123',         '2023-01-15'),
@@ -177,8 +178,8 @@ INSERT INTO dbo.cliente (idCliente, nombre, idTipoCliente, documentoID, numCelul
 (20, 'Constr. Familiar Norte SRL',    2, '8767890123', '79201234', 'info@constfamiliar.com',        'Zona Norte Av. Principal',  '2022-10-25');
 SET IDENTITY_INSERT dbo.cliente OFF;
 GO
--- GRUPO 3: PROVEEDORES
 
+-- GRUPO 3: PROVEEDORES
 SET IDENTITY_INSERT dbo.proveedor ON;
 INSERT INTO dbo.proveedor (idProveedor, nombreProveedor, numCelular, email, direccion, ciudad, pais) VALUES
 (1,  'Cementos Fancesa',        '42201100', 'ventas@fancesa.com.bo',       'Av. Industrial 100',         'Sucre',      'Bolivia'),
@@ -194,10 +195,7 @@ INSERT INTO dbo.proveedor (idProveedor, nombreProveedor, numCelular, email, dire
 SET IDENTITY_INSERT dbo.proveedor OFF;
 GO
 
--- =====================================================
 -- GRUPO 4: MATERIALES
--- =====================================================
-
 SET IDENTITY_INSERT dbo.material ON;
 INSERT INTO dbo.material (idMaterial, nombreMaterial, idTipoMaterial, idUnidadMedida, precioUnitario, descripcion) VALUES
 (1,  'Cemento IP-30 Fancesa',   1, 2,  58.00, N'Cemento pórtland IP-30, bolsa 50kg'),
@@ -217,23 +215,20 @@ INSERT INTO dbo.material (idMaterial, nombreMaterial, idTipoMaterial, idUnidadMe
 (15, 'Pintura esmalte colores', 6, 8,  55.00, N'Esmalte sintético colores litro');
 SET IDENTITY_INSERT dbo.material OFF;
 GO
-
--- =====================================================
 -- GRUPO 5: EMPLEADOS
--- =====================================================
-
+-- NOTA: columna ahora es salarioReferencial (antes salario)
 SET IDENTITY_INSERT dbo.empleado ON;
 
--- Gerentes (idCargo=1, idDepartamento=1)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Gerentes
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (1, 'Juan Pablo',    'Rojas Soria',    '4512378', '1975-05-12', N'Administración de Empresas', '70011111', 'jp.rojas@const.com',      'Av. Oquendo 100',   15000.00, '2010-03-01', 1, 1, 1),
 (2, 'Marco Antonio', 'Villanueva Paz', '4623489', '1972-08-20', N'Gestión Empresarial',        '70022222', 'ma.villanueva@const.com', 'Calle Sucre 200',   14500.00, '2011-06-15', 1, 1, 1),
 (3, 'Rosa Elena',    N'Gutierrez Vega','4734590', '1978-03-15', N'Administración',             '70033333', 're.gutierrez@const.com',  N'Av. Ballivián 300',14000.00, '2012-01-10', 1, 1, 1),
 (4, 'Carlos',        'Mendez Flores',  '4845601', '1980-11-30', N'Dirección de Empresas',      '70044444', 'c.mendez@const.com',      'Calle Lanza 400',   15500.00, '2009-09-01', 1, 1, 1),
 (5, 'Patricia',      'Rios Condori',   '4956712', '1976-07-22', N'Gestión y Dirección',        '70055555', 'p.rios@const.com',        N'Av. América 500',  13500.00, '2013-04-20', 1, 1, 1);
 
--- Jefes de Obra (idCargo=2, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Jefes de Obra
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (6,  'Luis Alberto', 'Mamani Flores',  '5623489', '1985-08-20', N'Ingeniería Civil',     '71022222', 'l.mamani@const.com',    'Calle Lanza 200',        10000.00, '2017-06-15', 1, 2, 2),
 (7,  'Pedro',        'Condori Quispe', '5734590', '1978-11-30', 'Maestro de Obra',       '71033333', 'p.condori@const.com',   'Villa Pagador',            9500.00, '2016-09-01', 1, 2, 2),
 (8,  'Ramiro',       'Torrico Mamani', '5845601', '1982-04-15', N'Construcción Civil',   '71044444', 'r.torrico@const.com',   'Zona Sur Bloque 3',        9800.00, '2015-03-10', 1, 2, 2),
@@ -245,8 +240,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (14, 'Walter',       'Lima Soria',    '5401267', '1977-07-12', 'Obras y Proyectos',     '71111110', 'w.lima@const.com',      'Av. Blanco Galindo 800',    9800.00, '2014-05-30', 1, 2, 2),
 (15, 'Alvaro',       'Salinas Torrez','5512378', '1986-12-08', N'Ingeniería Civil',     '71122221', 'a.salinas@const.com',   'Zona Sur Av. 2',            9100.00, '2019-03-17', 1, 2, 2);
 
--- Arquitectos (idCargo=3, idDepartamento=3)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Arquitectos
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (16, 'Ana Cecilia', 'Torrico Vega',   '6734590', '1990-03-15', 'Arquitectura',                '72033333', 'a.torrico@const.com', N'Av. Ballivián 300',   9000.00, '2018-01-10', 1, 3, 3),
 (17, 'Daniela',     'Rojas Mamani',   '6845601', '1992-07-22', N'Diseño Arquitectónico',      '72044444', 'd.rojas@const.com',   'Calle Sucre 400',      8800.00, '2019-05-15', 1, 3, 3),
 (18, N'Verónica',   'Paz Condori',    '6956712', '1988-11-08', 'Arquitectura y Urbanismo',    '72055555', 'v.paz@const.com',     N'Av. América 500',     9200.00, '2017-08-20', 1, 3, 3),
@@ -263,8 +258,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (29, 'Valeria',     'Paz Flores',     '6067835', '1993-12-14', N'Diseño Arquitectónico',      '72177776', 'val.paz@const.com',   N'Av. América 1300',    8300.00, '2021-08-29', 1, 3, 3),
 (30, 'Christian',   'Mendez Cruz',    '6178946', '1987-04-01', 'Arquitectura Residencial',    '72188887', 'ch.mendez@const.com', 'Calle Lanza 1400',     9200.00, '2017-05-16', 1, 3, 3);
 
--- Ingenieros Civiles (idCargo=4, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Ingenieros Civiles
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (31, 'Luis',      'Castro Mamani',   '7512378', '1983-05-12', N'Ingeniería Civil',        '73011111', 'l.castro@const.com', 'Av. Oquendo 200',       10500.00, '2015-03-01', 1, 4, 2),
 (32, 'Mario',     'Gutierrez Paz',   '7623489', '1986-08-20', 'Estructuras',              '73022222', 'ma.gut@const.com',   'Calle Sucre 300',       10200.00, '2016-06-15', 1, 4, 2),
 (33, 'Roberto',   'Torrico Flores',  '7734590', '1981-03-15', N'Ingeniería Estructural',  '73033333', 'r.torr@const.com',   N'Av. América 400',      10800.00, '2014-01-10', 1, 4, 2),
@@ -286,8 +281,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (49, 'Kevin',     'Salinas Vega',    '7390267', '1980-11-22', N'Estructuras de Hormigón', '73211109', 'ke.sal@const.com',   'Calle Baptista 1000',  10800.00, '2015-02-08', 1, 4, 2),
 (50, 'Leonel',    'Rojas Condori',   '7401378', '1987-03-09', N'Ingeniería Civil',        '73222220', 'le.roj@const.com',   'Zona Sur Av. 7',        9600.00, '2019-08-25', 1, 4, 2);
 
--- Electricistas (idCargo=5, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Electricistas
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (51, 'Marco',    'Villanueva Cruz', '8067823', '1988-02-14', 'Electricidad Industrial',   '74066666', 'm.vill@const.com',  'Av. Tadeo Haenke 500', 6500.00, '2020-07-01', 1, 5, 2),
 (52, 'Pablo',    'Torrez Mamani',   '8178934', '1985-06-30', 'Instalaciones Eléctricas',  '74077777', 'pa.torr@const.com', 'Calle Punata 600',     6200.00, '2019-02-28', 1, 5, 2),
 (53, 'Raul',     'Aguilar Soria',   '8289045', '1990-10-18', 'Electricidad Residencial',  '74088888', 'ra.agui@const.com', 'Zona Sur Av. 8',       6800.00, '2021-08-15', 1, 5, 2),
@@ -304,8 +299,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (64, 'Cirilo',   'Lima Vega',       '8390167', '1983-11-22', 'Instalaciones Eléctricas',  '74211109', 'ci.lima@const.com', N'Av. Heroínas 1000',   6800.00, '2018-02-08', 1, 5, 2),
 (65, 'Dionisio', 'Salinas Soria',   '8401278', '1988-03-09', 'Electricidad Industrial',   '74222220', 'di.sal2@const.com', 'Calle Baptista 1100',  6200.00, '2020-08-25', 1, 5, 2);
 
--- Albañiles (idCargo=6, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Albañiles
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (66, 'Carlos',    'Mamani Quispe',  '9234567', '1990-03-10', N'Mampostería y acabados', '75111111', 'ca.mam@const.com',   'Villa Pagador A',       4500.00, '2020-01-15', 1, 6, 2),
 (67, 'Roberto',   'Flores Choque',  '9345678', '1988-07-22', N'Albañilería general',    '75222222', 'ro.flo@const.com',   'Zona Sur Bloque 3',     4200.00, '2019-06-01', 1, 6, 2),
 (68, 'Miguel',    'Quispe Tarqui',  '9456789', '1992-11-05', 'Revoque y tarrajeo',      '75333333', 'mi.quis@const.com',  'Calle Punata 200',      4300.00, '2021-03-10', 1, 6, 2),
@@ -347,24 +342,24 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (104,'Laureano',  'Cruz Mamani',    '9012348', '1991-12-25', 'Revoque y tarrajeo',      '79033330', 'la.cru@const.com',   N'Av. Heroínas 600',     4300.00, '2020-06-18', 1, 6, 2),
 (105,'Macedonio', 'Quispe Torrez',  '9123459', '1989-04-08', N'Mampostería fina',       '79144441', 'mac.quis@const.com', 'Calle Baptista 800',    4150.00, '2019-10-05', 1, 6, 2);
 
--- Contadores (idCargo=7, idDepartamento=4)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Contadores
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (106,'Carmen Rosa', 'Gutierrez Paz', '1956712', '1992-07-22', 'Contabilidad',            '74055555', 'c.gut@const.com',  'Calle Hamiraya 400',   8000.00, '2019-04-20', 1, 7, 4),
 (107,'Elena',       'Rojas Mamani',  '1067823', '1988-11-08', 'Contabilidad Financiera', '74066667', 'e.roj@const.com',  N'Av. América 700',     7800.00, '2018-09-15', 1, 7, 4),
 (108,'Fernanda',    'Paz Condori',   '1178934', '1994-03-25', N'Auditoría',              '74077778', 'fe.paz@const.com', 'Calle Lanza 800',      7600.00, '2021-01-30', 1, 7, 4),
 (109,'Gloria',      'Mendez Flores', '1289045', '1990-08-12', 'Contabilidad',            '74088889', 'gl.men@const.com', 'Zona Norte Bloque 13', 7900.00, '2020-06-17', 1, 7, 4),
 (110,'Hilda',       'Quispe Cruz',   '1390156', '1986-12-29', 'Finanzas',                '74099990', 'hi.qui@const.com', N'Av. Heroínas 1100',   8200.00, '2017-11-04', 1, 7, 4);
 
--- Asistentes Administrativos (idCargo=8, idDepartamento=1)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Asistentes Administrativos
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (111,'Rosa',    'Perez Alvarado', '2401234', '1995-09-05', N'Administración',     '76077777', 'r.per@const.com',  'Calle Punata 600',   5500.00, '2021-02-15', 1, 8, 1),
 (112,'Sandra',  'Torrez Lima',    '2512345', '1993-01-18', 'Secretariado',        '76088888', 's.tor@const.com',  N'Av. Ballivián 700', 5300.00, '2020-08-02', 1, 8, 1),
 (113,'Teresa',  'Aguilar Soria',  '2623456', '1997-05-31', N'Administración',     '76099999', 'te.agu@const.com', 'Calle Sucre 800',    5200.00, '2022-03-19', 1, 8, 1),
 (114,'Ursula',  'Lima Mamani',    '2734567', '1994-10-14', N'Gestión Documental', '76111110', 'ur.lim@const.com', N'Av. América 900',   5400.00, '2021-09-05', 1, 8, 1),
 (115,'Vanessa', 'Salinas Flores', '2845678', '1996-02-27', N'Administración',     '76122221', 'va.sal@const.com', 'Calle Lanza 1000',   5100.00, '2022-11-22', 1, 8, 1);
 
--- Plomeros (idCargo=9, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Plomeros
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (116,'Juan',     'Perez Mamani',   '3677881', '1991-02-14', 'Instalaciones sanitarias', '77666666', 'j.per@const.com',   'Calle Oquendo 400',    4800.00, '2020-05-10', 1, 9, 2),
 (117,'Luis',     'Garcia Flores',  '3788992', '1989-08-25', N'Tuberías y desagüe',      '77777777', 'l.gar@const.com',   N'Av. America 500',     4500.00, '2019-03-15', 1, 9, 2),
 (118,'Mario',    'Suarez Quispe',  '3899003', '1993-11-30', N'Plomería general',        '77888888', 'ma.sua@const.com',  'Zona Sur Calle 3',     4600.00, '2021-07-01', 1, 9, 2),
@@ -386,8 +381,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (134,'Cornelio', 'Quispe Aguilar', '5455669', '1993-08-22', 'Instalaciones sanitarias', '79666664', 'co.quis@const.com', 'Zona Sur Bloque 13',   4550.00, '2021-12-30', 1, 9, 2),
 (135,'Demetrio', 'Condori Mamani', '5566770', '1987-01-05', N'Tuberías y desagüe',      '79777775', 'de.con@const.com',  N'Av. Heroínas 900',    4700.00, '2019-06-17', 1, 9, 2);
 
--- Soldadores (idCargo=10, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Soldadores
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (136,'Eloy',     'Mamani Soria',  '6677881', '1988-03-15', 'Soldadura MIG/TIG',    '80111111', 'el.mam@const.com',  'Calle Punata 1000',    5500.00, '2019-04-01', 1, 10, 2),
 (137,'Filemon',  'Cruz Vega',     '6788992', '1985-07-28', 'Soldadura industrial', '80222222', 'fi.cru@const.com',  N'Av. Ballivián 1600',  5300.00, '2018-10-18', 1, 10, 2),
 (138,'Genaro',   'Quispe Lima',   '6899003', '1992-12-11', 'Soldadura al arco',    '80333333', 'ge.qui@const.com',  'Calle Sucre 1700',     5600.00, '2021-05-05', 1, 10, 2),
@@ -399,8 +394,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (144,'Macedon2', 'Flores Torrez', '7455669', '1993-01-28', 'Soldadura al arco',    '80999999', 'mac.flo@const.com', 'Zona Sur Bloque 14',   5300.00, '2022-07-15', 1, 10, 2),
 (145,'Narciso',  'Condori Cruz',  '7566770', '1987-06-11', 'Soldadura MIG/TIG',    '81111110', 'na.con@const.com',  N'Av. Ballivián 1800',  5600.00, '2019-01-02', 1, 10, 2);
 
--- Carpinteros (idCargo=11, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Carpinteros
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (146,'Obdulio',    'Mamani Vega',    '8677881', '1986-04-24', N'Carpintería de obra',    '82111111', 'ob.mam@const.com',  'Calle Sucre 1900',     5000.00, '2018-05-10', 1, 11, 2),
 (147,'Primitivo',  'Cruz Soria',     '8788992', '1990-08-06', N'Carpintería fina',       '82222222', 'pr.cru@const.com',  N'Av. América 2000',    4800.00, '2020-12-27', 1, 11, 2),
 (148,'Quiliano',   'Quispe Flores',  '8899003', '1993-12-19', N'Carpintería de obra',    '82333333', 'qi.qui@const.com',  'Calle Lanza 2000',     4900.00, '2022-08-13', 1, 11, 2),
@@ -412,8 +407,8 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 (154,'Wenceslao',  'Flores Mamani',  '9455669', '1990-02-05', N'Carpintería fina',       '82999999', 'we.flo@const.com',  'Calle Sucre 2100',     5000.00, '2020-04-22', 1, 11, 2),
 (155,'Ygnacio',    'Condori Torrez', '9566770', '1987-06-18', N'Carpintería de obra',    '83111110', 'yg.con@const.com',  N'Av. América 2200',    4900.00, '2019-11-08', 1, 11, 2);
 
--- Pintores (idCargo=12, idDepartamento=2)
-INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salario, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
+-- Pintores
+INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, especialidad, numCelular, email, direccion, salarioReferencial, fechaContratacion, idEstadoEmpleado, idCargo, idDepartamento) VALUES
 (156,'Zenobio',      'Mamani Cruz',    '1677881', '1989-07-31', 'Pintura de interiores', '84111111', 'ze.mam@const.com', 'Calle Lanza 2100',      4200.00, '2019-08-17', 1, 12, 2),
 (157,'Abundio',      'Vega Soria',     '1788992', '1993-12-14', 'Pintura exterior',      '84222222', 'ab.veg@const.com', 'Zona Norte Bloque 17',  4100.00, '2022-04-03', 1, 12, 2),
 (158,'Baldomero',    'Flores Paz',     '1899003', '1986-04-27', 'Pintura industrial',    '84333333', 'ba.flo@const.com', N'Av. Heroínas 1200',    4500.00, '2018-11-19', 1, 12, 2),
@@ -428,10 +423,7 @@ INSERT INTO dbo.empleado (idEmpleado, nombre, apellido, ci, fechaNacimiento, esp
 SET IDENTITY_INSERT dbo.empleado OFF;
 GO
 
--- =====================================================
 -- GRUPO 6: PROYECTOS
--- =====================================================
-
 SET IDENTITY_INSERT dbo.proyecto ON;
 INSERT INTO dbo.proyecto (idProyecto, nombreProyecto, descripcion, idTipoProyecto, ubicacion, fechaInicio, fechaFinEstimada, fechaFinReal, idEstadoProyecto, idCliente) VALUES
 (1,  'Residencia Mendoza',               N'Casa de dos plantas con jardín',         1, 'Urb. Las Brisas',         '2024-01-10', '2024-08-10', NULL,         2,  1),
@@ -447,10 +439,22 @@ INSERT INTO dbo.proyecto (idProyecto, nombreProyecto, descripcion, idTipoProyect
 SET IDENTITY_INSERT dbo.proyecto OFF;
 GO
 
--- =====================================================
--- GRUPO 7: PROVEEDOR MATERIAL
--- =====================================================
+-- TABLA NUEVA 1: margenproyecto
+-- Porcentaje de ganancia por proyecto
+INSERT INTO dbo.margenproyecto (idProyecto, porcentajeGanancia) VALUES
+(1,  18.00),
+(2,  20.00),
+(3,  15.00),
+(4,  12.00),
+(5,  18.00),
+(6,  18.00),
+(7,  22.00),
+(8,  25.00),
+(9,  14.00),
+(10, 18.00);
+GO
 
+-- GRUPO 7: PROVEEDOR MATERIAL
 SET IDENTITY_INSERT dbo.proveedormaterial ON;
 INSERT INTO dbo.proveedormaterial (idProveedorMaterial, idProveedor, idMaterial, precioProveedor, tiempoEntrega) VALUES
 (1,  1,  1,  55.00, 2), (2,  1, 10,  85.00, 2), (3,  1, 11,   2.20, 1),
@@ -466,10 +470,7 @@ INSERT INTO dbo.proveedormaterial (idProveedorMaterial, idProveedor, idMaterial,
 SET IDENTITY_INSERT dbo.proveedormaterial OFF;
 GO
 
--- =====================================================
 -- GRUPO 8: CONTRATOS Y COTIZACIONES
--- =====================================================
-
 SET IDENTITY_INSERT dbo.contrato ON;
 INSERT INTO dbo.contrato (idContrato, numeroContrato, idTipoContrato, fechaContrato, fechaFirma, fechaInicio, fechaVencimiento, montoTotal, idEstadoContrato, idProyecto) VALUES
 (1, 'CONT-2024-001', 1, '2023-12-20', '2024-01-05', '2024-01-10', '2024-08-10',  185000.00, 1, 1),
@@ -511,10 +512,7 @@ INSERT INTO dbo.cotizacioninterna (idCotizacionInterna, numeroCotizacionInterna,
 SET IDENTITY_INSERT dbo.cotizacioninterna OFF;
 GO
 
--- =====================================================
 -- GRUPO 9: ÓRDENES DE COMPRA Y DETALLE
--- =====================================================
-
 SET IDENTITY_INSERT dbo.ordencompra ON;
 INSERT INTO dbo.ordencompra (idOrdenCompra, fechaOrden, idEstadoOrden, idProveedor, montoTotal) VALUES
 (1,  '2024-01-15', 2, 1,  8700.00),
@@ -545,10 +543,7 @@ INSERT INTO dbo.detallecompra (idDetalleCompra, idOrdenCompra, idMaterial, canti
 SET IDENTITY_INSERT dbo.detallecompra OFF;
 GO
 
--- =====================================================
 -- GRUPO 10: ASIGNACIÓN EMPLEADOS A PROYECTOS
--- =====================================================
-
 SET IDENTITY_INSERT dbo.empleadoproyecto ON;
 INSERT INTO dbo.empleadoproyecto (idEmpleadoProyecto, idEmpleado, idProyecto, idRolProyecto, fechaInicio, fechaFin) VALUES
 (1,  1,  1, 1, '2024-01-10', NULL),    (2,  6,  1, 2, '2024-01-10', NULL),
@@ -566,10 +561,7 @@ INSERT INTO dbo.empleadoproyecto (idEmpleadoProyecto, idEmpleado, idProyecto, id
 SET IDENTITY_INSERT dbo.empleadoproyecto OFF;
 GO
 
--- =====================================================
 -- GRUPO 11: MATERIALES POR PROYECTO
--- =====================================================
-
 SET IDENTITY_INSERT dbo.materialproyecto ON;
 INSERT INTO dbo.materialproyecto (idMaterialProyecto, idProyecto, idMaterial, cantidadUtilizada, fechaRegistro, costoTotal) VALUES
 (1,  1,  1,   150.00, '2024-01-20',  8700.00),
@@ -590,10 +582,7 @@ INSERT INTO dbo.materialproyecto (idMaterialProyecto, idProyecto, idMaterial, ca
 SET IDENTITY_INSERT dbo.materialproyecto OFF;
 GO
 
--- =====================================================
 -- GRUPO 12: DETALLE COTIZACIONES
--- =====================================================
-
 SET IDENTITY_INSERT dbo.detallecotizacioncliente ON;
 INSERT INTO dbo.detallecotizacioncliente (idDetalleCotizacionCliente, idCotizacionCliente, concepto, descripcion, cantidad, precioUnitario) VALUES
 (1,  1, N'Cimentación',   N'Excavación y losa de cimentación',       1.00,  25000.00),
@@ -625,24 +614,23 @@ INSERT INTO dbo.detallecotizacioninterna (idDetalleCotizacionInterna, idCotizaci
 SET IDENTITY_INSERT dbo.detallecotizacioninterna OFF;
 GO
 
+-- detallecotizacionmanoobra (v2: sin pagoPorHora ni totalEstimado)
+-- El pago se calcula JOIN con cargo.pagoPorHora
 SET IDENTITY_INSERT dbo.detallecotizacionmanoobra ON;
-INSERT INTO dbo.detallecotizacionmanoobra (idDetalleManoObra, idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas, pagoPorHora, totalEstimado) VALUES
-(1,  1, 2, 2, 320.00, 20.00,  12800.00), (2,  1, 4, 1, 200.00, 35.00,   7000.00),
-(3,  1, 5, 1, 100.00, 25.00,   2500.00), (4,  1, 6, 3, 480.00, 15.00,  21600.00),
-(5,  2, 2, 4, 960.00, 20.00,  76800.00), (6,  2, 4, 2, 640.00, 35.00,  44800.00),
-(7,  2, 3, 2, 480.00, 40.00,  38400.00), (8,  2, 6, 8,1920.00, 15.00, 230400.00),
-(9,  3, 2, 1, 160.00, 20.00,   3200.00), (10, 3, 6, 2, 320.00, 15.00,   9600.00),
-(11, 4, 2, 2, 480.00, 20.00,  19200.00), (12, 4, 6, 4, 960.00, 15.00,  57600.00),
-(13, 5, 2, 1, 120.00, 20.00,   2400.00), (14, 5, 6, 2, 240.00, 15.00,   7200.00),
-(15, 6, 2, 2, 200.00, 20.00,   8000.00), (16, 6, 6, 3, 300.00, 15.00,  13500.00),
-(17, 6, 9, 1, 150.00, 17.00,   2550.00);
+INSERT INTO dbo.detallecotizacionmanoobra (idDetalleManoObra, idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas) VALUES
+(1,  1, 2, 2, 320.00), (2,  1, 4, 1, 200.00),
+(3,  1, 5, 1, 100.00), (4,  1, 6, 3, 480.00),
+(5,  2, 2, 4, 960.00), (6,  2, 4, 2, 640.00),
+(7,  2, 3, 2, 480.00), (8,  2, 6, 8,1920.00),
+(9,  3, 2, 1, 160.00), (10, 3, 6, 2, 320.00),
+(11, 4, 2, 2, 480.00), (12, 4, 6, 4, 960.00),
+(13, 5, 2, 1, 120.00), (14, 5, 6, 2, 240.00),
+(15, 6, 2, 2, 200.00), (16, 6, 6, 3, 300.00),
+(17, 6, 9, 1, 150.00);
 SET IDENTITY_INSERT dbo.detallecotizacionmanoobra OFF;
 GO
 
--- =====================================================
 -- GRUPO 13: CUOTAS
--- =====================================================
-
 SET IDENTITY_INSERT dbo.cuota ON;
 INSERT INTO dbo.cuota (idCuota, idContrato, numeroCuota, fechaVencimiento, montoCuota, saldoPendiente, idEstadoPago) VALUES
 (1,  1, 1, '2024-02-10',  37000.00,     0.00, 3),
@@ -675,10 +663,7 @@ INSERT INTO dbo.cuota (idCuota, idContrato, numeroCuota, fechaVencimiento, monto
 SET IDENTITY_INSERT dbo.cuota OFF;
 GO
 
--- =====================================================
 -- GRUPO 14: PAGOS
--- =====================================================
-
 SET IDENTITY_INSERT dbo.pagocliente ON;
 INSERT INTO dbo.pagocliente (idPagoCliente, idContrato, idCuota, fechaPago, monto, idMetodoPago, idEstadoPago) VALUES
 (1,  1,  1,  '2024-02-08',  37000.00, 1, 3),
@@ -698,121 +683,179 @@ INSERT INTO dbo.pagocliente (idPagoCliente, idContrato, idCuota, fechaPago, mont
 SET IDENTITY_INSERT dbo.pagocliente OFF;
 GO
 
+-- pagoproveedor (v2: ahora incluye idOrdenCompra)
 SET IDENTITY_INSERT dbo.pagoproveedor ON;
-INSERT INTO dbo.pagoproveedor (idPagoProveedor, idProveedor, fechaPago, monto, idMetodoPago, factura) VALUES
-(1, 1, '2024-01-18',  8700.00, 1, 'FAC-FANC-00123'),
-(2, 2, '2024-01-25', 15300.00, 1, 'FAC-ACER-00456'),
-(3, 5, '2024-03-15',  4750.00, 3, 'FAC-ARID-00789'),
-(4, 1, '2024-06-05',  5800.00, 1, 'FAC-FANC-00234'),
-(5, 3, '2024-05-15',  2100.00, 2, 'FAC-PINE-00101'),
-(6, 1, '2025-11-08', 12000.00, 1, 'FAC-FANC-00345'),
-(7, 2, '2025-11-15', 18500.00, 1, 'FAC-ACER-00567'),
-(8, 6, '2025-03-05',  8000.00, 2, 'FAC-PINR-00234'),
-(9, 5, '2024-08-10',  9500.00, 1, 'FAC-ARID-00890');
+INSERT INTO dbo.pagoproveedor (idPagoProveedor, idProveedor, idOrdenCompra, fechaPago, monto, idMetodoPago, factura) VALUES
+(1, 1, 1, '2024-01-18',  8700.00, 1, 'FAC-FANC-00123'),
+(2, 2, 2, '2024-01-25', 15300.00, 1, 'FAC-ACER-00456'),
+(3, 5, 3, '2024-03-15',  4750.00, 3, 'FAC-ARID-00789'),
+(4, 1, 4, '2024-06-05',  5800.00, 1, 'FAC-FANC-00234'),
+(5, 3, 5, '2024-05-15',  2100.00, 2, 'FAC-PINE-00101'),
+(6, 1, 6, '2025-11-08', 12000.00, 1, 'FAC-FANC-00345'),
+(7, 2, 7, '2025-11-15', 18500.00, 1, 'FAC-ACER-00567'),
+(8, 6, 8, '2025-03-05',  8000.00, 2, 'FAC-PINR-00234'),
+(9, 5, 9, '2024-08-10',  9500.00, 1, 'FAC-ARID-00890');
 SET IDENTITY_INSERT dbo.pagoproveedor OFF;
 GO
 
--- =====================================================
 -- GRUPO 15: REGISTRO DE HORAS TRABAJADAS
--- =====================================================
-
+-- NOTA v2: ya no tiene pagoPorHora ni totalPago
+-- El costo se calcula: registrohoras.horasTrabajadas * cargo.pagoPorHora
 SET IDENTITY_INSERT dbo.registrohoras ON;
-INSERT INTO dbo.registrohoras (idRegistroHoras, idEmpleado, idProyecto, fecha, horasTrabajadas, pagoPorHora, totalPago) VALUES
-(1,  31, 1, '2024-01-15', 8.00, 20.00, 160.00),
-(2,  31, 1, '2024-01-16', 8.00, 20.00, 160.00),
-(3,  31, 1, '2024-01-17', 8.00, 20.00, 160.00),
-(4,  32, 1, '2024-01-15', 8.00, 15.00, 120.00),
-(5,  32, 1, '2024-01-16', 8.00, 15.00, 120.00),
-(6,  32, 1, '2024-01-17', 8.00, 15.00, 120.00),
-(7,  34, 6, '2026-01-05', 8.00, 20.00, 160.00),
-(8,  34, 6, '2026-01-06', 8.00, 20.00, 160.00),
-(9,  34, 6, '2026-01-07', 8.00, 20.00, 160.00),
-(10, 34, 6, '2026-01-08', 8.00, 20.00, 160.00),
-(11, 35, 6, '2026-01-05', 8.00, 15.00, 120.00),
-(12, 35, 6, '2026-01-06', 8.00, 15.00, 120.00),
-(13, 35, 6, '2026-01-07', 8.00, 15.00, 120.00),
-(14, 35, 6, '2026-01-08', 8.00, 15.00, 120.00),
-(15, 36, 6, '2026-01-05', 8.00, 18.00, 144.00),
-(16, 36, 6, '2026-01-06', 8.00, 18.00, 144.00),
-(17, 36, 6, '2026-01-12', 8.00, 18.00, 144.00),
-(18, 37, 6, '2026-01-05', 8.00, 22.00, 176.00),
-(19, 37, 6, '2026-01-06', 8.00, 22.00, 176.00),
-(20, 37, 6, '2026-01-13', 8.00, 22.00, 176.00),
-(21, 38, 6, '2026-01-07', 8.00, 16.00, 128.00),
-(22, 38, 6, '2026-01-08', 8.00, 16.00, 128.00),
-(23, 38, 6, '2026-01-14', 8.00, 16.00, 128.00),
-(24, 96, 6, '2026-01-05', 8.00, 20.00, 160.00),
-(25, 96, 6, '2026-01-06', 8.00, 20.00, 160.00),
-(26, 96, 6, '2026-01-07', 8.00, 20.00, 160.00),
-(27, 96, 6, '2026-01-08', 8.00, 20.00, 160.00),
-(28, 97, 6, '2026-01-05', 8.00, 15.00, 120.00),
-(29, 97, 6, '2026-01-06', 8.00, 15.00, 120.00),
-(30, 97, 6, '2026-01-07', 8.00, 15.00, 120.00),
-(31, 97, 6, '2026-01-08', 8.00, 15.00, 120.00),
-(32, 98, 6, '2026-01-05', 8.00, 17.00, 136.00),
-(33, 98, 6, '2026-01-06', 8.00, 17.00, 136.00),
-(34, 98, 6, '2026-01-09', 8.00, 17.00, 136.00);
+INSERT INTO dbo.registrohoras (idRegistroHoras, idEmpleado, idProyecto, fecha, horasTrabajadas) VALUES
+(1,  31, 1, '2024-01-15', 8.00),
+(2,  31, 1, '2024-01-16', 8.00),
+(3,  31, 1, '2024-01-17', 8.00),
+(4,  32, 1, '2024-01-15', 8.00),
+(5,  32, 1, '2024-01-16', 8.00),
+(6,  32, 1, '2024-01-17', 8.00),
+(7,  34, 6, '2026-01-05', 8.00),
+(8,  34, 6, '2026-01-06', 8.00),
+(9,  34, 6, '2026-01-07', 8.00),
+(10, 34, 6, '2026-01-08', 8.00),
+(11, 35, 6, '2026-01-05', 8.00),
+(12, 35, 6, '2026-01-06', 8.00),
+(13, 35, 6, '2026-01-07', 8.00),
+(14, 35, 6, '2026-01-08', 8.00),
+(15, 36, 6, '2026-01-05', 8.00),
+(16, 36, 6, '2026-01-06', 8.00),
+(17, 36, 6, '2026-01-12', 8.00),
+(18, 37, 6, '2026-01-05', 8.00),
+(19, 37, 6, '2026-01-06', 8.00),
+(20, 37, 6, '2026-01-13', 8.00),
+(21, 38, 6, '2026-01-07', 8.00),
+(22, 38, 6, '2026-01-08', 8.00),
+(23, 38, 6, '2026-01-14', 8.00),
+(24, 96, 6, '2026-01-05', 8.00),
+(25, 96, 6, '2026-01-06', 8.00),
+(26, 96, 6, '2026-01-07', 8.00),
+(27, 96, 6, '2026-01-08', 8.00),
+(28, 97, 6, '2026-01-05', 8.00),
+(29, 97, 6, '2026-01-06', 8.00),
+(30, 97, 6, '2026-01-07', 8.00),
+(31, 97, 6, '2026-01-08', 8.00),
+(32, 98, 6, '2026-01-05', 8.00),
+(33, 98, 6, '2026-01-06', 8.00),
+(34, 98, 6, '2026-01-09', 8.00);
 SET IDENTITY_INSERT dbo.registrohoras OFF;
 GO
 
--- =====================================================
 -- GRUPO 16: INVENTARIO
--- =====================================================
-
+-- NOTA v2: ahora incluye stockInicial
 SET IDENTITY_INSERT dbo.inventario ON;
-INSERT INTO dbo.inventario (idInventario, idMaterial, stockActual, stockMinimo, ubicacion, fechaActualizacion) VALUES
-(1,   1,  500.00, 100.00, 'Bodega Central Estante A1',   '2026-01-01'),
-(2,   2, 2000.00, 500.00, 'Bodega Central Estante B1',   '2026-01-01'),
-(3,   3, 1500.00, 300.00, 'Bodega Central Estante B2',   '2026-01-01'),
-(4,   4,  200.00,  50.00, 'Bodega Madera Estante C1',    '2026-01-01'),
-(5,   5,   30.00,  10.00, N'Bodega Eléctrica Estante D1','2026-01-01'),
-(6,   6,  300.00,  80.00, 'Bodega Central Estante A2',   '2026-01-01'),
-(7,   7,  250.00,  80.00, 'Bodega Central Estante A3',   '2026-01-01'),
-(8,   8,  100.00,  20.00, 'Bodega Pintura Estante E1',   '2026-01-01'),
-(9,   9,  800.00, 200.00, 'Bodega Central Estante F1',   '2026-01-01'),
-(10, 10,   50.00,  10.00, 'Bodega Central Estante A4',   '2026-01-01'),
-(11, 11, 5000.00,1000.00, 'Bodega Central Estante G1',   '2026-01-01'),
-(12, 12, 3000.00, 500.00, 'Bodega Central Estante B3',   '2026-01-01'),
-(13, 13,  800.00, 100.00, 'Bodega Madera Estante C2',    '2026-01-01'),
-(14, 14,  400.00,  50.00, N'Bodega Plomería Estante H1', '2026-01-01'),
-(15, 15,  150.00,  30.00, 'Bodega Pintura Estante E2',   '2026-01-01');
+INSERT INTO dbo.inventario (idInventario, idMaterial, stockInicial, stockActual, stockMinimo, ubicacion, fechaActualizacion) VALUES
+(1,   1,  650.00,  500.00, 100.00, 'Bodega Central Estante A1',   '2026-01-01'),
+(2,   2, 2500.00, 2000.00, 500.00, 'Bodega Central Estante B1',   '2026-01-01'),
+(3,   3, 1800.00, 1500.00, 300.00, 'Bodega Central Estante B2',   '2026-01-01'),
+(4,   4,  250.00,  200.00,  50.00, 'Bodega Madera Estante C1',    '2026-01-01'),
+(5,   5,   50.00,   30.00,  10.00, N'Bodega Eléctrica Estante D1','2026-01-01'),
+(6,   6,  400.00,  300.00,  80.00, 'Bodega Central Estante A2',   '2026-01-01'),
+(7,   7,  320.00,  250.00,  80.00, 'Bodega Central Estante A3',   '2026-01-01'),
+(8,   8,  150.00,  100.00,  20.00, 'Bodega Pintura Estante E1',   '2026-01-01'),
+(9,   9, 1000.00,  800.00, 200.00, 'Bodega Central Estante F1',   '2026-01-01'),
+(10, 10,   80.00,   50.00,  10.00, 'Bodega Central Estante A4',   '2026-01-01'),
+(11, 11, 6000.00, 5000.00,1000.00, 'Bodega Central Estante G1',   '2026-01-01'),
+(12, 12, 3500.00, 3000.00, 500.00, 'Bodega Central Estante B3',   '2026-01-01'),
+(13, 13, 1000.00,  800.00, 100.00, 'Bodega Madera Estante C2',    '2026-01-01'),
+(14, 14,  500.00,  400.00,  50.00, N'Bodega Plomería Estante H1', '2026-01-01'),
+(15, 15,  200.00,  150.00,  30.00, 'Bodega Pintura Estante E2',   '2026-01-01');
 SET IDENTITY_INSERT dbo.inventario OFF;
 GO
-
--- GRUPO 17: BONIFICACIÓN Y PAGO PLANILLA
--- NOTA: tipoBonificacion ENUM → NVARCHAR con CHECK
---       gestion YEAR → SMALLINT (usar valor numérico directo)
-SET IDENTITY_INSERT dbo.bonificacionempleado ON;
-INSERT INTO dbo.bonificacionempleado (idBonificacion, idEmpleado, tipoBonificacion, aniosAntiguedad, porcentajeBono, salarioBase, gestion, descripcion, idEstadoPago) VALUES
-(1, 1,   N'Antigüedad', 15,  25.00, 15000.00, 2025, N'Bono antigüedad más de 10 años', 3),
-(2, 6,   N'Aguinaldo',  NULL,100.00,10000.00, 2025, N'Aguinaldo anual completo',        3),
-(3, 16,  N'Antigüedad',  8,  15.00,  9000.00, 2025, N'Bono antigüedad 6 a 10 años',    1),
-(4, 26,  N'Aguinaldo',  NULL,100.00, 4500.00, 2025, N'Aguinaldo anual',                 3),
-(5, 31,  N'Antigüedad',  6,  10.00,  4500.00, 2025, N'Bono antigüedad 3 a 5 años',     1),
-(6, 96,  N'Aguinaldo',  NULL,100.00, 4800.00, 2025, N'Aguinaldo anual',                 3),
-(7, 97,  N'Legal',       5,   8.00,  4500.00, 2025, N'Beneficio normativa interna',     2),
-(8, 36,  N'Antigüedad',  4,   5.00,  4600.00, 2025, N'Bono antigüedad 1 a 2 años',     1);
-SET IDENTITY_INSERT dbo.bonificacionempleado OFF;
+-- TABLA NUEVA 2: alertas_inventario
+-- Registros de materiales que han estado en stock crítico
+SET IDENTITY_INSERT dbo.alertas_inventario ON;
+INSERT INTO dbo.alertas_inventario (idAlerta, idMaterial, stockActual, stockMinimo, fechaAlerta, mensaje) VALUES
+(1,  5,  12.00, 10.00, '2025-12-15 08:30:00', N'ALERTA: Cable eléctrico 12AWG cerca del stock mínimo'),
+(2,  5,   8.00, 10.00, '2025-12-20 09:15:00', N'CRÍTICO: Cable eléctrico 12AWG por debajo del stock mínimo'),
+(3,  10,  9.00, 10.00, '2025-11-10 10:00:00', N'CRÍTICO: Cemento blanco por debajo del stock mínimo'),
+(4,  8,  18.00, 20.00, '2025-10-05 11:30:00', N'CRÍTICO: Pintura látex blanca por debajo del stock mínimo'),
+(5,  15, 25.00, 30.00, '2025-09-22 14:00:00', N'CRÍTICO: Pintura esmalte colores por debajo del stock mínimo'),
+(6,  4, 45.00,  50.00, '2026-01-03 07:45:00', N'ALERTA: Tablón de madera 2x8 cerca del stock mínimo'),
+(7,  5,  9.00,  10.00, '2026-01-08 08:00:00', N'CRÍTICO: Cable eléctrico 12AWG por debajo del stock mínimo'),
+(8,  10, 8.00,  10.00, '2026-01-10 09:30:00', N'CRÍTICO: Cemento blanco requiere reposición urgente');
+SET IDENTITY_INSERT dbo.alertas_inventario OFF;
+GO
+-- TABLA NUEVA 3: bonoantiguedadproyecto
+-- Reemplaza bonificacionempleado + pagoplanilla
+-- montoBono y salarioFinalProyecto son columnas calculadas (PERSISTED)
+SET IDENTITY_INSERT dbo.bonoantiguedadproyecto ON;
+INSERT INTO dbo.bonoantiguedadproyecto (idBonoAntiguedadProyecto, idEmpleado, idProyecto, gestion, aniosAntiguedad, porcentajeBono, salarioBaseProyecto, descripcion) VALUES
+(1,  1,  1, 2024, 14, 25.00, 15000.00, N'Bono antigüedad - Director Proyecto Mendoza'),
+(2,  1,  2, 2024, 14, 25.00, 15000.00, N'Bono antigüedad - Director Edificio Los Andes'),
+(3,  6,  1, 2024,  7, 15.00, 10000.00, N'Bono antigüedad - Supervisor Proyecto Mendoza'),
+(4,  6,  6, 2025,  8, 15.00, 10000.00, N'Bono antigüedad - Supervisor Casa Familiar Norte'),
+(5,  16, 1, 2024,  6, 10.00,  9000.00, N'Bono antigüedad - Técnico Proyecto Mendoza'),
+(6,  26, 2, 2024,  8, 15.00,  9400.00, N'Bono antigüedad - Técnico Edificio Los Andes'),
+(7,  31, 1, 2024,  9, 15.00, 10500.00, N'Bono antigüedad - Operario Proyecto Mendoza'),
+(8,  34, 6, 2025,  8, 15.00,  9900.00, N'Bono antigüedad - Operario Casa Familiar Norte'),
+(9,  35, 6, 2025, 12, 20.00, 11000.00, N'Bono antigüedad - Operario Casa Familiar Norte'),
+(10, 96, 6, 2025,  3,  5.00,  4350.00, N'Bono antigüedad - Albañil Casa Familiar Norte'),
+(11, 97, 6, 2025,  6, 10.00,  4450.00, N'Bono antigüedad - Albañil Casa Familiar Norte');
+SET IDENTITY_INSERT dbo.bonoantiguedadproyecto OFF;
 GO
 
-SET IDENTITY_INSERT dbo.pagoplanilla ON;
-INSERT INTO dbo.pagoplanilla (idPagoPlanilla, idEmpleado, idBonificacion, fechaPago, monto, idMetodoPago, idEstadoPago) VALUES
-(1, 1,  1, '2025-12-15', 3750.00, 1, 3),
-(2, 6,  2, '2025-12-20',10000.00, 2, 3),
-(3, 26, 4, '2025-12-20', 4500.00, 1, 3),
-(4, 96, 6, '2025-12-20', 4800.00, 1, 3),
-(5, 97, 7, '2025-11-30',  360.00, 1, 2);
-SET IDENTITY_INSERT dbo.pagoplanilla OFF;
+-- TABLA NUEVA 4: pagoplanillaproyecto
+-- Reemplaza pagoplanilla, vincula con bonoantiguedadproyecto
+SET IDENTITY_INSERT dbo.pagoplanillaproyecto ON;
+INSERT INTO dbo.pagoplanillaproyecto (idPagoPlanillaProyecto, idEmpleado, idProyecto, idBonoAntiguedadProyecto, fechaPago, montoPagado, idMetodoPago, idEstadoPago) VALUES
+(1,  1,  1, 1, '2024-12-15', 3750.00, 1, 3),
+(2,  1,  2, 2, '2024-12-15', 3750.00, 1, 3),
+(3,  6,  1, 3, '2024-12-20', 1500.00, 2, 3),
+(4,  6,  6, 4, '2025-12-20', 1500.00, 2, 3),
+(5,  16, 1, 5, '2024-12-20',  900.00, 1, 3),
+(6,  26, 2, 6, '2024-12-20', 1410.00, 1, 3),
+(7,  31, 1, 7, '2024-12-18', 1575.00, 1, 3),
+(8,  34, 6, 8, '2025-12-18', 1485.00, 1, 2),
+(9,  35, 6, 9, '2025-12-18', 2200.00, 1, 2),
+(10, 96, 6,10, '2025-12-20',  217.50, 1, 1),
+(11, 97, 6,11, '2025-12-20',  445.00, 1, 1);
+SET IDENTITY_INSERT dbo.pagoplanillaproyecto OFF;
 GO
 -- Reactivar todos los constraints
 EXEC sp_msforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';
 GO
--- VERIFICACIÓN FINAL
-SELECT 'Empleado'     AS Tabla, COUNT(*) AS Total FROM dbo.empleado      UNION ALL
-SELECT 'Cliente',               COUNT(*)           FROM dbo.cliente       UNION ALL
-SELECT 'Proyecto',              COUNT(*)           FROM dbo.proyecto      UNION ALL
-SELECT 'Contrato',              COUNT(*)           FROM dbo.contrato      UNION ALL
-SELECT 'RegistroHoras',         COUNT(*)           FROM dbo.registrohoras UNION ALL
-SELECT 'Albañiles', COUNT(*) FROM dbo.empleado e JOIN dbo.cargo c ON e.idCargo = c.idCargo WHERE c.nombreCargo = N'Albañil' UNION ALL
-SELECT 'Plomeros',  COUNT(*) FROM dbo.empleado e JOIN dbo.cargo c ON e.idCargo = c.idCargo WHERE c.nombreCargo = 'Plomero';
+
+-- VERIFICACIÓN FINAL - 42 TABLAS
+SELECT 'tipocliente'             AS Tabla, COUNT(*) AS Total FROM dbo.tipocliente             UNION ALL
+SELECT 'estadoproyecto',                   COUNT(*)          FROM dbo.estadoproyecto           UNION ALL
+SELECT 'tipoproyecto',                     COUNT(*)          FROM dbo.tipoproyecto             UNION ALL
+SELECT 'estadocontrato',                   COUNT(*)          FROM dbo.estadocontrato           UNION ALL
+SELECT 'tipocontrato',                     COUNT(*)          FROM dbo.tipocontrato             UNION ALL
+SELECT 'estadocotizacion',                 COUNT(*)          FROM dbo.estadocotizacion         UNION ALL
+SELECT 'departamento',                     COUNT(*)          FROM dbo.departamento             UNION ALL
+SELECT 'estadoorden',                      COUNT(*)          FROM dbo.estadoorden              UNION ALL
+SELECT 'tipomaterial',                     COUNT(*)          FROM dbo.tipomaterial             UNION ALL
+SELECT 'unidadmedida',                     COUNT(*)          FROM dbo.unidadmedida             UNION ALL
+SELECT 'estadoempleado',                   COUNT(*)          FROM dbo.estadoempleado           UNION ALL
+SELECT 'rolproyecto',                      COUNT(*)          FROM dbo.rolproyecto              UNION ALL
+SELECT 'estadopago',                       COUNT(*)          FROM dbo.estadopago               UNION ALL
+SELECT 'metodopago',                       COUNT(*)          FROM dbo.metodopago               UNION ALL
+SELECT 'cargo',                            COUNT(*)          FROM dbo.cargo                    UNION ALL
+SELECT 'cliente',                          COUNT(*)          FROM dbo.cliente                  UNION ALL
+SELECT 'proveedor',                        COUNT(*)          FROM dbo.proveedor                UNION ALL
+SELECT 'material',                         COUNT(*)          FROM dbo.material                 UNION ALL
+SELECT 'empleado',                         COUNT(*)          FROM dbo.empleado                 UNION ALL
+SELECT 'proyecto',                         COUNT(*)          FROM dbo.proyecto                 UNION ALL
+SELECT 'margenproyecto [NUEVA]',           COUNT(*)          FROM dbo.margenproyecto           UNION ALL
+SELECT 'proveedormaterial',                COUNT(*)          FROM dbo.proveedormaterial        UNION ALL
+SELECT 'contrato',                         COUNT(*)          FROM dbo.contrato                 UNION ALL
+SELECT 'cotizacioncliente',                COUNT(*)          FROM dbo.cotizacioncliente        UNION ALL
+SELECT 'cotizacioninterna',                COUNT(*)          FROM dbo.cotizacioninterna        UNION ALL
+SELECT 'ordencompra',                      COUNT(*)          FROM dbo.ordencompra              UNION ALL
+SELECT 'detallecompra',                    COUNT(*)          FROM dbo.detallecompra            UNION ALL
+SELECT 'inventario',                       COUNT(*)          FROM dbo.inventario               UNION ALL
+SELECT 'alertas_inventario [NUEVA]',       COUNT(*)          FROM dbo.alertas_inventario       UNION ALL
+SELECT 'detallecotizacioncliente',         COUNT(*)          FROM dbo.detallecotizacioncliente UNION ALL
+SELECT 'detallecotizacioninterna',         COUNT(*)          FROM dbo.detallecotizacioninterna UNION ALL
+SELECT 'detallecotizacionmanoobra',        COUNT(*)          FROM dbo.detallecotizacionmanoobra UNION ALL
+SELECT 'empleadoproyecto',                 COUNT(*)          FROM dbo.empleadoproyecto         UNION ALL
+SELECT 'materialproyecto',                 COUNT(*)          FROM dbo.materialproyecto         UNION ALL
+SELECT 'registrohoras',                    COUNT(*)          FROM dbo.registrohoras            UNION ALL
+SELECT 'bonoantiguedadproyecto [NUEVA]',   COUNT(*)          FROM dbo.bonoantiguedadproyecto   UNION ALL
+SELECT 'pagocliente',                      COUNT(*)          FROM dbo.pagocliente              UNION ALL
+SELECT 'pagoproveedor',                    COUNT(*)          FROM dbo.pagoproveedor            UNION ALL
+SELECT 'cuota',                            COUNT(*)          FROM dbo.cuota                    UNION ALL
+SELECT 'pagoplanillaproyecto [NUEVA]',     COUNT(*)          FROM dbo.pagoplanillaproyecto     UNION ALL
+SELECT 'bonoantiguedadproyecto',           COUNT(*)          FROM dbo.bonoantiguedadproyecto   UNION ALL
+SELECT 'pagoplanillaproyecto',             COUNT(*)          FROM dbo.pagoplanillaproyecto;
 GO
