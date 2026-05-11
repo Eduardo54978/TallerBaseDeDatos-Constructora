@@ -6,164 +6,166 @@ USE constructora;
 GO
 
 -- PARTE 1: CHECK CONSTRAINTS
+-- Se eliminan primero para evitar errores si el script se ejecuta más de una vez
+
+ALTER TABLE dbo.empleado DROP CONSTRAINT IF EXISTS chk_empleado_email;
+ALTER TABLE dbo.material DROP CONSTRAINT IF EXISTS chk_material_precio;
+ALTER TABLE dbo.inventario DROP CONSTRAINT IF EXISTS chk_inventario_stock;
+ALTER TABLE dbo.inventario DROP CONSTRAINT IF EXISTS chk_inventario_minimo;
+ALTER TABLE dbo.contrato DROP CONSTRAINT IF EXISTS chk_contrato_monto;
+ALTER TABLE dbo.contrato DROP CONSTRAINT IF EXISTS chk_contrato_fechas;
+ALTER TABLE dbo.contrato DROP CONSTRAINT IF EXISTS chk_contrato_firma;
+ALTER TABLE dbo.contrato DROP CONSTRAINT IF EXISTS chk_contrato_inicio;
+ALTER TABLE dbo.cuota DROP CONSTRAINT IF EXISTS chk_cuota_monto;
+ALTER TABLE dbo.cuota DROP CONSTRAINT IF EXISTS chk_cuota_saldo;
+ALTER TABLE dbo.pagocliente DROP CONSTRAINT IF EXISTS chk_pagocli_monto;
+ALTER TABLE dbo.pagoproveedor DROP CONSTRAINT IF EXISTS chk_pagoprov_monto;
+ALTER TABLE dbo.pagoplanillaproyecto DROP CONSTRAINT IF EXISTS chk_pagoplan_monto;
+ALTER TABLE dbo.ordencompra DROP CONSTRAINT IF EXISTS chk_orden_monto;
+ALTER TABLE dbo.detallecompra DROP CONSTRAINT IF EXISTS chk_detcompra_cantidad;
+ALTER TABLE dbo.detallecompra DROP CONSTRAINT IF EXISTS chk_detcompra_precio;
+ALTER TABLE dbo.registrohoras DROP CONSTRAINT IF EXISTS chk_horas_trabajadas;
+ALTER TABLE dbo.bonoantiguedadproyecto DROP CONSTRAINT IF EXISTS chk_bono_porcentaje;
+ALTER TABLE dbo.bonoantiguedadproyecto DROP CONSTRAINT IF EXISTS chk_bono_salario;
+ALTER TABLE dbo.proveedormaterial DROP CONSTRAINT IF EXISTS chk_provmat_precio;
+ALTER TABLE dbo.proveedormaterial DROP CONSTRAINT IF EXISTS chk_provmat_entrega;
+ALTER TABLE dbo.proyecto DROP CONSTRAINT IF EXISTS chk_proyecto_fechas;
+ALTER TABLE dbo.detallecotizacioncliente DROP CONSTRAINT IF EXISTS chk_detcotcli_cantidad;
+ALTER TABLE dbo.detallecotizacioncliente DROP CONSTRAINT IF EXISTS chk_detcotcli_precio;
+ALTER TABLE dbo.detallecotizacioninterna DROP CONSTRAINT IF EXISTS chk_detcotint_cantidad;
+ALTER TABLE dbo.detallecotizacioninterna DROP CONSTRAINT IF EXISTS chk_detcotint_costo;
+ALTER TABLE dbo.detallecotizacionmanoobra DROP CONSTRAINT IF EXISTS chk_manoobra_horas;
+ALTER TABLE dbo.detallecotizacionmanoobra DROP CONSTRAINT IF EXISTS chk_manoobra_personas;
+GO
 
 -- EMPLEADO
--- NOTA: salario cambió a salarioReferencial en la nueva versión
-ALTER TABLE empleado
-ADD CONSTRAINT chk_empleado_email
-CHECK (email LIKE '%@%.%');
+ALTER TABLE dbo.empleado
+ADD CONSTRAINT chk_empleado_email CHECK (email LIKE '%@%.%');
 GO
 
 -- MATERIAL
-ALTER TABLE material
-ADD CONSTRAINT chk_material_precio
-CHECK (precioUnitario > 0);
+ALTER TABLE dbo.material
+ADD CONSTRAINT chk_material_precio CHECK (precioUnitario > 0);
 GO
 
 -- INVENTARIO
-ALTER TABLE inventario
-ADD CONSTRAINT chk_inventario_stock
-CHECK (stockActual >= 0);
+ALTER TABLE dbo.inventario
+ADD CONSTRAINT chk_inventario_stock CHECK (stockActual >= 0);
 GO
 
-ALTER TABLE inventario
-ADD CONSTRAINT chk_inventario_minimo
-CHECK (stockMinimo >= 0);
+ALTER TABLE dbo.inventario
+ADD CONSTRAINT chk_inventario_minimo CHECK (stockMinimo >= 0);
 GO
 
 -- CONTRATO
-ALTER TABLE contrato
-ADD CONSTRAINT chk_contrato_monto
-CHECK (montoTotal > 0);
+ALTER TABLE dbo.contrato
+ADD CONSTRAINT chk_contrato_monto CHECK (montoTotal > 0);
 GO
 
-ALTER TABLE contrato
-ADD CONSTRAINT chk_contrato_fechas
-CHECK (fechaVencimiento > fechaInicio);
+ALTER TABLE dbo.contrato
+ADD CONSTRAINT chk_contrato_fechas CHECK (fechaVencimiento > fechaInicio);
 GO
 
-ALTER TABLE contrato
-ADD CONSTRAINT chk_contrato_firma
-CHECK (fechaFirma >= fechaContrato);
+ALTER TABLE dbo.contrato
+ADD CONSTRAINT chk_contrato_firma CHECK (fechaFirma >= fechaContrato);
 GO
 
-ALTER TABLE contrato
-ADD CONSTRAINT chk_contrato_inicio
-CHECK (fechaInicio >= fechaFirma);
+ALTER TABLE dbo.contrato
+ADD CONSTRAINT chk_contrato_inicio CHECK (fechaInicio >= fechaFirma);
 GO
 
 -- CUOTA
-ALTER TABLE cuota
-ADD CONSTRAINT chk_cuota_monto
-CHECK (montoCuota > 0);
+ALTER TABLE dbo.cuota
+ADD CONSTRAINT chk_cuota_monto CHECK (montoCuota > 0);
 GO
 
-ALTER TABLE cuota
-ADD CONSTRAINT chk_cuota_saldo
-CHECK (saldoPendiente >= 0);
+ALTER TABLE dbo.cuota
+ADD CONSTRAINT chk_cuota_saldo CHECK (saldoPendiente >= 0);
 GO
 
--- PAGOCLIENTE
-ALTER TABLE pagocliente
-ADD CONSTRAINT chk_pagocli_monto
-CHECK (monto > 0);
+-- PAGO CLIENTE
+ALTER TABLE dbo.pagocliente
+ADD CONSTRAINT chk_pagocli_monto CHECK (monto > 0);
 GO
 
--- PAGOPROVEEDOR
-ALTER TABLE pagoproveedor
-ADD CONSTRAINT chk_pagoprov_monto
-CHECK (monto > 0);
+-- PAGO PROVEEDOR
+ALTER TABLE dbo.pagoproveedor
+ADD CONSTRAINT chk_pagoprov_monto CHECK (monto > 0);
 GO
 
--- PAGOPLANILLAPROYECTO (reemplaza pagoplanilla)
-ALTER TABLE pagoplanillaproyecto
-ADD CONSTRAINT chk_pagoplan_monto
-CHECK (montoPagado > 0);
+-- PAGO PLANILLA PROYECTO
+ALTER TABLE dbo.pagoplanillaproyecto
+ADD CONSTRAINT chk_pagoplan_monto CHECK (montoPagado > 0);
 GO
 
--- ORDENCOMPRA
-ALTER TABLE ordencompra
-ADD CONSTRAINT chk_orden_monto
-CHECK (montoTotal > 0);
+-- ORDEN COMPRA
+ALTER TABLE dbo.ordencompra
+ADD CONSTRAINT chk_orden_monto CHECK (montoTotal > 0);
 GO
 
--- DETALLECOMPRA
-ALTER TABLE detallecompra
-ADD CONSTRAINT chk_detcompra_cantidad
-CHECK (cantidad > 0);
+-- DETALLE COMPRA
+ALTER TABLE dbo.detallecompra
+ADD CONSTRAINT chk_detcompra_cantidad CHECK (cantidad > 0);
 GO
 
-ALTER TABLE detallecompra
-ADD CONSTRAINT chk_detcompra_precio
-CHECK (precioUnitario > 0);
+ALTER TABLE dbo.detallecompra
+ADD CONSTRAINT chk_detcompra_precio CHECK (precioUnitario > 0);
 GO
 
--- REGISTROHORAS
--- NOTA: ya no tiene pagoPorHora, el pago viene de cargo.pagoPorHora
-ALTER TABLE registrohoras
-ADD CONSTRAINT chk_horas_trabajadas
-CHECK (horasTrabajadas > 0 AND horasTrabajadas <= 8);
+-- REGISTRO HORAS
+ALTER TABLE dbo.registrohoras
+ADD CONSTRAINT chk_horas_trabajadas CHECK (horasTrabajadas > 0 AND horasTrabajadas <= 8);
 GO
 
--- BONOANTIGUEDADPROYECTO (reemplaza bonificacionempleado)
-ALTER TABLE bonoantiguedadproyecto
-ADD CONSTRAINT chk_bono_porcentaje
-CHECK (porcentajeBono > 0 AND porcentajeBono <= 100);
+-- BONO ANTIGÜEDAD PROYECTO
+-- Se permite 0 porque hay empleados sin bono
+ALTER TABLE dbo.bonoantiguedadproyecto
+ADD CONSTRAINT chk_bono_porcentaje CHECK (porcentajeBono >= 0 AND porcentajeBono <= 25);
 GO
 
-ALTER TABLE bonoantiguedadproyecto
-ADD CONSTRAINT chk_bono_salario
-CHECK (salarioBaseProyecto > 0);
+ALTER TABLE dbo.bonoantiguedadproyecto
+ADD CONSTRAINT chk_bono_salario CHECK (salarioBaseProyecto > 0);
 GO
 
--- PROVEEDORMATERIAL
-ALTER TABLE proveedormaterial
-ADD CONSTRAINT chk_provmat_precio
-CHECK (precioProveedor > 0);
+-- PROVEEDOR MATERIAL
+ALTER TABLE dbo.proveedormaterial
+ADD CONSTRAINT chk_provmat_precio CHECK (precioProveedor > 0);
 GO
 
-ALTER TABLE proveedormaterial
-ADD CONSTRAINT chk_provmat_entrega
-CHECK (tiempoEntrega >= 0);
+ALTER TABLE dbo.proveedormaterial
+ADD CONSTRAINT chk_provmat_entrega CHECK (tiempoEntrega >= 0);
 GO
 
 -- PROYECTO
-ALTER TABLE proyecto
-ADD CONSTRAINT chk_proyecto_fechas
-CHECK (fechaFinEstimada > fechaInicio);
+ALTER TABLE dbo.proyecto
+ADD CONSTRAINT chk_proyecto_fechas CHECK (fechaFinEstimada > fechaInicio);
 GO
 
--- DETALLECOTIZACIONCLIENTE
-ALTER TABLE detallecotizacioncliente
-ADD CONSTRAINT chk_detcotcli_cantidad
-CHECK (cantidad > 0);
+-- DETALLE COTIZACION CLIENTE
+ALTER TABLE dbo.detallecotizacioncliente
+ADD CONSTRAINT chk_detcotcli_cantidad CHECK (cantidad > 0);
 GO
 
-ALTER TABLE detallecotizacioncliente
-ADD CONSTRAINT chk_detcotcli_precio
-CHECK (precioUnitario > 0);
+ALTER TABLE dbo.detallecotizacioncliente
+ADD CONSTRAINT chk_detcotcli_precio CHECK (precioUnitario > 0);
 GO
 
--- DETALLECOTIZACIONINTERNA
-ALTER TABLE detallecotizacioninterna
-ADD CONSTRAINT chk_detcotint_cantidad
-CHECK (cantidadEstimada > 0);
+-- DETALLE COTIZACION INTERNA
+ALTER TABLE dbo.detallecotizacioninterna
+ADD CONSTRAINT chk_detcotint_cantidad CHECK (cantidadEstimada > 0);
 GO
 
-ALTER TABLE detallecotizacioninterna
-ADD CONSTRAINT chk_detcotint_costo
-CHECK (costoUnitarioEstimado > 0);
+ALTER TABLE dbo.detallecotizacioninterna
+ADD CONSTRAINT chk_detcotint_costo CHECK (costoUnitarioEstimado > 0);
 GO
 
--- DETALLECOTIZACIONMANOOBRA
-ALTER TABLE detallecotizacionmanoobra
-ADD CONSTRAINT chk_manoobra_horas
-CHECK (horasEstimadas > 0);
+-- DETALLE COTIZACION MANO OBRA
+ALTER TABLE dbo.detallecotizacionmanoobra
+ADD CONSTRAINT chk_manoobra_horas CHECK (horasEstimadas > 0);
 GO
 
-ALTER TABLE detallecotizacionmanoobra
-ADD CONSTRAINT chk_manoobra_personas
-CHECK (cantidadPersonas > 0);
+ALTER TABLE dbo.detallecotizacionmanoobra
+ADD CONSTRAINT chk_manoobra_personas CHECK (cantidadPersonas > 0);
 GO
 -- PARTE 2: ROLES
 
