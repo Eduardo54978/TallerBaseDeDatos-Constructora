@@ -4785,107 +4785,205 @@ EXEC sp_msforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';
 GO
 GO
 
--- ==========================================================
--- CORRECCION FINAL DE CARACTERES ESPECIALES
--- Evita textos dañados por codificación al cargar la base
--- ==========================================================
-
-USE constructora;
 GO
 
--- Corrección general para columnas de texto
+-- ==========================================================
+-- CORRECCION FINAL FORZADA DE CARACTERES ESPECIALES
+-- Este bloque se ejecuta al final de DatosPrecargados.sql
+-- para limpiar textos dañados por codificación.
+-- ==========================================================
+
+USE [constructora];
+GO
+
+-- Crear función temporal de corrección
+CREATE OR ALTER FUNCTION dbo.corregirTextoConstructora (@texto NVARCHAR(MAX))
+RETURNS NVARCHAR(MAX)
+AS
+BEGIN
+    IF @texto IS NULL
+        RETURN NULL;
+
+    -- UTF-8 leído como CP437 / caracteres tipo ├
+    SET @texto = REPLACE(@texto, N'├í', N'á');
+    SET @texto = REPLACE(@texto, N'├®', N'é');
+    SET @texto = REPLACE(@texto, N'├¡', N'í');
+    SET @texto = REPLACE(@texto, N'├│', N'ó');
+    SET @texto = REPLACE(@texto, N'├║', N'ú');
+    SET @texto = REPLACE(@texto, N'├╝', N'ü');
+    SET @texto = REPLACE(@texto, N'├▒', N'ñ');
+
+    -- Mayúsculas
+    SET @texto = REPLACE(@texto, N'├ü', N'Á');
+    SET @texto = REPLACE(@texto, N'├ë', N'É');
+    SET @texto = REPLACE(@texto, N'├ì', N'Í');
+    SET @texto = REPLACE(@texto, N'├ô', N'Ó');
+    SET @texto = REPLACE(@texto, N'├Ü', N'Ú');
+    SET @texto = REPLACE(@texto, N'├£', N'Ü');
+    SET @texto = REPLACE(@texto, N'├æ', N'Ñ');
+
+    -- Símbolos
+    SET @texto = REPLACE(@texto, N'┬▓', N'²');
+    SET @texto = REPLACE(@texto, N'┬│', N'³');
+    SET @texto = REPLACE(@texto, N'┬░', N'°');
+
+    -- UTF-8 leído como Latin1 / Windows
+    SET @texto = REPLACE(@texto, N'Ã¡', N'á');
+    SET @texto = REPLACE(@texto, N'Ã©', N'é');
+    SET @texto = REPLACE(@texto, N'Ã­', N'í');
+    SET @texto = REPLACE(@texto, N'Ã³', N'ó');
+    SET @texto = REPLACE(@texto, N'Ãº', N'ú');
+    SET @texto = REPLACE(@texto, N'Ã¼', N'ü');
+    SET @texto = REPLACE(@texto, N'Ã±', N'ñ');
+
+    SET @texto = REPLACE(@texto, N'Ã', N'Á');
+    SET @texto = REPLACE(@texto, N'Ã‰', N'É');
+    SET @texto = REPLACE(@texto, N'Ã', N'Í');
+    SET @texto = REPLACE(@texto, N'Ã“', N'Ó');
+    SET @texto = REPLACE(@texto, N'Ãš', N'Ú');
+    SET @texto = REPLACE(@texto, N'Ã‘', N'Ñ');
+
+    SET @texto = REPLACE(@texto, N'Â²', N'²');
+    SET @texto = REPLACE(@texto, N'Â³', N'³');
+    SET @texto = REPLACE(@texto, N'Â°', N'°');
+
+    RETURN @texto;
+END;
+GO
+
+-- Aplicar corrección general a todas las columnas de texto
 DECLARE @sqlCaracteres NVARCHAR(MAX) = N'';
 
 SELECT @sqlCaracteres = @sqlCaracteres + '
 UPDATE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + '
-SET ' + QUOTENAME(c.name) + ' =
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(
-    REPLACE(' + QUOTENAME(c.name) + ',
-        N''├í'', N''á''),
-        N''├®'', N''é''),
-        N''├¡'', N''í''),
-        N''├│'', N''ó''),
-        N''├║'', N''ú''),
-        N''├╝'', N''ü''),
-        N''├▒'', N''ñ''),
-        N''┬▓'', N''²''),
-        N''┬│'', N''³''),
-        N''┬░'', N''°''),
-        N''Ã¡'', N''á''),
-        N''Ã©'', N''é''),
-        N''Ã­'', N''í''),
-        N''Ã³'', N''ó''),
-        N''Ã±'', N''ñ'')
+SET ' + QUOTENAME(c.name) + ' = dbo.corregirTextoConstructora(' + QUOTENAME(c.name) + ')
 WHERE ' + QUOTENAME(c.name) + ' LIKE N''%├%''
    OR ' + QUOTENAME(c.name) + ' LIKE N''%┬%''
-   OR ' + QUOTENAME(c.name) + ' LIKE N''%Ã%'';' + CHAR(13)
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%Ã%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%Â%'';' + CHAR(13)
 FROM sys.tables t
 INNER JOIN sys.columns c
     ON t.object_id = c.object_id
 INNER JOIN sys.types ty
     ON c.user_type_id = ty.user_type_id
-WHERE ty.name IN ('nvarchar', 'varchar', 'nchar', 'char');
+WHERE ty.name IN ('nvarchar', 'varchar', 'nchar', 'char')
+  AND c.is_computed = 0;
 
 EXEC sp_executesql @sqlCaracteres;
 GO
 
--- Correcciones puntuales por ID para asegurar visualización correcta
+-- ==========================================================
+-- CORRECCIONES PUNTUALES POR TABLA
+-- Estas aseguran que lo visible en la interfaz quede bien sí o sí.
+-- ==========================================================
+
+-- DEPARTAMENTOS
+UPDATE dbo.departamento SET nombreDepartamento = N'Gerencia', descripcionDepartamento = N'Dirección y administración general' WHERE idDepartamento = 1;
+UPDATE dbo.departamento SET nombreDepartamento = N'Obras', descripcionDepartamento = N'Ejecución y supervisión de proyectos' WHERE idDepartamento = 2;
+UPDATE dbo.departamento SET nombreDepartamento = N'Diseño', descripcionDepartamento = N'Arquitectura e ingeniería de proyectos' WHERE idDepartamento = 3;
+UPDATE dbo.departamento SET nombreDepartamento = N'Contabilidad', descripcionDepartamento = N'Finanzas, pagos y contabilidad' WHERE idDepartamento = 4;
+UPDATE dbo.departamento SET nombreDepartamento = N'Logística', descripcionDepartamento = N'Compras, materiales y proveedores' WHERE idDepartamento = 5;
+GO
+
+-- CARGOS
+UPDATE dbo.cargo SET nombreCargo = N'Gerente General', descripcionCargo = N'Responsable de la dirección general' WHERE idCargo = 1;
+UPDATE dbo.cargo SET nombreCargo = N'Jefe de Obra', descripcionCargo = N'Supervisa la ejecución de obras en campo' WHERE idCargo = 2;
+UPDATE dbo.cargo SET nombreCargo = N'Arquitecto', descripcionCargo = N'Diseño y planificación de proyectos' WHERE idCargo = 3;
+UPDATE dbo.cargo SET nombreCargo = N'Ingeniero Civil', descripcionCargo = N'Cálculo estructural y supervisión técnica' WHERE idCargo = 4;
+UPDATE dbo.cargo SET nombreCargo = N'Electricista', descripcionCargo = N'Instalaciones eléctricas en obra' WHERE idCargo = 5;
+UPDATE dbo.cargo SET nombreCargo = N'Albañil', descripcionCargo = N'Trabajos de mampostería y acabados' WHERE idCargo = 6;
+UPDATE dbo.cargo SET nombreCargo = N'Contador', descripcionCargo = N'Gestión contable y financiera' WHERE idCargo = 7;
+UPDATE dbo.cargo SET nombreCargo = N'Asistente Administrativo', descripcionCargo = N'Apoyo en tareas administrativas' WHERE idCargo = 8;
+UPDATE dbo.cargo SET nombreCargo = N'Plomero', descripcionCargo = N'Instalaciones sanitarias y tuberías' WHERE idCargo = 9;
+UPDATE dbo.cargo SET nombreCargo = N'Soldador', descripcionCargo = N'Trabajos de soldadura y metalurgia' WHERE idCargo = 10;
+UPDATE dbo.cargo SET nombreCargo = N'Carpintero', descripcionCargo = N'Trabajos en madera y carpintería' WHERE idCargo = 11;
+UPDATE dbo.cargo SET nombreCargo = N'Pintor', descripcionCargo = N'Trabajos de pintura y acabados' WHERE idCargo = 12;
+GO
+
+-- ESTADOS
+UPDATE dbo.estadocotizacion SET nombreEstadoCotizacion = N'Pendiente', descripcionEstadoCotizacion = N'Cotización en elaboración, aún no enviada al cliente' WHERE idEstadoCotizacion = 1;
+UPDATE dbo.estadocotizacion SET nombreEstadoCotizacion = N'Aprobada', descripcionEstadoCotizacion = N'Cotización aceptada por el cliente' WHERE idEstadoCotizacion = 2;
+UPDATE dbo.estadocotizacion SET nombreEstadoCotizacion = N'Rechazado', descripcionEstadoCotizacion = N'Cotización no aceptada por el cliente' WHERE idEstadoCotizacion = 3;
+UPDATE dbo.estadocotizacion SET nombreEstadoCotizacion = N'Enviada', descripcionEstadoCotizacion = N'Cotización enviada al cliente y en evaluación' WHERE idEstadoCotizacion = 4;
+UPDATE dbo.estadocotizacion SET nombreEstadoCotizacion = N'Reemplazada', descripcionEstadoCotizacion = N'Cotización sustituida por una versión más reciente' WHERE idEstadoCotizacion = 5;
+
+UPDATE dbo.estadopago SET nombreEstadoPago = N'Pendiente', descripcionEstadoPago = N'Pago aún no realizado' WHERE idEstadoPago = 1;
+UPDATE dbo.estadopago SET nombreEstadoPago = N'Registrado', descripcionEstadoPago = N'Pago registrado en el sistema' WHERE idEstadoPago = 2;
+UPDATE dbo.estadopago SET nombreEstadoPago = N'Verificado', descripcionEstadoPago = N'Pago confirmado y validado' WHERE idEstadoPago = 3;
+UPDATE dbo.estadopago SET nombreEstadoPago = N'Anulado', descripcionEstadoPago = N'Pago cancelado o revertido' WHERE idEstadoPago = 4;
+
+UPDATE dbo.estadoproyecto SET nombreEstadoProyecto = N'En planificación', descripcionEstadoProyecto = N'El proyecto está en fase de diseño y planificación' WHERE idEstadoProyecto = 1;
+UPDATE dbo.estadoproyecto SET nombreEstadoProyecto = N'En ejecución', descripcionEstadoProyecto = N'El proyecto está siendo construido activamente' WHERE idEstadoProyecto = 2;
+UPDATE dbo.estadoproyecto SET nombreEstadoProyecto = N'Finalizado', descripcionEstadoProyecto = N'El proyecto ha sido completado y entregado' WHERE idEstadoProyecto = 3;
+UPDATE dbo.estadoproyecto SET nombreEstadoProyecto = N'Suspendido', descripcionEstadoProyecto = N'El proyecto está temporalmente paralizado' WHERE idEstadoProyecto = 4;
+GO
+
+-- ROLES DE PROYECTO
+UPDATE dbo.rolproyecto SET nombreRolProyecto = N'Director', descripcionRolProyecto = N'Dirige y toma decisiones en el proyecto' WHERE idRolProyecto = 1;
+UPDATE dbo.rolproyecto SET nombreRolProyecto = N'Supervisor', descripcionRolProyecto = N'Supervisa el avance y calidad de la obra' WHERE idRolProyecto = 2;
+UPDATE dbo.rolproyecto SET nombreRolProyecto = N'Técnico', descripcionRolProyecto = N'Ejecuta tareas técnicas especializadas' WHERE idRolProyecto = 3;
+UPDATE dbo.rolproyecto SET nombreRolProyecto = N'Operario', descripcionRolProyecto = N'Realiza trabajos manuales en la obra' WHERE idRolProyecto = 4;
+GO
+
+-- TIPOS
+UPDATE dbo.tipocliente SET nombreTipoCliente = N'Persona Natural', descripcionTipoCliente = N'Cliente individual, persona física' WHERE idTipoCliente = 1;
+UPDATE dbo.tipocliente SET nombreTipoCliente = N'Empresa Privada', descripcionTipoCliente = N'Cliente corporativo o jurídico del sector privado' WHERE idTipoCliente = 2;
+UPDATE dbo.tipocliente SET nombreTipoCliente = N'Institución Pública', descripcionTipoCliente = N'Entidad gubernamental o del sector público' WHERE idTipoCliente = 3;
+UPDATE dbo.tipocliente SET nombreTipoCliente = N'Inmobiliaria', descripcionTipoCliente = N'Empresa dedicada a proyectos inmobiliarios y urbanísticos' WHERE idTipoCliente = 4;
+
+UPDATE dbo.tipocontrato SET nombreTipoContrato = N'Obra completa', descripcionTipoContrato = N'Se contrata la ejecución total de la obra' WHERE idTipoContrato = 1;
+UPDATE dbo.tipocontrato SET nombreTipoContrato = N'Por etapas', descripcionTipoContrato = N'La obra se ejecuta y paga por fases' WHERE idTipoContrato = 2;
+UPDATE dbo.tipocontrato SET nombreTipoContrato = N'Por administración', descripcionTipoContrato = N'La empresa administra recursos del cliente' WHERE idTipoContrato = 3;
+
+UPDATE dbo.tipoproyecto SET nombreTipoProyecto = N'Casa', descripcionTipoProyecto = N'Construcción de vivienda unifamiliar' WHERE idTipoProyecto = 1;
+UPDATE dbo.tipoproyecto SET nombreTipoProyecto = N'Edificio', descripcionTipoProyecto = N'Construcción de edificio multifamiliar o comercial' WHERE idTipoProyecto = 2;
+UPDATE dbo.tipoproyecto SET nombreTipoProyecto = N'Carretera', descripcionTipoProyecto = N'Construcción o mejoramiento de vías' WHERE idTipoProyecto = 3;
+UPDATE dbo.tipoproyecto SET nombreTipoProyecto = N'Puente', descripcionTipoProyecto = N'Construcción de puentes y obras de arte' WHERE idTipoProyecto = 4;
+UPDATE dbo.tipoproyecto SET nombreTipoProyecto = N'Local Comercial', descripcionTipoProyecto = N'Construcción de espacios comerciales' WHERE idTipoProyecto = 5;
+GO
 
 -- UNIDADES DE MEDIDA
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm' WHERE idUnidadMedida = 1;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'bolsa' WHERE idUnidadMedida = 2;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm' WHERE idUnidadMedida = 3;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm²' WHERE idUnidadMedida = 4;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm³' WHERE idUnidadMedida = 5;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'unidad' WHERE idUnidadMedida = 6;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'rollo' WHERE idUnidadMedida = 7;
-UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'litro' WHERE idUnidadMedida = 8;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'kg', descripcionUnidadMedida = N'Kilogramo' WHERE idUnidadMedida = 1;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'bolsa', descripcionUnidadMedida = N'Bolsa de 50 kg' WHERE idUnidadMedida = 2;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm', descripcionUnidadMedida = N'Metro lineal' WHERE idUnidadMedida = 3;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm²', descripcionUnidadMedida = N'Metro cuadrado' WHERE idUnidadMedida = 4;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm³', descripcionUnidadMedida = N'Metro cúbico' WHERE idUnidadMedida = 5;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'unidad', descripcionUnidadMedida = N'Pieza o unidad' WHERE idUnidadMedida = 6;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'rollo', descripcionUnidadMedida = N'Rollo de cable o manguera' WHERE idUnidadMedida = 7;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'litro', descripcionUnidadMedida = N'Litro' WHERE idUnidadMedida = 8;
 GO
 
 -- TIPOS DE MATERIAL
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cemento' WHERE idTipoMaterial = 1;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Acero' WHERE idTipoMaterial = 2;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Madera' WHERE idTipoMaterial = 3;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Eléctrico' WHERE idTipoMaterial = 4;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Áridos' WHERE idTipoMaterial = 5;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Pintura' WHERE idTipoMaterial = 6;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cerámica' WHERE idTipoMaterial = 7;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Mampostería' WHERE idTipoMaterial = 8;
-UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Sanitario' WHERE idTipoMaterial = 9;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cemento', descripcionTipoMaterial = N'Materiales cementantes y aglomerantes' WHERE idTipoMaterial = 1;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Acero', descripcionTipoMaterial = N'Varillas, mallas y perfiles de acero' WHERE idTipoMaterial = 2;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Madera', descripcionTipoMaterial = N'Tablones, vigas y madera en general' WHERE idTipoMaterial = 3;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Eléctrico', descripcionTipoMaterial = N'Cables, tuberías y accesorios eléctricos' WHERE idTipoMaterial = 4;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Áridos', descripcionTipoMaterial = N'Arena, grava y piedra triturada' WHERE idTipoMaterial = 5;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Pintura', descripcionTipoMaterial = N'Pinturas, barnices y selladores' WHERE idTipoMaterial = 6;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cerámica', descripcionTipoMaterial = N'Pisos, azulejos y revestimientos' WHERE idTipoMaterial = 7;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Mampostería', descripcionTipoMaterial = N'Ladrillos, bloques y materiales para muros' WHERE idTipoMaterial = 8;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Sanitario', descripcionTipoMaterial = N'Tuberías, conexiones y accesorios sanitarios' WHERE idTipoMaterial = 9;
 GO
 
 -- MATERIALES
-UPDATE dbo.material SET nombreMaterial = N'Cemento IP-30 Fancesa' WHERE idMaterial = 1;
-UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 12mm' WHERE idMaterial = 2;
-UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 8mm' WHERE idMaterial = 3;
-UPDATE dbo.material SET nombreMaterial = N'Tablón de madera 2x8' WHERE idMaterial = 4;
-UPDATE dbo.material SET nombreMaterial = N'Cable eléctrico 12AWG' WHERE idMaterial = 5;
-UPDATE dbo.material SET nombreMaterial = N'Arena fina' WHERE idMaterial = 6;
-UPDATE dbo.material SET nombreMaterial = N'Grava 3/4' WHERE idMaterial = 7;
-UPDATE dbo.material SET nombreMaterial = N'Pintura látex blanca' WHERE idMaterial = 8;
-UPDATE dbo.material SET nombreMaterial = N'Piso cerámico 45x45' WHERE idMaterial = 9;
-UPDATE dbo.material SET nombreMaterial = N'Cemento blanco' WHERE idMaterial = 10;
-UPDATE dbo.material SET nombreMaterial = N'Ladrillo 6 huecos' WHERE idMaterial = 11;
-UPDATE dbo.material SET nombreMaterial = N'Varilla de acero corrugado 10mm' WHERE idMaterial = 12;
-UPDATE dbo.material SET nombreMaterial = N'Madera tornillo 1x3' WHERE idMaterial = 13;
-UPDATE dbo.material SET nombreMaterial = N'Tubería PVC 4 pulgadas' WHERE idMaterial = 14;
-UPDATE dbo.material SET nombreMaterial = N'Pintura esmalte colores' WHERE idMaterial = 15;
+UPDATE dbo.material SET nombreMaterial = N'Cemento IP-30 Fancesa', descripcion = N'Cemento pórtland IP-30, bolsa 50kg' WHERE idMaterial = 1;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 12mm', descripcion = N'Varilla corrugada 12mm diámetro' WHERE idMaterial = 2;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 8mm', descripcion = N'Varilla corrugada 8mm diámetro' WHERE idMaterial = 3;
+UPDATE dbo.material SET nombreMaterial = N'Tablón de madera 2x8', descripcion = N'Tablón de madera pino 2x8 pulgadas' WHERE idMaterial = 4;
+UPDATE dbo.material SET nombreMaterial = N'Cable eléctrico 12AWG', descripcion = N'Cable THW 12 AWG rollo 100m' WHERE idMaterial = 5;
+UPDATE dbo.material SET nombreMaterial = N'Arena fina', descripcion = N'Arena fina para construcción m³' WHERE idMaterial = 6;
+UPDATE dbo.material SET nombreMaterial = N'Grava 3/4', descripcion = N'Grava triturada 3/4 pulgada m³' WHERE idMaterial = 7;
+UPDATE dbo.material SET nombreMaterial = N'Pintura látex blanca', descripcion = N'Pintura látex interior/exterior litro' WHERE idMaterial = 8;
+UPDATE dbo.material SET nombreMaterial = N'Piso cerámico 45x45', descripcion = N'Cerámica de piso 45x45 cm m²' WHERE idMaterial = 9;
+UPDATE dbo.material SET nombreMaterial = N'Cemento blanco', descripcion = N'Cemento blanco para juntas' WHERE idMaterial = 10;
+UPDATE dbo.material SET nombreMaterial = N'Ladrillo 6 huecos', descripcion = N'Ladrillo cerámico 6 huecos' WHERE idMaterial = 11;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero corrugado 10mm', descripcion = N'Varilla corrugada 10mm diámetro' WHERE idMaterial = 12;
+UPDATE dbo.material SET nombreMaterial = N'Madera tornillo 1x3', descripcion = N'Madera tornillo 1x3 pulgadas metro' WHERE idMaterial = 13;
+UPDATE dbo.material SET nombreMaterial = N'Tubería PVC 4 pulgadas', descripcion = N'Tubería PVC desagüe 4 pulgadas metro' WHERE idMaterial = 14;
+UPDATE dbo.material SET nombreMaterial = N'Pintura esmalte colores', descripcion = N'Esmalte sintético colores litro' WHERE idMaterial = 15;
 GO
 
--- UBICACIONES DE INVENTARIO
+-- INVENTARIO
 UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante A1' WHERE idInventario = 1;
 UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B1' WHERE idInventario = 2;
 UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B2' WHERE idInventario = 3;
@@ -4901,4 +4999,79 @@ UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B3' WHERE idInven
 UPDATE dbo.inventario SET ubicacion = N'Bodega Madera Estante C2' WHERE idInventario = 13;
 UPDATE dbo.inventario SET ubicacion = N'Bodega Plomería Estante H1' WHERE idInventario = 14;
 UPDATE dbo.inventario SET ubicacion = N'Bodega Pintura Estante E2' WHERE idInventario = 15;
+GO
+
+-- PROVEEDORES
+UPDATE dbo.proveedor SET nombreProveedor = N'Cementos Fancesa', direccion = N'Av. Industrial 100', ciudad = N'Sucre', pais = N'Bolivia' WHERE idProveedor = 1;
+UPDATE dbo.proveedor SET nombreProveedor = N'Aceros del Sur SRL', direccion = N'Parque Industrial Zona Sur', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 2;
+UPDATE dbo.proveedor SET nombreProveedor = N'Maderería El Pino', direccion = N'Calle Comercio 55', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 3;
+UPDATE dbo.proveedor SET nombreProveedor = N'Electro Materiales SA', direccion = N'Av. 6 de Agosto 200', ciudad = N'La Paz', pais = N'Bolivia' WHERE idProveedor = 4;
+UPDATE dbo.proveedor SET nombreProveedor = N'Áridos y Pétreos Norte', direccion = N'Carretera al Norte Km 3', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 5;
+UPDATE dbo.proveedor SET nombreProveedor = N'Pinturas Rex Bolivia', direccion = N'Av. América 300', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 6;
+UPDATE dbo.proveedor SET nombreProveedor = N'Cerámicas del Valle SRL', direccion = N'Zona Industrial Este', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 7;
+UPDATE dbo.proveedor SET nombreProveedor = N'Ferretería Central SA', direccion = N'Calle Comercio 100', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 8;
+UPDATE dbo.proveedor SET nombreProveedor = N'Materiales Bolivia Ltda', direccion = N'Av. Blanco Galindo Km 8', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 9;
+UPDATE dbo.proveedor SET nombreProveedor = N'Distribuidora Norte SRL', direccion = N'Zona Norte Av. Industrial', ciudad = N'Cochabamba', pais = N'Bolivia' WHERE idProveedor = 10;
+GO
+
+-- PROYECTOS
+UPDATE dbo.proyecto SET nombreProyecto = N'Residencia Mendoza', descripcion = N'Casa de dos plantas con jardín' WHERE idProyecto = 1;
+UPDATE dbo.proyecto SET nombreProyecto = N'Edificio Los Andes', descripcion = N'Edificio de 6 pisos 24 departamentos' WHERE idProyecto = 2;
+UPDATE dbo.proyecto SET nombreProyecto = N'Local Fernández', descripcion = N'Local comercial 120 m²' WHERE idProyecto = 3;
+UPDATE dbo.proyecto SET nombreProyecto = N'Pavimentación Zona Norte', descripcion = N'Pavimentación 2km carretera vecinal' WHERE idProyecto = 4;
+UPDATE dbo.proyecto SET nombreProyecto = N'Ampliación Salinas', descripcion = N'Ampliación y refacción vivienda' WHERE idProyecto = 5;
+UPDATE dbo.proyecto SET nombreProyecto = N'Construcción Casa Familiar Norte', descripcion = N'Casa familiar zona norte' WHERE idProyecto = 6;
+UPDATE dbo.proyecto SET nombreProyecto = N'Edificio Residencial Sur', descripcion = N'Edificio 4 pisos zona sur' WHERE idProyecto = 7;
+UPDATE dbo.proyecto SET nombreProyecto = N'Centro Comercial Oeste', descripcion = N'Centro comercial 2000 m²' WHERE idProyecto = 8;
+UPDATE dbo.proyecto SET nombreProyecto = N'Puente Río Rocha', descripcion = N'Puente peatonal sobre río Rocha' WHERE idProyecto = 9;
+UPDATE dbo.proyecto SET nombreProyecto = N'Vendivienda Social Zona Sur', descripcion = N'Conjunto habitacional 20 unidades' WHERE idProyecto = 10;
+UPDATE dbo.proyecto SET nombreProyecto = N'Vivienda Social Zona Sur' WHERE idProyecto = 10;
+GO
+
+-- CLIENTES PRINCIPALES
+UPDATE dbo.cliente SET nombre = N'Carlos Mendoza Ríos', direccion = N'Av. Heroínas 123' WHERE idCliente = 1;
+UPDATE dbo.cliente SET nombre = N'María Fernández Vega', direccion = N'Calle Sucre 456' WHERE idCliente = 2;
+UPDATE dbo.cliente SET nombre = N'Constructora Horizonte SRL' WHERE idCliente = 3;
+UPDATE dbo.cliente SET nombre = N'Inmobiliaria Los Andes SA', direccion = N'Av. América 789' WHERE idCliente = 4;
+UPDATE dbo.cliente SET nombre = N'Roberto Salinas Peña' WHERE idCliente = 5;
+UPDATE dbo.cliente SET nombre = N'Empresa Boliviana Const. SRL', direccion = N'Av. Villazón 100' WHERE idCliente = 6;
+UPDATE dbo.cliente SET nombre = N'Ana Lucía Torres' WHERE idCliente = 7;
+UPDATE dbo.cliente SET nombre = N'Grupo Inmobiliario Norte SA' WHERE idCliente = 8;
+UPDATE dbo.cliente SET nombre = N'Pedro Vargas Condori' WHERE idCliente = 9;
+UPDATE dbo.cliente SET nombre = N'Inversiones del Sur Ltda' WHERE idCliente = 10;
+UPDATE dbo.cliente SET nombre = N'Luis Quispe Mamani' WHERE idCliente = 11;
+UPDATE dbo.cliente SET nombre = N'Constructora Andina SA' WHERE idCliente = 12;
+UPDATE dbo.cliente SET nombre = N'Carmen Rosa Flores' WHERE idCliente = 13;
+UPDATE dbo.cliente SET nombre = N'Desarrollo Urbano Cba SRL', direccion = N'Av. Ballivián 600' WHERE idCliente = 14;
+UPDATE dbo.cliente SET nombre = N'Jorge Mamani Quispe' WHERE idCliente = 15;
+UPDATE dbo.cliente SET nombre = N'Edificaciones Modernas SA' WHERE idCliente = 16;
+UPDATE dbo.cliente SET nombre = N'Sofía Chávez Torrico' WHERE idCliente = 17;
+UPDATE dbo.cliente SET nombre = N'Proyectos y Obras Ltda' WHERE idCliente = 18;
+UPDATE dbo.cliente SET nombre = N'Miguel Torrico Vega', direccion = N'Av. Heroínas 1000' WHERE idCliente = 19;
+UPDATE dbo.cliente SET nombre = N'Constr. Familiar Norte SRL' WHERE idCliente = 20;
+GO
+
+-- Eliminar función temporal de corrección
+DROP FUNCTION IF EXISTS dbo.corregirTextoConstructora;
+GO
+
+-- Verificación final: si devuelve filas, todavía quedan caracteres dañados
+DECLARE @sqlBuscarCaracteres NVARCHAR(MAX) = N'';
+
+SELECT @sqlBuscarCaracteres = @sqlBuscarCaracteres + '
+SELECT ''' + t.name + ''' AS tabla, ''' + c.name + ''' AS columna, ' + QUOTENAME(c.name) + ' AS texto
+FROM ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + '
+WHERE ' + QUOTENAME(c.name) + ' LIKE N''%├%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%┬%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%Ã%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%Â%'';' + CHAR(13)
+FROM sys.tables t
+INNER JOIN sys.columns c
+    ON t.object_id = c.object_id
+INNER JOIN sys.types ty
+    ON c.user_type_id = ty.user_type_id
+WHERE ty.name IN ('nvarchar', 'varchar', 'nchar', 'char')
+  AND c.is_computed = 0;
+
+EXEC sp_executesql @sqlBuscarCaracteres;
 GO
