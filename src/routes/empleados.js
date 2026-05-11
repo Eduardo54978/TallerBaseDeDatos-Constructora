@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
                 e.apellido,
                 e.email,
                 e.numCelular,
-                e.salario,
+                e.salarioReferencial AS salario,
                 e.fechaContratacion,
                 c.nombreCargo,
                 d.nombreDepartamento,

@@ -4783,3 +4783,122 @@ GO
 -- Reactivar constraints después de cargar datos
 EXEC sp_msforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';
 GO
+GO
+
+-- ==========================================================
+-- CORRECCION FINAL DE CARACTERES ESPECIALES
+-- Evita textos dañados por codificación al cargar la base
+-- ==========================================================
+
+USE constructora;
+GO
+
+-- Corrección general para columnas de texto
+DECLARE @sqlCaracteres NVARCHAR(MAX) = N'';
+
+SELECT @sqlCaracteres = @sqlCaracteres + '
+UPDATE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + '
+SET ' + QUOTENAME(c.name) + ' =
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(' + QUOTENAME(c.name) + ',
+        N''├í'', N''á''),
+        N''├®'', N''é''),
+        N''├¡'', N''í''),
+        N''├│'', N''ó''),
+        N''├║'', N''ú''),
+        N''├╝'', N''ü''),
+        N''├▒'', N''ñ''),
+        N''┬▓'', N''²''),
+        N''┬│'', N''³''),
+        N''┬░'', N''°''),
+        N''Ã¡'', N''á''),
+        N''Ã©'', N''é''),
+        N''Ã­'', N''í''),
+        N''Ã³'', N''ó''),
+        N''Ã±'', N''ñ'')
+WHERE ' + QUOTENAME(c.name) + ' LIKE N''%├%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%┬%''
+   OR ' + QUOTENAME(c.name) + ' LIKE N''%Ã%'';' + CHAR(13)
+FROM sys.tables t
+INNER JOIN sys.columns c
+    ON t.object_id = c.object_id
+INNER JOIN sys.types ty
+    ON c.user_type_id = ty.user_type_id
+WHERE ty.name IN ('nvarchar', 'varchar', 'nchar', 'char');
+
+EXEC sp_executesql @sqlCaracteres;
+GO
+
+-- Correcciones puntuales por ID para asegurar visualización correcta
+
+-- UNIDADES DE MEDIDA
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm' WHERE idUnidadMedida = 1;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'bolsa' WHERE idUnidadMedida = 2;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm' WHERE idUnidadMedida = 3;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm²' WHERE idUnidadMedida = 4;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'm³' WHERE idUnidadMedida = 5;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'unidad' WHERE idUnidadMedida = 6;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'rollo' WHERE idUnidadMedida = 7;
+UPDATE dbo.unidadmedida SET nombreUnidadMedida = N'litro' WHERE idUnidadMedida = 8;
+GO
+
+-- TIPOS DE MATERIAL
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cemento' WHERE idTipoMaterial = 1;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Acero' WHERE idTipoMaterial = 2;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Madera' WHERE idTipoMaterial = 3;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Eléctrico' WHERE idTipoMaterial = 4;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Áridos' WHERE idTipoMaterial = 5;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Pintura' WHERE idTipoMaterial = 6;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Cerámica' WHERE idTipoMaterial = 7;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Mampostería' WHERE idTipoMaterial = 8;
+UPDATE dbo.tipomaterial SET nombreTipoMaterial = N'Sanitario' WHERE idTipoMaterial = 9;
+GO
+
+-- MATERIALES
+UPDATE dbo.material SET nombreMaterial = N'Cemento IP-30 Fancesa' WHERE idMaterial = 1;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 12mm' WHERE idMaterial = 2;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero 8mm' WHERE idMaterial = 3;
+UPDATE dbo.material SET nombreMaterial = N'Tablón de madera 2x8' WHERE idMaterial = 4;
+UPDATE dbo.material SET nombreMaterial = N'Cable eléctrico 12AWG' WHERE idMaterial = 5;
+UPDATE dbo.material SET nombreMaterial = N'Arena fina' WHERE idMaterial = 6;
+UPDATE dbo.material SET nombreMaterial = N'Grava 3/4' WHERE idMaterial = 7;
+UPDATE dbo.material SET nombreMaterial = N'Pintura látex blanca' WHERE idMaterial = 8;
+UPDATE dbo.material SET nombreMaterial = N'Piso cerámico 45x45' WHERE idMaterial = 9;
+UPDATE dbo.material SET nombreMaterial = N'Cemento blanco' WHERE idMaterial = 10;
+UPDATE dbo.material SET nombreMaterial = N'Ladrillo 6 huecos' WHERE idMaterial = 11;
+UPDATE dbo.material SET nombreMaterial = N'Varilla de acero corrugado 10mm' WHERE idMaterial = 12;
+UPDATE dbo.material SET nombreMaterial = N'Madera tornillo 1x3' WHERE idMaterial = 13;
+UPDATE dbo.material SET nombreMaterial = N'Tubería PVC 4 pulgadas' WHERE idMaterial = 14;
+UPDATE dbo.material SET nombreMaterial = N'Pintura esmalte colores' WHERE idMaterial = 15;
+GO
+
+-- UBICACIONES DE INVENTARIO
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante A1' WHERE idInventario = 1;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B1' WHERE idInventario = 2;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B2' WHERE idInventario = 3;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Madera Estante C1' WHERE idInventario = 4;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Eléctrica Estante D1' WHERE idInventario = 5;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante A2' WHERE idInventario = 6;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante A3' WHERE idInventario = 7;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Pintura Estante E1' WHERE idInventario = 8;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante F1' WHERE idInventario = 9;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante A4' WHERE idInventario = 10;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante G1' WHERE idInventario = 11;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Central Estante B3' WHERE idInventario = 12;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Madera Estante C2' WHERE idInventario = 13;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Plomería Estante H1' WHERE idInventario = 14;
+UPDATE dbo.inventario SET ubicacion = N'Bodega Pintura Estante E2' WHERE idInventario = 15;
+GO
