@@ -17,6 +17,9 @@ function show(name, el) {
     if (name === 'contratos')   cargarContratos();
     if (name === 'proveedores') cargarProveedores();
     if (name === 'inventario')  cargarInventario();
+    if (name === 'clientes')     cargarClientes();
+    if (name === 'horas')        cargarHoras();
+    if (name === 'cotizaciones') cargarCotizaciones();
 }
 
 function filtrar(id, texto) {
@@ -197,6 +200,76 @@ async function cargarInventario() {
         </tbody></table>`;
     } catch(e) {
         document.getElementById('cont-inventario').innerHTML = '<p style="color:red">Error al cargar inventario</p>';
+    }
+}
+// MODULO 7: CLIENTES
+async function cargarClientes() {
+    try {
+        const data = await fetch(`${API}/clientes`).then(r=>r.json());
+        document.getElementById('cont-clientes').innerHTML = `
+        <table id="tbl-cli"><thead><tr>
+            <th>#</th><th>Nombre</th><th>Tipo</th><th>Documento</th>
+            <th>Celular</th><th>Email</th><th>Fecha Registro</th>
+        </tr></thead><tbody>
+        ${data.map(c=>`<tr>
+            <td>${c.idCliente}</td>
+            <td>${c.nombre}</td>
+            <td>${badge(c.nombreTipoCliente)}</td>
+            <td>${c.documentoID||''}</td>
+            <td>${c.numCelular||''}</td>
+            <td>${c.email||''}</td>
+            <td>${c.fechaRegistro?c.fechaRegistro.substring(0,10):''}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-clientes').innerHTML = '<p style="color:red">Error al cargar clientes</p>';
+    }
+}
+
+// MODULO 8: REGISTRO DE HORAS
+async function cargarHoras() {
+    try {
+        const data = await fetch(`${API}/horas`).then(r=>r.json());
+        document.getElementById('cont-horas').innerHTML = `
+        <table id="tbl-horas"><thead><tr>
+            <th>#</th><th>Empleado</th><th>Proyecto</th>
+            <th>Fecha</th><th>Horas</th><th>Pago/Hora</th><th>Total</th>
+        </tr></thead><tbody>
+        ${data.map(h=>`<tr>
+            <td>${h.idRegistroHoras}</td>
+            <td>${h.nombre} ${h.apellido}</td>
+            <td>${h.nombreProyecto||''}</td>
+            <td>${h.fecha?h.fecha.substring(0,10):''}</td>
+            <td>${h.horasTrabajadas}</td>
+            <td>Bs ${Number(h.pagoPorHora||0).toFixed(2)}</td>
+            <td>Bs ${Number(h.totalPago||0).toFixed(2)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-horas').innerHTML = '<p style="color:red">Error al cargar horas</p>';
+    }
+}
+
+// MODULO 9: COTIZACIONES
+async function cargarCotizaciones() {
+    try {
+        const data = await fetch(`${API}/cotizaciones`).then(r=>r.json());
+        document.getElementById('cont-cotizaciones').innerHTML = `
+        <table id="tbl-cot"><thead><tr>
+            <th>Número</th><th>Proyecto</th><th>Fecha</th>
+            <th>Validez</th><th>Observaciones</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(c=>`<tr>
+            <td>${c.numeroCotizacionCliente}</td>
+            <td>${c.nombreProyecto||''}</td>
+            <td>${c.fechaCotizacion?c.fechaCotizacion.substring(0,10):''}</td>
+            <td>${c.fechaValidez?c.fechaValidez.substring(0,10):''}</td>
+            <td>${c.observaciones||''}</td>
+            <td>${badge(c.nombreEstadoCotizacion)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-cotizaciones').innerHTML = '<p style="color:red">Error al cargar cotizaciones</p>';
     }
 }
 function toggleMenu() {

@@ -1,8 +1,8 @@
 const sql = require('mssql');
 
 const config = {
-  server: 'localhost',
-  port: 56213,
+  server: 'localhost\\SQLEXPRESS',
+  port: 1433,
   database: 'constructora',
   user: 'sa',
   password: 'Admin1234',
