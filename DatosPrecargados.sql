@@ -1,4 +1,4 @@
-﻿USE [constructora];
+USE constructora;
 GO
 -- Desactivar constraints temporalmente para cargar datos
 EXEC sp_msforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL';
