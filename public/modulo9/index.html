@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 9 - Cotizaciones</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 9 - Gestion de Cotizaciones</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Lista</button>
+    <button class="tab-btn" onclick="switchTab('nueva-cliente', this)">Cotizacion Cliente</button>
+    <button class="tab-btn" onclick="switchTab('nueva-interna', this)">Cotizacion Interna</button>
+    <button class="tab-btn" onclick="switchTab('por-proyecto', this)">Por Proyecto</button>
+    <button class="tab-btn" onclick="switchTab('estado', this)">Cambiar Estado</button>
+  </div>
+
+  <!-- LISTA -->
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div class="table-header">
+        <h3>Cotizaciones Cliente</h3>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-cot', this.value)">
+      </div>
+      <div id="cont-cotizaciones"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- NUEVA COTIZACION CLIENTE -->
+  <div class="tab-content" id="tab-nueva-cliente">
+    <div class="card">
+      <h3>Crear Cotizacion para Cliente</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Proyecto *</label>
+          <input id="cc-proyecto" type="number" placeholder="ID del proyecto">
+        </div>
+        <div class="form-group">
+          <label>Numero de Cotizacion *</label>
+          <input id="cc-num" placeholder="Ej: COT-2025-001">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Cotizacion *</label>
+          <input id="cc-fecha" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Validez</label>
+          <input id="cc-validez" type="date">
+        </div>
+        <div class="form-group full">
+          <label>Observaciones</label>
+          <input id="cc-obs" placeholder="Observaciones opcionales">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="crearCotizacionCliente()">Crear Cotizacion</button>
+      <div id="msg-cc" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Agregar Detalle a Cotizacion Cliente</h3>
+      <div class="info-box">Primero crea la cotizacion arriba y anota el ID generado.</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Cotizacion Cliente *</label>
+          <input id="dc-idcot" type="number" placeholder="ID de la cotizacion">
+        </div>
+        <div class="form-group">
+          <label>Concepto *</label>
+          <input id="dc-concepto" placeholder="Ej: Mano de obra, Materiales">
+        </div>
+        <div class="form-group">
+          <label>Cantidad *</label>
+          <input id="dc-cantidad" type="number" step="0.01" placeholder="0" oninput="calcDetalleCliente()">
+        </div>
+        <div class="form-group">
+          <label>Precio Unitario (Bs) *</label>
+          <input id="dc-precio" type="number" step="0.01" placeholder="0.00" oninput="calcDetalleCliente()">
+        </div>
+        <div class="form-group full">
+          <label>Descripcion</label>
+          <input id="dc-desc" placeholder="Descripcion opcional">
+        </div>
+      </div>
+      <div id="dc-preview" style="margin-top:8px; font-size:0.9rem; color:#276749; font-weight:600;"></div>
+      <br>
+      <button class="btn btn-accent" onclick="agregarDetalleCliente()">Agregar Detalle</button>
+      <div id="msg-dc" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- NUEVA COTIZACION INTERNA -->
+  <div class="tab-content" id="tab-nueva-interna">
+    <div class="card">
+      <h3>Crear Cotizacion Interna</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Proyecto *</label>
+          <input id="ci-proyecto" type="number" placeholder="ID del proyecto">
+        </div>
+        <div class="form-group">
+          <label>Numero de Cotizacion *</label>
+          <input id="ci-num" placeholder="Ej: COTI-2025-001">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Cotizacion *</label>
+          <input id="ci-fecha" type="date">
+        </div>
+        <div class="form-group full">
+          <label>Observaciones</label>
+          <input id="ci-obs" placeholder="Observaciones opcionales">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="crearCotizacionInterna()">Crear Cotizacion Interna</button>
+      <div id="msg-ci" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Agregar Materiales</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Cotizacion Interna *</label>
+          <input id="dm-idcot" type="number" placeholder="ID cotizacion interna">
+        </div>
+        <div class="form-group">
+          <label>ID Material *</label>
+          <input id="dm-mat" type="number" placeholder="ID del material">
+        </div>
+        <div class="form-group">
+          <label>Cantidad Estimada *</label>
+          <input id="dm-cant" type="number" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Costo Unitario Estimado (Bs) *</label>
+          <input id="dm-costo" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-accent" onclick="agregarMateriales()">Agregar Material</button>
+      <div id="msg-dm" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Agregar Mano de Obra</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Cotizacion Interna *</label>
+          <input id="mo-idcot" type="number" placeholder="ID cotizacion interna">
+        </div>
+        <div class="form-group">
+          <label>ID Cargo *</label>
+          <input id="mo-cargo" type="number" placeholder="ID del cargo">
+        </div>
+        <div class="form-group">
+          <label>Cantidad de Personas *</label>
+          <input id="mo-pers" type="number" placeholder="Ej: 3" oninput="calcManoObra()">
+        </div>
+        <div class="form-group">
+          <label>Horas Estimadas *</label>
+          <input id="mo-horas" type="number" step="0.5" placeholder="Ej: 40" oninput="calcManoObra()">
+        </div>
+        <div class="form-group">
+          <label>Pago por Hora (Bs) *</label>
+          <input id="mo-pago" type="number" step="0.01" placeholder="Ej: 25.00" oninput="calcManoObra()">
+        </div>
+        <div class="form-group" style="justify-content:flex-end; padding-top:22px;">
+          <div id="mo-preview" style="font-size:0.9rem; color:#276749; font-weight:600;"></div>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-green" onclick="agregarManoObra()">Agregar Mano de Obra</button>
+      <div id="msg-mo" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- POR PROYECTO -->
+  <div class="tab-content" id="tab-por-proyecto">
+    <div class="card">
+      <h3>Cotizaciones por Proyecto</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>ID Proyecto</label>
+          <input id="pp-id" type="number" placeholder="Ingresa el ID">
+        </div>
+        <button class="btn btn-accent" onclick="buscarPorProyecto()">Buscar</button>
+      </div>
+      <div id="cont-por-proyecto" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- CAMBIAR ESTADO -->
+  <div class="tab-content" id="tab-estado">
+    <div class="card">
+      <h3>Actualizar Estado de Cotizacion</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Cotizacion *</label>
+          <input id="est-id" type="number" placeholder="ID de la cotizacion">
+        </div>
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select id="est-tipo">
+            <option value="cliente">Cliente</option>
+            <option value="interna">Interna</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Nuevo Estado *</label>
+          <select id="est-nuevo">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Aprobada">Aprobada</option>
+            <option value="Rechazada">Rechazada</option>
+            <option value="Anulada">Anulada</option>
+          </select>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="cambiarEstado()">Actualizar Estado</button>
+      <div id="msg-est" class="msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 8 - Empleados</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 8 - Recursos Humanos</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Empleados</button>
+    <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Empleado</button>
+    <button class="tab-btn" onclick="switchTab('horas', this)">Registrar Horas</button>
+    <button class="tab-btn" onclick="switchTab('consultar-horas', this)">Consultar Horas</button>
+    <button class="tab-btn" onclick="switchTab('bonificacion', this)">Bonificacion</button>
+    <button class="tab-btn" onclick="switchTab('maestras', this)">Tablas Maestras</button>
+  </div>
+
+  <!-- LISTA EMPLEADOS -->
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div class="table-header">
+        <h3>Empleados Registrados</h3>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-emp', this.value)">
+      </div>
+      <div id="cont-empleados"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- REGISTRAR EMPLEADO -->
+  <div class="tab-content" id="tab-registrar">
+    <div class="card">
+      <h3>Registrar Nuevo Empleado</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input id="emp-nombre" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label>Apellido *</label>
+          <input id="emp-apellido" placeholder="Apellido">
+        </div>
+        <div class="form-group">
+          <label>CI *</label>
+          <input id="emp-ci" placeholder="Cedula de identidad">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="emp-email" type="email" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label>Celular</label>
+          <input id="emp-cel" placeholder="Numero de celular">
+        </div>
+        <div class="form-group">
+          <label>Salario (Bs)</label>
+          <input id="emp-salario" type="number" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Contratacion</label>
+          <input id="emp-contrat" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Nacimiento</label>
+          <input id="emp-nacim" type="date">
+        </div>
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="emp-cargo"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Departamento *</label>
+          <select id="emp-depto"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado *</label>
+          <select id="emp-estado"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Especialidad</label>
+          <input id="emp-esp" placeholder="Especialidad">
+        </div>
+        <div class="form-group full">
+          <label>Direccion</label>
+          <input id="emp-dir" placeholder="Direccion">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarEmpleado()">Registrar Empleado</button>
+      <div id="msg-emp" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- REGISTRAR HORAS -->
+  <div class="tab-content" id="tab-horas">
+    <div class="card">
+      <h3>Registrar Horas Trabajadas</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Empleado *</label>
+          <input id="h-empleado" type="number" placeholder="ID del empleado">
+        </div>
+        <div class="form-group">
+          <label>ID Proyecto *</label>
+          <input id="h-proyecto" type="number" placeholder="ID del proyecto">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input id="h-fecha" type="date">
+        </div>
+        <div class="form-group">
+          <label>Horas Trabajadas *</label>
+          <input id="h-horas" type="number" step="0.5" placeholder="Ej: 8">
+        </div>
+        <div class="form-group">
+          <label>Pago por Hora (Bs) *</label>
+          <input id="h-pago" type="number" step="0.01" placeholder="Ej: 25.00">
+        </div>
+        <div class="form-group" style="justify-content:flex-end; padding-top: 22px;">
+          <div id="h-preview" style="font-size:0.9rem; color: #276749; font-weight:600;"></div>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarHoras()">Registrar Horas</button>
+      <div id="msg-horas" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- CONSULTAR HORAS -->
+  <div class="tab-content" id="tab-consultar-horas">
+    <div class="card">
+      <h3>Consultar Horas por Empleado</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="form-group">
+          <label>ID Empleado</label>
+          <input id="ch-id" type="number" placeholder="Ingresa el ID">
+        </div>
+        <button class="btn btn-accent" onclick="consultarHoras()">Buscar</button>
+      </div>
+      <div id="resumen-horas"></div>
+      <div id="cont-horas-emp" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- BONIFICACION -->
+  <div class="tab-content" id="tab-bonificacion">
+    <div class="card">
+      <h3>Registrar Bonificacion</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Empleado *</label>
+          <input id="b-emp" type="number" placeholder="ID del empleado">
+        </div>
+        <div class="form-group">
+          <label>Tipo de Bonificacion *</label>
+          <input id="b-tipo" placeholder="Ej: Antiguedad">
+        </div>
+        <div class="form-group">
+          <label>Anos de Antiguedad *</label>
+          <input id="b-anios" type="number" placeholder="Anos trabajados" oninput="sugerirPorcentaje()">
+        </div>
+        <div class="form-group">
+          <label>Porcentaje Bono (%) *</label>
+          <input id="b-pct" type="number" placeholder="Se sugiere automaticamente">
+        </div>
+        <div class="form-group">
+          <label>Salario Base (Bs) *</label>
+          <input id="b-salario" type="number" placeholder="Salario base" oninput="calcularMonto()">
+        </div>
+        <div class="form-group">
+          <label>Gestion (Ano) *</label>
+          <input id="b-gestion" type="number" placeholder="Ej: 2025">
+        </div>
+        <div class="form-group full">
+          <label>Descripcion</label>
+          <input id="b-desc" placeholder="Descripcion opcional">
+        </div>
+      </div>
+      <div id="b-preview" class="resumen-box" style="display:none;"></div>
+      <br>
+      <button class="btn btn-green" onclick="registrarBonificacion()">Registrar Bonificacion</button>
+      <div id="msg-bono" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Tabla de Porcentajes por Antiguedad</h3>
+      <table>
+        <thead><tr><th>Anos</th><th>Porcentaje</th></tr></thead>
+        <tbody>
+          <tr><td>2 - 4 anos</td><td>5%</td></tr>
+          <tr><td>5 - 7 anos</td><td>11%</td></tr>
+          <tr><td>8 - 10 anos</td><td>18%</td></tr>
+          <tr><td>11 - 14 anos</td><td>26%</td></tr>
+          <tr><td>15 - 19 anos</td><td>34%</td></tr>
+          <tr><td>20 - 24 anos</td><td>42%</td></tr>
+          <tr><td>25+ anos</td><td>50%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TABLAS MAESTRAS -->
+  <div class="tab-content" id="tab-maestras">
+    <div class="maestras-grid">
+
+      <div class="card">
+        <h3>Registrar Cargo</h3>
+        <div class="form-group">
+          <label>Nombre del Cargo *</label>
+          <input id="c-nombre" placeholder="Ej: Albanil, Ingeniero">
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Descripcion</label>
+          <input id="c-desc" placeholder="Descripcion">
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="registrarCargo()">Guardar</button>
+        <div id="msg-cargo" class="msg"></div>
+        <div id="cont-cargos" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Registrar Departamento</h3>
+        <div class="form-group">
+          <label>Nombre del Departamento *</label>
+          <input id="d-nombre" placeholder="Ej: Obras, Administracion">
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Descripcion</label>
+          <input id="d-desc" placeholder="Descripcion">
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="registrarDepto()">Guardar</button>
+        <div id="msg-depto" class="msg"></div>
+        <div id="cont-deptos" style="margin-top:16px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
