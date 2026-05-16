@@ -9,7 +9,8 @@ const config = {
   options: {
     trustServerCertificate: true,
     encrypt: false
-  }
+  },
+  connectionTimeout: 30000
 };
 
 const connectDB = async () => {
