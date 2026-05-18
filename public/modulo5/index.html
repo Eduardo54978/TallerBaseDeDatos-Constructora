@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 5 - Contratos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 5 - Gestion de Contratos</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Contratos</button>
+    <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Contrato</button>
+    <button class="tab-btn" onclick="switchTab('cuotas', this)">Generar Cuotas</button>
+    <button class="tab-btn" onclick="switchTab('cliente', this)">Contratos por Cliente</button>
+  </div>
+
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div class="table-header">
+        <h3>Contratos Registrados</h3>
+        <input class="search" placeholder="Buscar contrato..." oninput="filtrarTabla('tbl-contratos', this.value)">
+      </div>
+      <div id="cont-contratos"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-registrar">
+    <div class="card">
+      <h3>Crear Nuevo Contrato</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Proyecto *</label>
+          <input id="c-idproyecto" type="number" placeholder="ID del proyecto vinculado">
+        </div>
+        <div class="form-group">
+          <label>ID Tipo de Contrato *</label>
+          <input id="c-idtipo" type="number" placeholder="ID del tipo de contrato">
+        </div>
+        <div class="form-group">
+          <label>Numero de Contrato *</label>
+          <input id="c-numero" placeholder="Ej: CT-2026-001">
+        </div>
+        <div class="form-group">
+          <label>Monto Total (Bs) *</label>
+          <input id="c-monto" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Contrato *</label>
+          <input id="c-fechac" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Inicio</label>
+          <input id="c-fechai" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Vencimiento</label>
+          <input id="c-fechav" type="date">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarContrato()">Crear Contrato</button>
+      <div id="msg-contrato" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-cuotas">
+    <div class="card">
+      <h3>Generar Plan de Pagos (Cuotas)</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Contrato *</label>
+          <input id="cu-idcontrato" type="number" placeholder="ID del contrato a dividir">
+        </div>
+        <div class="form-group">
+          <label>Numero de Cuotas *</label>
+          <input id="cu-cantidad" type="number" placeholder="Ej: 12">
+        </div>
+        <div class="form-group">
+          <label>Frecuencia de Pago *</label>
+          <select id="cu-frecuencia">
+            <option value="mensual">Mensual</option>
+            <option value="quincenal">Quincenal</option>
+          </select>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-accent" onclick="generarCuotas()">Generar Cuotas</button>
+      <div id="msg-cuotas" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-cliente">
+    <div class="card">
+      <h3>Consultar Contratos de un Cliente</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="form-group">
+          <label>ID Cliente</label>
+          <input id="cli-id" type="number" placeholder="Ingresa el ID del cliente">
+        </div>
+        <button class="btn btn-primary" onclick="consultarPorCliente()">Buscar</button>
+      </div>
+      <div id="cont-contratos-cliente" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

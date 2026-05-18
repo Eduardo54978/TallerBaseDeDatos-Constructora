@@ -9,30 +9,26 @@
 </head>
 <body>
 
+<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-title" onclick="toggleMenu()">
         ☰ Empresa Constructora
     </div>
     <div id="menu-items">
-        <a href="#" class="active" onclick="show('dashboard',this)">Panel Principal</a>
-        <a href="#" onclick="show('empleados',this)">Empleados</a>
-        <a href="#" onclick="show('proyectos',this)">Proyectos</a>
-        <a href="#" onclick="show('materiales',this)">Materiales</a>
-        <a href="#" onclick="show('contratos',this)">Contratos</a>
-        <a href="#" onclick="show('proveedores',this)">Proveedores</a>
-        <a href="#" onclick="show('inventario',this)">Inventario</a>
-        <a href="#" onclick="show('clientes',this)">Clientes</a>
-        <a href="#" onclick="show('horas',this)">Registro de Horas</a>
-        <a href="#" onclick="show('cotizaciones',this)">Cotizaciones</a>
-        <a href="modulo7/index.html">Gestion Clientes</a>
-        <a href="modulo8/index.html">Gestion RR.HH.</a>
-        <a href="modulo9/index.html">Gestion Cotizaciones</a>
+        <!-- Se genera automáticamente según el rol -->
     </div>
 </div>
 
+<!-- CONTENIDO PRINCIPAL -->
 <div class="main">
-    <div class="topbar"><h2 id="page-title">Dashboard</h2></div>
 
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <h2 id="page-title">Panel Principal</h2>
+        <div id="topbar-usuario"></div>
+    </div>
+
+    <!-- DASHBOARD -->
     <div class="section active" id="section-dashboard">
         <div class="stat-grid">
             <div class="stat-box"><div class="num" id="s-emp">-</div><div class="lbl">Empleados</div></div>
@@ -46,6 +42,7 @@
         </div>
     </div>
 
+    <!-- EMPLEADOS -->
     <div class="section" id="section-empleados">
         <div class="card">
             <div class="card-header">
@@ -56,6 +53,7 @@
         </div>
     </div>
 
+    <!-- PROYECTOS -->
     <div class="section" id="section-proyectos">
         <div class="card">
             <div class="card-header">
@@ -66,6 +64,7 @@
         </div>
     </div>
 
+    <!-- MATERIALES -->
     <div class="section" id="section-materiales">
         <div class="card">
             <div class="card-header">
@@ -76,6 +75,7 @@
         </div>
     </div>
 
+    <!-- CONTRATOS -->
     <div class="section" id="section-contratos">
         <div class="card">
             <div class="card-header">
@@ -86,6 +86,7 @@
         </div>
     </div>
 
+    <!-- PROVEEDORES -->
     <div class="section" id="section-proveedores">
         <div class="card">
             <div class="card-header">
@@ -96,6 +97,7 @@
         </div>
     </div>
 
+    <!-- INVENTARIO -->
     <div class="section" id="section-inventario">
         <div class="card">
             <div class="card-header">
@@ -105,40 +107,45 @@
             <div id="cont-inventario"><div class="loading">Cargando...</div></div>
         </div>
     </div>
+
     <!-- CLIENTES -->
-<div class="section" id="section-clientes">
-    <div class="card">
-        <div class="card-header">
-            <h3>Clientes</h3>
-            <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-cli',this.value)">
+    <div class="section" id="section-clientes">
+        <div class="card">
+            <div class="card-header">
+                <h3>Clientes</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-cli',this.value)">
+            </div>
+            <div id="cont-clientes"><div class="loading">Cargando...</div></div>
         </div>
-        <div id="cont-clientes"><div class="loading">Cargando...</div></div>
     </div>
+
+    <!-- REGISTRO DE HORAS -->
+    <div class="section" id="section-horas">
+        <div class="card">
+            <div class="card-header">
+                <h3>Registro de Horas</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-horas',this.value)">
+            </div>
+            <div id="cont-horas"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
+    <!-- COTIZACIONES -->
+    <div class="section" id="section-cotizaciones">
+        <div class="card">
+            <div class="card-header">
+                <h3>Cotizaciones</h3>
+                <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-cot',this.value)">
+            </div>
+            <div id="cont-cotizaciones"><div class="loading">Cargando...</div></div>
+        </div>
+    </div>
+
 </div>
 
-<!-- REGISTRO DE HORAS -->
-<div class="section" id="section-horas">
-    <div class="card">
-        <div class="card-header">
-            <h3>Registro de Horas</h3>
-            <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-horas',this.value)">
-        </div>
-        <div id="cont-horas"><div class="loading">Cargando...</div></div>
-    </div>
-</div>
-
-<!-- COTIZACIONES -->
-<div class="section" id="section-cotizaciones">
-    <div class="card">
-        <div class="card-header">
-            <h3>Cotizaciones</h3>
-            <input class="search" placeholder="Buscar..." onkeyup="filtrar('tbl-cot',this.value)">
-        </div>
-        <div id="cont-cotizaciones"><div class="loading">Cargando...</div></div>
-    </div>
-</div>
-</div>
-
+<!-- SCRIPTS: primero app.js luego auth.js -->
 <script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+
 </body>
 </html>

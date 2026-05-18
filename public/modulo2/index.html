@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Modulo 2 - Materiales</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">
+      <h2>Empresa<br>Constructora</h2>
+    </div>
+    <nav>
+      <a href="../index.html">Panel Principal</a>
+      <a href="../modulo1/index.html">Modulo 1 - Proyectos</a>
+      <a class="active" href="index.html">Modulo 2 - Materiales</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1>Modulo 2 - Materiales e Inventario</h1>
+    </header>
+
+    <section class="resumen">
+      <div class="card dato">
+        <h3>Total materiales</h3>
+        <p id="totalMateriales">-</p>
+      </div>
+      <div class="card dato">
+        <h3>Items inventario</h3>
+        <p id="totalInventario">-</p>
+      </div>
+      <div class="card dato rojo">
+        <h3>Stock bajo</h3>
+        <p id="stockBajo">-</p>
+      </div>
+      <div class="card dato">
+        <h3>Usos en proyectos</h3>
+        <p id="totalUsos">-</p>
+      </div>
+    </section>
+
+    <section class="botones">
+      <button class="btn-tab activo" onclick="cambiarTab('materiales', this)">Materiales</button>
+      <button class="btn-tab" onclick="cambiarTab('inventario', this)">Inventario</button>
+      <button class="btn-tab" onclick="cambiarTab('usos', this)">Uso en Proyectos</button>
+    </section>
+
+    <section id="tab-materiales" class="card contenido activo">
+      <div class="cabecera">
+        <div>
+          <h2>Listado de Materiales</h2>
+          <p>Materiales registrados en el sistema.</p>
+        </div>
+        <input type="text" id="buscarMaterial" placeholder="Buscar material...">
+      </div>
+      <div id="mensajeMateriales" class="mensaje">Cargando materiales...</div>
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Material</th>
+              <th>Tipo</th>
+              <th>Unidad</th>
+              <th>Precio unitario</th>
+              <th>Descripcion</th>
+            </tr>
+          </thead>
+          <tbody id="tablaMateriales"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-inventario" class="card contenido">
+      <div class="cabecera">
+        <div>
+          <h2>Inventario</h2>
+          <p>Stock actual de materiales.</p>
+        </div>
+        <input type="text" id="buscarInventario" placeholder="Buscar en inventario...">
+      </div>
+      <div id="mensajeInventario" class="mensaje">Cargando inventario...</div>
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Material</th>
+              <th>Stock actual</th>
+              <th>Stock minimo</th>
+              <th>Ubicacion</th>
+              <th>Actualizacion</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tablaInventario"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-usos" class="card contenido">
+      <div class="cabecera">
+        <div>
+          <h2>Uso en Proyectos</h2>
+          <p>Materiales utilizados por proyecto.</p>
+        </div>
+        <input type="text" id="buscarUso" placeholder="Buscar proyecto o material...">
+      </div>
+      <div id="mensajeUsos" class="mensaje">Cargando registros...</div>
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Proyecto</th>
+              <th>Material</th>
+              <th>Tipo</th>
+              <th>Unidad</th>
+              <th>Cantidad</th>
+              <th>Fecha</th>
+              <th>Costo total</th>
+            </tr>
+          </thead>
+          <tbody id="tablaUsos"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -21,7 +21,15 @@ const inventarioRouter  = require('./src/routes/inventario');
 const clientesRouter     = require('./src/routes/clientes');
 const horasRouter        = require('./src/routes/registrohoras');
 const cotizacionesRouter = require('./src/routes/cotizaciones');
+const loginRouter = require('./src/routes/login');
+const pagosRouter   = require('./src/routes/pagos');
+const comprasRouter = require('./src/routes/compras');
+const cuotasRouter  = require('./src/routes/cuotas');
 
+app.use('/api/pagos',   pagosRouter);
+app.use('/api/compras', comprasRouter);
+app.use('/api/cuotas',  cuotasRouter);
+app.use('/api/login', loginRouter);
 app.use('/api/clientes',     clientesRouter);
 app.use('/api/horas',        horasRouter);
 app.use('/api/cotizaciones', cotizacionesRouter);

@@ -1,22 +1,147 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
 const { sql } = require('../config/db');
 
+// ÔöÇÔöÇ GET todos los proveedores ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/', async (req, res) => {
     try {
         const pool   = await sql.connect();
         const result = await pool.request().query(`
-            SELECT
-                idProveedor,
-                nombreProveedor,
-                numCelular,
-                email,
-                direccion,
-                ciudad,
-                pais
-            FROM proveedor
+            SELECT idProveedor, nombreProveedor, numCelular, email, direccion, ciudad, pais
+            FROM dbo.proveedor
             ORDER BY nombreProveedor
         `);
+        res.json(result.recordset);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ÔöÇÔöÇ GET proveedor por id ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.get('/:id', async (req, res) => {
+    try {
+        const pool   = await sql.connect();
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT * FROM dbo.proveedor WHERE idProveedor = @id`);
+        if (result.recordset.length === 0)
+            return res.status(404).json({ error: 'Proveedor no encontrado' });
+        res.json(result.recordset[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ÔöÇÔöÇ POST registrar proveedor ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.post('/', async (req, res) => {
+    // Nota: El documento pide NIT y TipoProveedor, pero la DB en 42Tablas.sql 
+    // no contiene dichas columnas en dbo.proveedor.
+    const { nombreProveedor, numCelular, email, direccion, ciudad, pais } = req.body;
+    
+    if (!nombreProveedor) return res.status(400).json({ error: 'nombreProveedor es obligatorio' });
+
+    try {
+        const pool = await sql.connect();
+
+        // Validar nombre duplicado (sustituye la validaci├│n de NIT duplicado)
+        const dup = await pool.request()
+            .input('nombre', sql.NVarChar, nombreProveedor)
+            .query(`SELECT 1 FROM dbo.proveedor WHERE nombreProveedor = @nombre`);
+        if (dup.recordset.length > 0)
+            return res.status(400).json({ error: 'Ya existe un proveedor registrado con ese nombre' });
+
+        const result = await pool.request()
+            .input('nombre',    sql.NVarChar, nombreProveedor)
+            .input('celular',   sql.NVarChar, numCelular || null)
+            .input('email',     sql.NVarChar, email      || null)
+            .input('direccion', sql.NVarChar, direccion  || null)
+            .input('ciudad',    sql.NVarChar, ciudad     || null)
+            .input('pais',      sql.NVarChar, pais       || null)
+            .query(`
+                INSERT INTO dbo.proveedor (nombreProveedor, numCelular, email, direccion, ciudad, pais)
+                OUTPUT INSERTED.idProveedor
+                VALUES (@nombre, @celular, @email, @direccion, @ciudad, @pais)
+            `);
+        res.status(201).json({ idProveedor: result.recordset[0].idProveedor });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ÔöÇÔöÇ PUT actualizar proveedor ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.put('/:id', async (req, res) => {
+    const idProveedor = req.params.id;
+    const { nombreProveedor, numCelular, email, direccion, ciudad, pais } = req.body;
+
+    try {
+        const pool = await sql.connect();
+        const existe = await pool.request()
+            .input('id', sql.Int, idProveedor)
+            .query(`SELECT 1 FROM dbo.proveedor WHERE idProveedor = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Proveedor no encontrado' });
+
+        if (nombreProveedor) {
+            const dup = await pool.request()
+                .input('nombre', sql.NVarChar, nombreProveedor)
+                .input('id', sql.Int, idProveedor)
+                .query(`SELECT 1 FROM dbo.proveedor WHERE nombreProveedor = @nombre AND idProveedor <> @id`);
+            if (dup.recordset.length > 0)
+                return res.status(400).json({ error: 'El nombre ya est├í en uso por otro proveedor' });
+        }
+
+        await pool.request()
+            .input('id',        sql.Int,      idProveedor)
+            .input('nombre',    sql.NVarChar, nombreProveedor)
+            .input('celular',   sql.NVarChar, numCelular || null)
+            .input('email',     sql.NVarChar, email      || null)
+            .input('direccion', sql.NVarChar, direccion  || null)
+            .input('ciudad',    sql.NVarChar, ciudad     || null)
+            .input('pais',      sql.NVarChar, pais       || null)
+            .query(`
+                UPDATE dbo.proveedor SET 
+                    nombreProveedor = @nombre, numCelular = @celular, email = @email,
+                    direccion = @direccion, ciudad = @ciudad, pais = @pais
+                WHERE idProveedor = @id
+            `);
+        res.json({ mensaje: 'Proveedor actualizado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ÔöÇÔöÇ DELETE desactivar/eliminar proveedor ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.delete('/:id', async (req, res) => {
+    // Al ejecutar DELETE, el Trigger "trg_validar_desactivacion_proveedor" 
+    // verificar├í si tiene ├│rdenes de compra pendientes y abortar├í si es as├¡.
+    try {
+        const pool = await sql.connect();
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.proveedor WHERE idProveedor = @id`);
+            
+        res.json({ mensaje: 'Proveedor desactivado/eliminado correctamente' });
+    } catch (err) {
+        // Capturar el RAISERROR / THROW del Trigger
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// ÔöÇÔöÇ GET materiales de un proveedor espec├¡fico ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.get('/:id/materiales', async (req, res) => {
+    try {
+        const pool = await sql.connect();
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT 
+                    pm.idProveedorMaterial, m.nombreMaterial, 
+                    pm.precioProveedor, pm.tiempoEntrega
+                FROM dbo.proveedormaterial pm
+                JOIN dbo.material m ON pm.idMaterial = m.idMaterial
+                WHERE pm.idProveedor = @id
+                ORDER BY m.nombreMaterial
+            `);
         res.json(result.recordset);
     } catch (err) {
         res.status(500).json({ error: err.message });

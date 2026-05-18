@@ -1,0 +1,131 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 3 - Pagos y Cuotas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 3 - Gestion de Pagos y Cuotas</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pagos-clientes', this)">Pagos Clientes</button>
+    <button class="tab-btn" onclick="switchTab('pagos-proveedores', this)">Pagos Proveedores</button>
+    <button class="tab-btn" onclick="switchTab('pagos-planilla', this)">Pagos Planilla</button>
+    <button class="tab-btn" onclick="switchTab('cuotas', this)">Cuotas</button>
+    <button class="tab-btn" onclick="switchTab('cuotas-contrato', this)">Cuotas por Contrato</button>
+    <button class="tab-btn" onclick="switchTab('registrar-pago', this)">Registrar Pago</button>
+  </div>
+
+  <!-- TAB: PAGOS CLIENTES -->
+  <div class="tab-content active" id="tab-pagos-clientes">
+    <div class="card">
+      <div class="table-header">
+        <h3>Pagos de Clientes</h3>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-cli', this.value)">
+      </div>
+      <div id="cont-pagos-clientes"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: PAGOS PROVEEDORES -->
+  <div class="tab-content" id="tab-pagos-proveedores">
+    <div class="card">
+      <div class="table-header">
+        <h3>Pagos a Proveedores</h3>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-prov', this.value)">
+      </div>
+      <div id="cont-pagos-proveedores"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: PAGOS PLANILLA -->
+  <div class="tab-content" id="tab-pagos-planilla">
+    <div class="card">
+      <div class="table-header">
+        <h3>Pagos de Planilla</h3>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-plan', this.value)">
+      </div>
+      <div id="cont-pagos-planilla"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: CUOTAS -->
+  <div class="tab-content" id="tab-cuotas">
+    <div class="card">
+      <h3>Cuotas</h3>
+      <div class="sub-btns">
+        <button class="btn btn-primary" onclick="cargarCuotas('todas')">Todas</button>
+        <button class="btn btn-accent" onclick="cargarCuotas('pendientes')">Pendientes</button>
+        <button class="btn btn-red" onclick="cargarCuotas('vencidas')">Vencidas</button>
+      </div>
+      <div class="table-header">
+        <span></span>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-cuotas', this.value)">
+      </div>
+      <div id="cont-cuotas"><p>Seleccione un filtro arriba.</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: CUOTAS POR CONTRATO -->
+  <div class="tab-content" id="tab-cuotas-contrato">
+    <div class="card">
+      <h3>Cuotas por Contrato</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px;">
+        <div class="form-group">
+          <label>ID Contrato</label>
+          <input id="cc-idcontrato" type="number" placeholder="Ingresa el ID del contrato">
+        </div>
+        <button class="btn btn-primary" onclick="buscarCuotasContrato()">Buscar</button>
+      </div>
+      <div id="cont-cuotas-contrato"></div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTRAR PAGO -->
+  <div class="tab-content" id="tab-registrar-pago">
+    <div class="card">
+      <h3>Registrar Pago de Cliente</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Contrato *</label>
+          <input id="rp-idcontrato" type="number" placeholder="ID del contrato">
+        </div>
+        <div class="form-group">
+          <label>ID Cuota *</label>
+          <input id="rp-idcuota" type="number" placeholder="ID de la cuota">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Pago *</label>
+          <input id="rp-fechapago" type="date">
+        </div>
+        <div class="form-group">
+          <label>Monto (Bs) *</label>
+          <input id="rp-monto" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>ID Metodo de Pago *</label>
+          <input id="rp-idmetodo" type="number" placeholder="ID del metodo de pago">
+        </div>
+        <div class="form-group">
+          <label>ID Estado de Pago *</label>
+          <input id="rp-idestado" type="number" placeholder="ID del estado de pago">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarPago()">Registrar Pago</button>
+      <div id="msg-pago" class="msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

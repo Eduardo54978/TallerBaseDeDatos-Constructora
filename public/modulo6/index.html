@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 6 - Proveedores</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 6 - Gestion de Proveedores</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Proveedores</button>
+    <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Proveedor</button>
+    <button class="tab-btn" onclick="switchTab('materiales', this)">Cat├ílogo de Materiales</button>
+  </div>
+
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div class="table-header">
+        <h3>Directorio de Proveedores</h3>
+        <input class="search" placeholder="Buscar proveedor..." oninput="filtrarTabla('tbl-prov', this.value)">
+      </div>
+      <div id="msg-lista" class="msg"></div>
+      <div id="cont-proveedores"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-registrar">
+    <div class="card">
+      <h3>Registrar Nuevo Proveedor</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre de Proveedor *</label>
+          <input id="p-nombre" placeholder="Nombre o Raz├│n Social">
+        </div>
+        <div class="form-group">
+          <label>Celular</label>
+          <input id="p-cel" placeholder="N├║mero de contacto">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="p-email" type="email" placeholder="correo@empresa.com">
+        </div>
+        <div class="form-group">
+          <label>Ciudad</label>
+          <input id="p-ciudad" placeholder="Ciudad principal">
+        </div>
+        <div class="form-group">
+          <label>Pa├¡s</label>
+          <input id="p-pais" placeholder="Pa├¡s">
+        </div>
+        <div class="form-group full">
+          <label>Direcci├│n</label>
+          <input id="p-dir" placeholder="Direcci├│n f├¡sica">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarProveedor()">Registrar Proveedor</button>
+      <div id="msg-prov" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-materiales">
+    <div class="card">
+      <h3>Asignar Material a Proveedor</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Proveedor *</label>
+          <input id="pm-idprov" type="number" placeholder="ID del proveedor">
+        </div>
+        <div class="form-group">
+          <label>ID Material *</label>
+          <input id="pm-idmat" type="number" placeholder="ID del material">
+        </div>
+        <div class="form-group">
+          <label>Precio Unitario Ofertado (Bs) *</label>
+          <input id="pm-precio" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Tiempo de Entrega (D├¡as)</label>
+          <input id="pm-tiempo" type="number" placeholder="D├¡as h├íbiles">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-accent" onclick="asignarMaterial()">Agregar al Cat├ílogo</button>
+      <div id="msg-pm" class="msg"></div>
+    </div>
+    
+    <div class="card">
+      <h3>Consultar Materiales de Proveedor</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="form-group">
+          <label>ID Proveedor</label>
+          <input id="con-idprov" type="number" placeholder="ID del proveedor">
+        </div>
+        <button class="btn btn-primary" onclick="consultarMateriales()">Ver Cat├ílogo</button>
+      </div>
+      <div id="cont-catalogo" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

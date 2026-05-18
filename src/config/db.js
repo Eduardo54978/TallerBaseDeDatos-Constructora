@@ -1,14 +1,14 @@
 const sql = require('mssql');
 
 const config = {
-  server: 'localhost\\SQLEXPRESS',
-  port: 1433,
+  server: 'localhost',
   database: 'constructora',
   user: 'sa',
   password: 'Admin1234',
   options: {
     trustServerCertificate: true,
-    encrypt: false
+    encrypt: false,
+    instanceName: 'SQLEXPRESS'
   },
   connectionTimeout: 30000
 };
