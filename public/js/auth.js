@@ -2,36 +2,36 @@ const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
 
 // Si no hay sesión, redirigir al login
 if (!usuario) {
-    window.location.href = 'login.html';
+    window.location.href = 'login/index.html';
 }
 
 // Módulos que puede ver cada rol
 const MODULOS_POR_ROL = {
-    rol_gerente:    ['dashboard','proyectos','materiales','contratos','proveedores',
-                     'inventario','clientes','empleados','horas','cotizaciones','pagos','compras'],
-    rol_contador:   ['dashboard','contratos','pagos'],
-    rol_jefe_obra:  ['dashboard','proyectos','empleados','materiales','horas','inventario'],
-    rol_rrhh:       ['dashboard','empleados','horas','cotizaciones'],
+    rol_gerente:    ['dashboard','proyectos','materiales','pagos','compras',
+                     'contratos','proveedores','clientes','empleados','cotizaciones'],
+    rol_jefe_obra:  ['dashboard','proyectos','empleados','materiales'],
+    rol_rrhh:       ['dashboard','empleados','cotizaciones'],
+    rol_logistica:  ['dashboard','proveedores','materiales','compras'],
     rol_secretaria: ['dashboard','clientes','contratos'],
-    rol_logistica:  ['dashboard','inventario','proveedores','materiales','compras'],
-    rol_consulta:   ['dashboard','proyectos','materiales','contratos','proveedores',
-                     'inventario','clientes','empleados','cotizaciones'],
+    rol_contador:   ['dashboard','contratos','pagos'],
+    rol_consulta:   ['dashboard','proyectos','materiales','contratos',
+                     'proveedores','clientes','empleados','cotizaciones'],
 };
 
 // Nombres para mostrar en el sidebar
 const NOMBRES_MODULOS = {
     dashboard:    'Panel Principal',
-    proyectos:    'Proyectos',
-    materiales:   'Materiales',
-    contratos:    'Contratos',
-    proveedores:  'Proveedores',
-    inventario:   'Inventario',
-    clientes:     'Clientes',
-    empleados:    'Empleados',
+    proyectos:    'M1 - Proyectos',
+    materiales:   'M2 - Materiales',
+    pagos:        'M3 - Pagos',
+    compras:      'M4 - Compras',
+    contratos:    'M5 - Contratos',
+    proveedores:  'M6 - Proveedores',
+    clientes:     'M7 - Clientes',
+    empleados:    'M8 - Empleados',
+    cotizaciones: 'M9 - Cotizaciones',
     horas:        'Registro de Horas',
-    cotizaciones: 'Cotizaciones',
-    pagos:        'Pagos',
-    compras:      'Compras',
+    inventario:   'Inventario',
 };
 
 // Links de módulos con página propia
@@ -92,13 +92,20 @@ function inicializarSistema() {
     });
 
     // Mostrar dashboard por defecto
-    const dash = document.getElementById('section-dashboard');
-    if (dash) dash.classList.add('active');
+document.querySelectorAll('.section').forEach(sec => {
+    sec.style.display = 'none';
+});
+const dash = document.getElementById('section-dashboard');
+if (dash) {
+    dash.style.display = 'block';
+    dash.classList.add('active');
+}
+cargarDashboard();
 }
 
 function cerrarSesion() {
     localStorage.removeItem('usuario');
-    window.location.href = 'login.html';
+    window.location.href = 'login/index.html';
 }
 
 document.addEventListener('DOMContentLoaded', inicializarSistema);

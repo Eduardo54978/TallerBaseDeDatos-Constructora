@@ -2,7 +2,6 @@
 const router  = express.Router();
 const { sql } = require('../config/db');
 
-// ÔöÇÔöÇ CAT├üLOGOS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 router.get('/metodos', async (req, res) => {
     try {
@@ -183,7 +182,6 @@ router.get('/proveedores', async (req, res) => {
                 pp.idPagoProveedor,
                 pp.idProveedor,
                 p.nombreProveedor,
-                pp.idOrdenCompra,
                 pp.fechaPago,
                 pp.monto,
                 mp.nombreMetodoPago AS metodoPago,
@@ -209,7 +207,6 @@ router.get('/proveedores/:id', async (req, res) => {
                     pp.idPagoProveedor,
                     pp.idProveedor,
                     p.nombreProveedor,
-                    pp.idOrdenCompra,
                     pp.fechaPago,
                     pp.monto,
                     mp.nombreMetodoPago AS metodoPago,
@@ -238,9 +235,9 @@ router.post('/proveedores', async (req, res) => {
             .input('idMetodoPago',  sql.Int,           idMetodoPago)
             .input('factura',       sql.NVarChar(200),  factura)
             .query(`
-                INSERT INTO pagoproveedor (idProveedor, idOrdenCompra, fechaPago, monto, idMetodoPago, factura)
+                INSERT INTO pagoproveedor (idProveedor, fechaPago, monto, idMetodoPago, factura)
                 OUTPUT INSERTED.idPagoProveedor
-                VALUES (@idProveedor, @idOrdenCompra, @fechaPago, @monto, @idMetodoPago, @factura)
+                VALUES (@idProveedor, @fechaPago, @monto, @idMetodoPago, @factura)
             `);
         res.status(201).json({ idPagoProveedor: result.recordset[0].idPagoProveedor });
     } catch (err) {
@@ -289,8 +286,6 @@ router.delete('/proveedores/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// ÔöÇÔöÇ PAGOS PLANILLA ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 router.get('/planilla', async (req, res) => {
     try {

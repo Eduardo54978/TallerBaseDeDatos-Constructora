@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Constructora - Login</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="login-wrapper">
+
+    <!-- PANEL IZQUIERDO -->
+    <div class="login-left">
+        <div class="icon">🏗️</div>
+        <h1>Empresa Constructora</h1>
+        <p>Sistema de Gestión Integral</p>
+        <div class="roles-lista">
+            <div class="rol-item">👑 Gerente — Acceso total</div>
+            <div class="rol-item">💰 Contador — Pagos y contratos</div>
+            <div class="rol-item">🔨 Jefe de Obra — Proyectos</div>
+            <div class="rol-item">👷 RRHH — Empleados</div>
+            <div class="rol-item">📋 Secretaria — Clientes</div>
+            <div class="rol-item">📦 Logística — Compras</div>
+            <div class="rol-item">👁️ Consulta — Solo lectura</div>
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="login-right">
+        <h2>Bienvenido</h2>
+        <p class="sub">Ingresa tus credenciales para acceder al sistema</p>
+
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="username" placeholder="Ej: gerente_constructora" autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn-login" id="btn-login">Iniciar Sesión →</button>
+
+        <div class="error-msg" id="error-msg"></div>
+        <div class="loading" id="loading">Verificando credenciales...</div>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

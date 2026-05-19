@@ -9,72 +9,43 @@ body {
   color: #102437;
   font-family: Arial, "Segoe UI", sans-serif;
   min-height: 100vh;
-  display: flex;
-}
-
-.sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: #142c46;
-  color: white;
-  position: fixed;
-  left: 0;
-  top: 0;
-}
-
-.logo {
-  background: #f5ad18;
-  color: #102437;
-  text-align: center;
-  padding: 22px;
-  font-weight: bold;
-}
-
-.logo h2 {
-  font-size: 18px;
-  margin-top: 6px;
-}
-
-nav {
-  display: flex;
-  flex-direction: column;
-  padding-top: 12px;
-}
-
-nav a {
-  color: white;
-  text-decoration: none;
-  padding: 15px 22px;
-  font-size: 15px;
-}
-
-nav a:hover, nav a.active {
-  background: #243f5e;
-  color: #f5ad18;
-  border-left: 4px solid #f5ad18;
-}
-
-.main {
-  margin-left: 220px;
-  width: calc(100% - 220px);
 }
 
 .topbar {
   background: #142c46;
   color: white;
-  padding: 18px 28px;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .topbar h1 {
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 1.2rem;
+  flex: 1;
+}
+
+.topbar a {
+  color: #f5ad18;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.topbar a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 20px;
 }
 
 .resumen {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 18px;
-  padding: 22px;
+  margin-bottom: 22px;
 }
 
 .card {
@@ -101,10 +72,14 @@ nav a:hover, nav a.active {
   color: #142c46;
 }
 
+.dato.rojo p {
+  color: #b91c1c;
+}
+
 .botones {
   display: flex;
   gap: 10px;
-  padding: 0 22px 18px;
+  margin-bottom: 18px;
 }
 
 .btn-tab {
@@ -124,7 +99,6 @@ nav a:hover, nav a.active {
 
 .contenido {
   display: none;
-  margin: 0 22px 22px;
 }
 
 .contenido.activo {
@@ -212,9 +186,10 @@ small {
   font-weight: bold;
 }
 
-.azul   { background: #dbeafe; color: #1d4ed8; }
-.verde  { background: #dcfce7; color: #166534; }
+.azul     { background: #dbeafe; color: #1d4ed8; }
+.verde    { background: #dcfce7; color: #166534; }
 .amarillo { background: #fef3c7; color: #92400e; }
+.rojo-estado { background: #fee2e2; color: #991b1b; }
 
 @media (max-width: 1000px) {
   .resumen { grid-template-columns: 1fr 1fr; }
@@ -222,10 +197,7 @@ small {
   input { width: 100%; }
 }
 
-@media (max-width: 750px) {
-  body { display: block; }
-  .sidebar { position: relative; width: 100%; min-height: auto; }
-  .main { margin-left: 0; width: 100%; }
+@media (max-width: 600px) {
   .resumen { grid-template-columns: 1fr; }
   .botones { flex-direction: column; }
 }

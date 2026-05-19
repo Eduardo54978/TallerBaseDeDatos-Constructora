@@ -25,7 +25,11 @@ const loginRouter = require('./src/routes/login');
 const pagosRouter   = require('./src/routes/pagos');
 const comprasRouter = require('./src/routes/compras');
 const cuotasRouter  = require('./src/routes/cuotas');
+const empleadoproyectoRouter = require('./src/routes/empleadoproyecto');
+const materialproyectoRouter = require('./src/routes/materialproyecto');
 
+app.use('/api/empleadoproyecto', empleadoproyectoRouter);
+app.use('/api/materialproyecto', materialproyectoRouter);
 app.use('/api/pagos',   pagosRouter);
 app.use('/api/compras', comprasRouter);
 app.use('/api/cuotas',  cuotasRouter);

@@ -17,7 +17,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Proveedores</button>
     <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Proveedor</button>
-    <button class="tab-btn" onclick="switchTab('materiales', this)">Cat├ílogo de Materiales</button>
+    <button class="tab-btn" onclick="switchTab('materiales', this)">Catalogo de Materiales</button>
   </div>
 
   <div class="tab-content active" id="tab-lista">
@@ -37,11 +37,11 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre de Proveedor *</label>
-          <input id="p-nombre" placeholder="Nombre o Raz├│n Social">
+          <input id="p-nombre" placeholder="Nombre o Razon Social">
         </div>
         <div class="form-group">
           <label>Celular</label>
-          <input id="p-cel" placeholder="N├║mero de contacto">
+          <input id="p-cel" placeholder="Numero de contacto">
         </div>
         <div class="form-group">
           <label>Email</label>
@@ -52,12 +52,12 @@
           <input id="p-ciudad" placeholder="Ciudad principal">
         </div>
         <div class="form-group">
-          <label>Pa├¡s</label>
-          <input id="p-pais" placeholder="Pa├¡s">
+          <label>Pais</label>
+          <input id="p-pais" placeholder="Pais">
         </div>
         <div class="form-group full">
-          <label>Direcci├│n</label>
-          <input id="p-dir" placeholder="Direcci├│n f├¡sica">
+          <label>Direccion</label>
+          <input id="p-dir" placeholder="Direccion fisica">
         </div>
       </div>
       <br>
@@ -83,8 +83,8 @@
           <input id="pm-precio" type="number" step="0.01" placeholder="0.00">
         </div>
         <div class="form-group">
-          <label>Tiempo de Entrega (D├¡as)</label>
-          <input id="pm-tiempo" type="number" placeholder="D├¡as h├íbiles">
+          <label>Tiempo de Entrega (Dias)</label>
+          <input id="pm-tiempo" type="number" placeholder="Dias">
         </div>
       </div>
       <br>
@@ -99,7 +99,7 @@
           <label>ID Proveedor</label>
           <input id="con-idprov" type="number" placeholder="ID del proveedor">
         </div>
-        <button class="btn btn-primary" onclick="consultarMateriales()">Ver Cat├ílogo</button>
+        <button class="btn btn-primary" onclick="consultarMateriales()">Ver Catologo</button>
       </div>
       <div id="cont-catalogo" style="margin-top:16px;"></div>
     </div>
