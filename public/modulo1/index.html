@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
 <div class="topbar">
   <h1>Modulo 1 - Proyectos y Personal</h1>
   <a href="../index.html">Volver al sistema</a>
@@ -13,90 +14,204 @@
 
 <div class="container">
 
-    <section class="resumen">
-      <div class="card dato">
-        <h3>Total proyectos</h3>
-        <p id="totalProyectos">-</p>
-      </div>
-      <div class="card dato">
-        <h3>En ejecucion</h3>
-        <p id="proyectosEjecucion">-</p>
-      </div>
-      <div class="card dato">
-        <h3>Personal asignado</h3>
-        <p id="totalAsignaciones">-</p>
-      </div>
-      <div class="card dato">
-        <h3>Asignaciones activas</h3>
-        <p id="asignacionesActivas">-</p>
-      </div>
-    </section>
+  <section class="resumen">
+    <div class="card dato">
+      <h3>Total proyectos</h3>
+      <p id="totalProyectos">-</p>
+    </div>
 
-    <section class="botones">
-      <button class="btn-tab activo" onclick="cambiarTab('proyectos', this)">Proyectos</button>
-      <button class="btn-tab" onclick="cambiarTab('personal', this)">Personal asignado</button>
-    </section>
+    <div class="card dato">
+      <h3>En ejecucion</h3>
+      <p id="proyectosEjecucion">-</p>
+    </div>
 
-    <section id="tab-proyectos" class="card contenido activo">
-      <div class="cabecera">
-        <div>
-          <h2>Listado de Proyectos</h2>
-          <p>Proyectos registrados en la constructora.</p>
+    <div class="card dato">
+      <h3>Personal asignado</h3>
+      <p id="totalAsignaciones">-</p>
+    </div>
+
+    <div class="card dato">
+      <h3>Asignaciones activas</h3>
+      <p id="asignacionesActivas">-</p>
+    </div>
+  </section>
+
+  <section class="botones">
+    <button class="btn-tab activo" onclick="cambiarTab('proyectos', this)">Proyectos</button>
+    <button class="btn-tab" onclick="cambiarTab('personal', this)">Personal asignado</button>
+    <button class="btn-tab" onclick="cambiarTab('nuevo', this)">Nuevo proyecto</button>
+  </section>
+
+  <section id="tab-proyectos" class="card contenido activo">
+    <div class="cabecera">
+      <div>
+        <h2>Listado de Proyectos</h2>
+        <p>Proyectos registrados en la constructora.</p>
+      </div>
+
+      <input type="text" id="buscarProyecto" placeholder="Buscar proyecto...">
+    </div>
+
+    <div id="mensajeProyectos" class="mensaje">Cargando proyectos...</div>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proyecto</th>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Ubicacion</th>
+            <th>Inicio</th>
+            <th>Fin estimado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tablaProyectos"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-personal" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Personal Asignado</h2>
+        <p>Empleados asignados a cada proyecto.</p>
+      </div>
+
+      <input type="text" id="buscarPersonal" placeholder="Buscar empleado o proyecto...">
+    </div>
+
+    <div id="mensajePersonal" class="mensaje">Cargando personal...</div>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Empleado</th>
+            <th>CI</th>
+            <th>Cargo</th>
+            <th>Proyecto</th>
+            <th>Tipo</th>
+            <th>Rol</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tablaPersonal"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-nuevo" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Nuevo Proyecto</h2>
+        <p>Registro de proyecto y parametros necesarios.</p>
+      </div>
+    </div>
+
+    <form id="formProyecto" class="formulario-proyecto">
+      <div class="campo ancho">
+        <label>Nombre del proyecto</label>
+        <input type="text" id="nuevoNombreProyecto" required>
+      </div>
+
+      <div class="campo">
+        <label>Tipo</label>
+        <select id="nuevoTipoProyecto" required></select>
+      </div>
+
+      <div class="campo">
+        <label>Cliente</label>
+        <select id="nuevoCliente" required></select>
+      </div>
+
+      <div class="campo">
+        <label>Estado</label>
+        <select id="nuevoEstadoProyecto" required></select>
+      </div>
+
+      <div class="campo ancho">
+        <label>Descripcion</label>
+        <textarea id="nuevoDescripcion" rows="3"></textarea>
+      </div>
+
+      <div class="campo ancho">
+        <label>Ubicacion</label>
+        <input type="text" id="nuevoUbicacion" required>
+      </div>
+
+      <div class="campo">
+        <label>Fecha inicio</label>
+        <input type="date" id="nuevoFechaInicio" required>
+      </div>
+
+      <div class="campo">
+        <label>Fecha fin estimada</label>
+        <input type="date" id="nuevoFechaFin" required>
+      </div>
+
+      <div class="acciones-form">
+        <button type="submit" class="btn-guardar">Guardar proyecto</button>
+        <button type="reset" class="btn-limpiar">Limpiar</button>
+      </div>
+    </form>
+
+    <div class="separador"></div>
+
+    <h2 class="titulo-parametros">Parametros</h2>
+
+    <div class="parametros-grid">
+      <div class="param-card">
+        <h3>Tipos de proyecto</h3>
+
+        <form id="formTipoProyecto" class="form-parametro">
+          <input type="text" id="nombreTipoProyecto" placeholder="Nuevo tipo de proyecto" required>
+          <button type="submit" class="btn-guardar">Agregar</button>
+        </form>
+
+        <div class="tabla tabla-parametros">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="tablaTiposProyecto"></tbody>
+          </table>
         </div>
-        <input type="text" id="buscarProyecto" placeholder="Buscar proyecto...">
       </div>
-      <div id="mensajeProyectos" class="mensaje">Cargando proyectos...</div>
-      <div class="tabla">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Proyecto</th>
-              <th>Cliente</th>
-              <th>Tipo</th>
-              <th>Ubicacion</th>
-              <th>Inicio</th>
-              <th>Fin estimado</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tablaProyectos"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <section id="tab-personal" class="card contenido">
-      <div class="cabecera">
-        <div>
-          <h2>Personal Asignado</h2>
-          <p>Empleados asignados a cada proyecto.</p>
+      <div class="param-card">
+        <h3>Estados de proyecto</h3>
+
+        <form id="formEstadoProyecto" class="form-parametro">
+          <input type="text" id="nombreEstadoProyecto" placeholder="Nuevo estado de proyecto" required>
+          <button type="submit" class="btn-guardar">Agregar</button>
+        </form>
+
+        <div class="tabla tabla-parametros">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tablaEstadosProyecto"></tbody>
+          </table>
         </div>
-        <input type="text" id="buscarPersonal" placeholder="Buscar empleado o proyecto...">
       </div>
-      <div id="mensajePersonal" class="mensaje">Cargando personal...</div>
-      <div class="tabla">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Empleado</th>
-              <th>CI</th>
-              <th>Cargo</th>
-              <th>Proyecto</th>
-              <th>Tipo</th>
-              <th>Rol</th>
-              <th>Inicio</th>
-              <th>Fin</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tablaPersonal"></tbody>
-        </table>
-      </div>
-    </section>
+    </div>
+  </section>
 
-  </div>
+</div>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
