@@ -1,12 +1,12 @@
 ﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
 // ÔöÇÔöÇ RUTAS ESPEC├ìFICAS (deben ir antes de /:id) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 router.get('/pendientes', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 c.idCuota,
@@ -29,7 +29,7 @@ router.get('/pendientes', async (req, res) => {
 
 router.get('/vencidas', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 c.idCuota,
@@ -53,7 +53,7 @@ router.get('/vencidas', async (req, res) => {
 
 router.get('/contrato/:idContrato', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('idContrato', sql.Int, req.params.idContrato)
             .query(`
@@ -80,7 +80,7 @@ router.get('/contrato/:idContrato', async (req, res) => {
 
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 c.idCuota,
@@ -102,7 +102,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -128,7 +128,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     const { idContrato, numeroCuota, fechaVencimiento, montoCuota, saldoPendiente, idEstadoPago } = req.body;
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('idContrato',       sql.Int,            idContrato)
             .input('numeroCuota',      sql.Int,            numeroCuota)
@@ -150,7 +150,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const { idContrato, numeroCuota, fechaVencimiento, montoCuota, saldoPendiente, idEstadoPago } = req.body;
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id',               sql.Int,            req.params.id)
             .input('idContrato',       sql.Int,            idContrato)
@@ -178,7 +178,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`DELETE FROM cuota WHERE idCuota = @id`);
@@ -190,3 +190,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+

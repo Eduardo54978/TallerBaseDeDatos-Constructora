@@ -1,8 +1,8 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
-// Qué módulos puede ver cada rol
+// QuÃ© mÃ³dulos puede ver cada rol
 const permisosPorRol = {
     rol_gerente:    ['dashboard','proyectos','materiales','contratos','proveedores',
                      'inventario','clientes','empleados','horas','cotizaciones',
@@ -21,10 +21,10 @@ router.post('/', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password)
-        return res.status(400).json({ error: 'Usuario y contraseña son obligatorios' });
+        return res.status(400).json({ error: 'Usuario y contraseÃ±a son obligatorios' });
 
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('username', sql.NVarChar, username)
             .input('password', sql.NVarChar, password)
@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
             `);
 
         if (result.recordset.length === 0)
-            return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+            return res.status(401).json({ error: 'Usuario o contraseÃ±a incorrectos' });
 
         const usuario = result.recordset[0];
         const modulos = permisosPorRol[usuario.rol] || ['dashboard'];

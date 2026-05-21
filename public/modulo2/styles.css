@@ -5,19 +5,20 @@
 }
 
 body {
-  background: #f4f6f9;
-  color: #102437;
+  background: #F7F8F6;
+  color: #1F2A24;
   font-family: Arial, "Segoe UI", sans-serif;
   min-height: 100vh;
 }
 
 .topbar {
-  background: #142c46;
-  color: white;
+  background: #FFFFFF;
+  color: #173F24;
   padding: 14px 24px;
   display: flex;
   align-items: center;
   gap: 12px;
+  border-bottom: 1px solid #E1E6DD;
 }
 
 .topbar h1 {
@@ -26,9 +27,10 @@ body {
 }
 
 .topbar a {
-  color: #f5ad18;
+  color: #2F5F2F;
   text-decoration: none;
   font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .topbar a:hover {
@@ -49,19 +51,19 @@ body {
 }
 
 .card {
-  background: white;
+  background: #FFFFFF;
   border-radius: 8px;
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(20, 45, 30, 0.08);
   padding: 22px;
 }
 
 .dato {
-  border-top: 4px solid #f5ad18;
+  border-top: 4px solid #2F5F2F;
   text-align: center;
 }
 
 .dato h3 {
-  color: #5d6b78;
+  color: #6B756D;
   font-size: 15px;
   margin-bottom: 10px;
 }
@@ -69,11 +71,11 @@ body {
 .dato p {
   font-size: 30px;
   font-weight: bold;
-  color: #142c46;
+  color: #173F24;
 }
 
 .dato.rojo p {
-  color: #b91c1c;
+  color: #991B1B;
 }
 
 .botones {
@@ -83,9 +85,9 @@ body {
 }
 
 .btn-tab {
-  border: 2px solid #142c46;
-  background: white;
-  color: #142c46;
+  border: 2px solid #173F24;
+  background: #FFFFFF;
+  color: #173F24;
   padding: 10px 18px;
   border-radius: 6px;
   cursor: pointer;
@@ -93,8 +95,8 @@ body {
 }
 
 .btn-tab:hover, .btn-tab.activo {
-  background: #142c46;
-  color: white;
+  background: #2F5F2F;
+  color: #FFFFFF;
 }
 
 .contenido {
@@ -116,35 +118,38 @@ body {
 .cabecera h2 {
   font-size: 24px;
   font-weight: 500;
+  color: #173F24;
 }
 
 .cabecera p {
-  color: #5d6b78;
+  color: #6B756D;
   margin-top: 4px;
 }
 
 input {
   width: 300px;
   padding: 11px 14px;
-  border: 1px solid #ccd4dc;
+  border: 1px solid #E1E6DD;
   border-radius: 6px;
   font-size: 14px;
+  background: #FFFFFF;
+  color: #1F2A24;
 }
 
 input:focus {
   outline: none;
-  border-color: #f5ad18;
+  border-color: #2F5F2F;
 }
 
 .mensaje {
   display: none;
   margin-bottom: 12px;
-  color: #5d6b78;
+  color: #6B756D;
 }
 
 .mensaje.error {
   display: block;
-  color: #b91c1c;
+  color: #991B1B;
   font-weight: 600;
 }
 
@@ -159,23 +164,23 @@ table {
 }
 
 thead {
-  background: #142c46;
-  color: white;
+  background: #123823;
+  color: #FFFFFF;
 }
 
 th, td {
   padding: 12px;
-  border-bottom: 1px solid #e2e6ea;
+  border-bottom: 1px solid #EDF0EB;
   text-align: left;
   vertical-align: top;
 }
 
 tbody tr:hover {
-  background: #f8fafc;
+  background: #F4F8F1;
 }
 
 small {
-  color: #66727e;
+  color: #6B756D;
 }
 
 .estado {
@@ -186,10 +191,10 @@ small {
   font-weight: bold;
 }
 
-.azul     { background: #dbeafe; color: #1d4ed8; }
-.verde    { background: #dcfce7; color: #166534; }
-.amarillo { background: #fef3c7; color: #92400e; }
-.rojo-estado { background: #fee2e2; color: #991b1b; }
+.azul     { background: #DFEAD8; color: #28512B; }
+.verde    { background: #DFEAD8; color: #28512B; }
+.amarillo { background: #EEF4EA; color: #6B756D; }
+.rojo-estado { background: #FEE2E2; color: #991B1B; }
 
 @media (max-width: 1000px) {
   .resumen { grid-template-columns: 1fr 1fr; }

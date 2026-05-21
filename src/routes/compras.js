@@ -1,12 +1,12 @@
 ﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
 // ÔöÇÔöÇ CAT├üLOGO ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 router.get('/estados', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT idEstadoOrden, nombreEstadoOrden, descripcionEstadoOrden
             FROM estadoorden
@@ -22,7 +22,7 @@ router.get('/estados', async (req, res) => {
 
 router.get('/proveedor/:idProveedor', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('idProveedor', sql.Int, req.params.idProveedor)
             .query(`
@@ -48,7 +48,7 @@ router.get('/proveedor/:idProveedor', async (req, res) => {
 
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 oc.idOrdenCompra,
@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const orden = await pool.request()
             .input('id', sql.Int, req.params.id)
@@ -113,7 +113,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     const { fechaOrden, idEstadoOrden, idProveedor, montoTotal } = req.body;
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('fechaOrden',    sql.Date,           fechaOrden)
             .input('idEstadoOrden', sql.Int,            idEstadoOrden)
@@ -133,7 +133,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const { fechaOrden, idEstadoOrden, idProveedor, montoTotal } = req.body;
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id',            sql.Int,            req.params.id)
             .input('fechaOrden',    sql.Date,           fechaOrden)
@@ -157,7 +157,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`DELETE FROM ordencompra WHERE idOrdenCompra = @id`);
@@ -172,7 +172,7 @@ router.delete('/:id', async (req, res) => {
 
 router.get('/:id/detalle', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -198,7 +198,7 @@ router.get('/:id/detalle', async (req, res) => {
 router.post('/:id/detalle', async (req, res) => {
     const { idMaterial, cantidad, precioUnitario } = req.body;
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('idOrdenCompra',  sql.Int,            req.params.id)
             .input('idMaterial',     sql.Int,            idMaterial)
@@ -216,3 +216,4 @@ router.post('/:id/detalle', async (req, res) => {
 });
 
 module.exports = router;
+

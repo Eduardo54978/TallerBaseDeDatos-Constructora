@@ -1,11 +1,11 @@
 ﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
 // ÔöÇÔöÇ GET todos los contratos ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT 
                 c.idContrato, c.numeroContrato, c.fechaContrato, c.fechaInicio,
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 // ÔöÇÔöÇ GET contrato por id (Incluye sus cuotas) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/:id', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         
         // 1. Obtener datos del contrato
         const resultContrato = await pool.request()
@@ -69,7 +69,7 @@ router.get('/:id', async (req, res) => {
 // ÔöÇÔöÇ GET contratos por idCliente ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/cliente/:idCliente', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const result = await pool.request()
             .input('idCliente', sql.Int, req.params.idCliente)
             .query(`
@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Faltan datos obligatorios para el contrato' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar proyecto y tipo
         const proyExiste = await pool.request().input('id', sql.Int, idProyecto).query(`SELECT 1 FROM dbo.proyecto WHERE idProyecto = @id`);
@@ -131,7 +131,7 @@ router.post('/', async (req, res) => {
 router.put('/:id/estado', async (req, res) => {
     const { idEstadoContrato } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         
         // Validar que el nuevo estado existe
         const estadoExiste = await pool.request().input('id', sql.Int, idEstadoContrato).query(`SELECT 1 FROM dbo.estadocontrato WHERE idEstadoContrato = @id`);
@@ -156,7 +156,7 @@ router.post('/:id/cuotas', async (req, res) => {
     if (!numeroCuotas || numeroCuotas <= 0) return res.status(400).json({ error: 'numeroCuotas debe ser mayor a 0' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // 1. Obtener datos del contrato
         const contrato = await pool.request()
@@ -217,3 +217,4 @@ router.post('/:id/cuotas', async (req, res) => {
 });
 
 module.exports = router;
+

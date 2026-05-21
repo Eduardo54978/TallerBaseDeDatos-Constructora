@@ -1,11 +1,11 @@
 ﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
 // ÔöÇÔöÇ GET todos los proveedores ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT idProveedor, nombreProveedor, numCelular, email, direccion, ciudad, pais
             FROM dbo.proveedor
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 // ÔöÇÔöÇ GET proveedor por id ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`SELECT * FROM dbo.proveedor WHERE idProveedor = @id`);
@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
     if (!nombreProveedor) return res.status(400).json({ error: 'nombreProveedor es obligatorio' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar nombre duplicado (sustituye la validaci├│n de NIT duplicado)
         const dup = await pool.request()
@@ -74,7 +74,7 @@ router.put('/:id', async (req, res) => {
     const { nombreProveedor, numCelular, email, direccion, ciudad, pais } = req.body;
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const existe = await pool.request()
             .input('id', sql.Int, idProveedor)
             .query(`SELECT 1 FROM dbo.proveedor WHERE idProveedor = @id`);
@@ -115,7 +115,7 @@ router.delete('/:id', async (req, res) => {
     // Al ejecutar DELETE, el Trigger "trg_validar_desactivacion_proveedor" 
     // verificar├í si tiene ├│rdenes de compra pendientes y abortar├í si es as├¡.
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`DELETE FROM dbo.proveedor WHERE idProveedor = @id`);
@@ -130,7 +130,7 @@ router.delete('/:id', async (req, res) => {
 // ÔöÇÔöÇ GET materiales de un proveedor espec├¡fico ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.get('/:id/materiales', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -149,3 +149,4 @@ router.get('/:id/materiales', async (req, res) => {
 });
 
 module.exports = router;
+

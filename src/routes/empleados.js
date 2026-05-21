@@ -1,15 +1,15 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
-// ── GET todos los empleados ────────────────────────────────────────────────
+// â”€â”€ GET todos los empleados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT TOP 200
                 e.idEmpleado, e.nombre, e.apellido, e.email, e.numCelular,
-                e.salario, e.fechaContratacion,
+                e.salarioReferencial AS salario, e.fechaContratacion,
                 c.nombreCargo, d.nombreDepartamento, ee.nombreEstadoEmpleado
             FROM dbo.empleado e
             JOIN dbo.cargo          c  ON e.idCargo          = c.idCargo
@@ -23,10 +23,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ── GET empleado por id ────────────────────────────────────────────────────
+// â”€â”€ GET empleado por id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -45,13 +45,13 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// ── POST registrar cargo ───────────────────────────────────────────────────
+// â”€â”€ POST registrar cargo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/cargos', async (req, res) => {
     const { nombreCargo, descripcionCargo } = req.body;
     if (!nombreCargo)
         return res.status(400).json({ error: 'nombreCargo es obligatorio' });
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const dup  = await pool.request()
             .input('nombre', sql.NVarChar, nombreCargo)
             .query(`SELECT 1 FROM dbo.cargo WHERE nombreCargo = @nombre`);
@@ -72,10 +72,10 @@ router.post('/cargos', async (req, res) => {
     }
 });
 
-// ── GET lista de cargos ────────────────────────────────────────────────────
+// â”€â”€ GET lista de cargos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/cargos/lista', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`SELECT * FROM dbo.cargo ORDER BY nombreCargo`);
         res.json(result.recordset);
     } catch (err) {
@@ -83,13 +83,13 @@ router.get('/cargos/lista', async (req, res) => {
     }
 });
 
-// ── POST registrar departamento ────────────────────────────────────────────
+// â”€â”€ POST registrar departamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/departamentos', async (req, res) => {
     const { nombreDepartamento, descripcionDepartamento } = req.body;
     if (!nombreDepartamento)
         return res.status(400).json({ error: 'nombreDepartamento es obligatorio' });
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const dup  = await pool.request()
             .input('nombre', sql.NVarChar, nombreDepartamento)
             .query(`SELECT 1 FROM dbo.departamento WHERE nombreDepartamento = @nombre`);
@@ -110,10 +110,10 @@ router.post('/departamentos', async (req, res) => {
     }
 });
 
-// ── GET lista de departamentos ─────────────────────────────────────────────
+// â”€â”€ GET lista de departamentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/departamentos/lista', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`SELECT * FROM dbo.departamento ORDER BY nombreDepartamento`);
         res.json(result.recordset);
     } catch (err) {
@@ -121,7 +121,7 @@ router.get('/departamentos/lista', async (req, res) => {
     }
 });
 
-// ── POST registrar empleado ────────────────────────────────────────────────
+// â”€â”€ POST registrar empleado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/', async (req, res) => {
     const { nombre, apellido, numCelular, email, direccion, salario,
             fechaContratacion, idEstadoEmpleado, ci, fechaNacimiento,
@@ -131,24 +131,24 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'nombre y apellido son obligatorios' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
-        // Validar email único
+        // Validar email Ãºnico
         if (email) {
             const dupEmail = await pool.request()
                 .input('email', sql.NVarChar, email)
                 .query(`SELECT 1 FROM dbo.empleado WHERE email = @email`);
             if (dupEmail.recordset.length > 0)
-                return res.status(400).json({ error: 'El email ya está registrado' });
+                return res.status(400).json({ error: 'El email ya estÃ¡ registrado' });
         }
 
-        // Validar CI único
+        // Validar CI Ãºnico
         if (ci) {
             const dupCI = await pool.request()
                 .input('ci', sql.NVarChar, ci)
                 .query(`SELECT 1 FROM dbo.empleado WHERE ci = @ci`);
             if (dupCI.recordset.length > 0)
-                return res.status(400).json({ error: 'El CI ya está registrado' });
+                return res.status(400).json({ error: 'El CI ya estÃ¡ registrado' });
         }
 
         // Validar que idCargo exista
@@ -203,14 +203,14 @@ router.post('/', async (req, res) => {
     }
 });
 
-// ── PUT actualizar empleado ────────────────────────────────────────────────
+// â”€â”€ PUT actualizar empleado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.put('/:id', async (req, res) => {
     const idEmpleado = req.params.id;
     const { nombre, apellido, numCelular, email, direccion, salario,
             fechaContratacion, idEstadoEmpleado, ci, fechaNacimiento,
             especialidad, idCargo, idDepartamento } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const existe = await pool.request()
             .input('id', sql.Int, idEmpleado)
@@ -218,24 +218,24 @@ router.put('/:id', async (req, res) => {
         if (existe.recordset.length === 0)
             return res.status(404).json({ error: 'Empleado no encontrado' });
 
-        // Validar email único en otro empleado
+        // Validar email Ãºnico en otro empleado
         if (email) {
             const dup = await pool.request()
                 .input('email', sql.NVarChar, email)
                 .input('id',    sql.Int,      idEmpleado)
                 .query(`SELECT 1 FROM dbo.empleado WHERE email = @email AND idEmpleado <> @id`);
             if (dup.recordset.length > 0)
-                return res.status(400).json({ error: 'El email ya está en uso' });
+                return res.status(400).json({ error: 'El email ya estÃ¡ en uso' });
         }
 
-        // Validar CI único en otro empleado
+        // Validar CI Ãºnico en otro empleado
         if (ci) {
             const dup = await pool.request()
                 .input('ci', sql.NVarChar, ci)
                 .input('id', sql.Int,      idEmpleado)
                 .query(`SELECT 1 FROM dbo.empleado WHERE ci = @ci AND idEmpleado <> @id`);
             if (dup.recordset.length > 0)
-                return res.status(400).json({ error: 'El CI ya está en uso' });
+                return res.status(400).json({ error: 'El CI ya estÃ¡ en uso' });
         }
 
         await pool.request()
@@ -268,13 +268,13 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// ── POST registrar rol de proyecto ─────────────────────────────────────────
+// â”€â”€ POST registrar rol de proyecto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/roles', async (req, res) => {
     const { nombreRolProyecto, descripcionRolProyecto } = req.body;
     if (!nombreRolProyecto)
         return res.status(400).json({ error: 'nombreRolProyecto es obligatorio' });
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
         const dup  = await pool.request()
             .input('nombre', sql.NVarChar, nombreRolProyecto)
             .query(`SELECT 1 FROM dbo.rolproyecto WHERE nombreRolProyecto = @nombre`);
@@ -295,10 +295,10 @@ router.post('/roles', async (req, res) => {
     }
 });
 
-// ── GET asignaciones de un empleado ───────────────────────────────────────
+// â”€â”€ GET asignaciones de un empleado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/:id/asignaciones', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const existe = await pool.request()
             .input('id', sql.Int, req.params.id)
@@ -327,11 +327,11 @@ router.get('/:id/asignaciones', async (req, res) => {
     }
 });
 
-// ── POST registrar horas trabajadas ───────────────────────────────────────
+// â”€â”€ POST registrar horas trabajadas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/horas', async (req, res) => {
     const { idEmpleado, idProyecto, fecha, horasTrabajadas, pagoPorHora } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const empExiste = await pool.request()
             .input('id', sql.Int, idEmpleado)
@@ -365,10 +365,10 @@ router.post('/horas', async (req, res) => {
     }
 });
 
-// ── GET horas trabajadas por empleado ─────────────────────────────────────
+// â”€â”€ GET horas trabajadas por empleado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/:id/horas', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -392,12 +392,12 @@ router.get('/:id/horas', async (req, res) => {
     }
 });
 
-// ── POST registrar bonificación ────────────────────────────────────────────
+// â”€â”€ POST registrar bonificaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/bonificaciones', async (req, res) => {
     const { idEmpleado, tipoBonificacion, aniosAntiguedad,
             porcentajeBono, salarioBase, gestion, descripcion } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const empExiste = await pool.request()
             .input('id', sql.Int, idEmpleado)
@@ -405,7 +405,7 @@ router.post('/bonificaciones', async (req, res) => {
         if (empExiste.recordset.length === 0)
             return res.status(400).json({ error: 'Empleado no existe' });
 
-        // Tabla de porcentajes según antigüedad (ley boliviana)
+        // Tabla de porcentajes segÃºn antigÃ¼edad (ley boliviana)
         const tablaBonos = [
             { min: 2,  max: 4,  pct: 5  },
             { min: 5,  max: 7,  pct: 11 },
@@ -417,7 +417,7 @@ router.post('/bonificaciones', async (req, res) => {
         ];
         const fila = tablaBonos.find(b => aniosAntiguedad >= b.min && aniosAntiguedad <= b.max);
         if (fila && fila.pct !== porcentajeBono)
-            return res.status(400).json({ error: `Para ${aniosAntiguedad} años el porcentaje debe ser ${fila.pct}%` });
+            return res.status(400).json({ error: `Para ${aniosAntiguedad} aÃ±os el porcentaje debe ser ${fila.pct}%` });
 
         const montoCalculado = (salarioBase * porcentajeBono) / 100;
 

@@ -133,12 +133,12 @@ async function consultarMateriales() {
     if (data.error) return document.getElementById('cont-catalogo').innerHTML = `<p style="color:red">${data.error}</p>`;
     
     if(data.length === 0) {
-      return document.getElementById('cont-catalogo').innerHTML = `<p>El proveedor no tiene materiales en su cat├ílogo.</p>`;
+      return document.getElementById('cont-catalogo').innerHTML = `<p>El proveedor no tiene materiales en su catalogo.</p>`;
     }
 
     document.getElementById('cont-catalogo').innerHTML = `
       <table>
-        <thead><tr><th>ID Cat├ílogo</th><th>Material</th><th>Precio (Bs)</th><th>Tiempo Entrega</th></tr></thead>
+        <thead><tr><th>ID Catalogo</th><th>Material</th><th>Precio (Bs)</th><th>Tiempo Entrega</th></tr></thead>
         <tbody>
           ${data.map(m => `<tr>
             <td>${m.idProveedorMaterial}</td>

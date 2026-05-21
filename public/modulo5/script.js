@@ -37,7 +37,7 @@ async function cargarContratos() {
       <table id="tbl-contratos">
         <thead>
           <tr>
-            <th>ID</th><th>N┬║ Contrato</th><th>Proyecto</th><th>Cliente</th>
+            <th>ID</th><th> Contrato</th><th>Proyecto</th><th>Cliente</th>
             <th>Monto</th><th>Fecha Contrato</th><th>Estado</th>
           </tr>
         </thead>
@@ -129,7 +129,7 @@ async function consultarPorCliente() {
 
     document.getElementById('cont-contratos-cliente').innerHTML = `
       <table>
-        <thead><tr><th>ID</th><th>N┬║ Contrato</th><th>Proyecto</th><th>Monto</th><th>Estado</th></tr></thead>
+        <thead><tr><th>ID</th><th>Contrato</th><th>Proyecto</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody>
           ${data.map(c => `<tr>
             <td>${c.idContrato}</td>
