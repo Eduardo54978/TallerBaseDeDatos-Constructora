@@ -201,3 +201,132 @@ small {
   .resumen { grid-template-columns: 1fr; }
   .botones { flex-direction: column; }
 }
+.formulario-proyecto {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  background: #f8fafc;
+  border: 1px solid #e2e6ea;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  font-size: 13px;
+  color: #5d6b78;
+  font-weight: bold;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccd4dc;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  font-family: Arial, "Segoe UI", sans-serif;
+}
+
+.campo textarea {
+  resize: vertical;
+}
+
+.ancho {
+  grid-column: span 3;
+}
+
+.acciones-form {
+  grid-column: span 3;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-guardar {
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #142c46;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-guardar:hover {
+  background: #243f5e;
+}
+
+.btn-limpiar {
+  padding: 11px 18px;
+  border: 1px solid #142c46;
+  border-radius: 6px;
+  background: white;
+  color: #142c46;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-limpiar:hover {
+  background: #eef2f7;
+}
+
+.parametros-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.param-card {
+  background: #f8fafc;
+  border: 1px solid #e2e6ea;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.param-card h3 {
+  margin-bottom: 14px;
+  color: #102437;
+}
+
+.form-parametro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.form-parametro input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccd4dc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.tabla-parametros table {
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .formulario-proyecto,
+  .parametros-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ancho,
+  .acciones-form {
+    grid-column: span 1;
+  }
+
+  .form-parametro {
+    grid-template-columns: 1fr;
+  }
+}
