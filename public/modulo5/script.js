@@ -1,16 +1,33 @@
 ﻿const API = 'http://localhost:3000/api';
 
+function ordenarPorNumero(datos, campo) {
+  return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
+}
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (name === 'lista') cargarContratos();
+
+  const tab = document.getElementById('tab-' + name);
+
+  if (tab) {
+    tab.classList.add('active');
+  }
+
+  if (btn) {
+    btn.classList.add('active');
+  }
+
+  if (name === 'lista') {
+    cargarContratos();
+  }
 }
 
 function filtrarTabla(id, texto) {
   const t = document.getElementById(id);
+
   if (!t) return;
+
   t.querySelectorAll('tbody tr').forEach(r => {
     r.style.display = r.innerText.toLowerCase().includes(texto.toLowerCase()) ? '' : 'none';
   });
@@ -18,31 +35,51 @@ function filtrarTabla(id, texto) {
 
 function badge(texto) {
   const t = (texto || '').toLowerCase();
-  if (t.includes('vigente')) return `<span class="badge badge-green">${texto}</span>`;
-  if (t.includes('rescindido') || t.includes('cancelado')) return `<span class="badge badge-red">${texto}</span>`;
+
+  if (t.includes('vigente')) {
+    return `<span class="badge badge-green">${texto}</span>`;
+  }
+
+  if (t.includes('rescindido') || t.includes('cancelado')) {
+    return `<span class="badge badge-red">${texto}</span>`;
+  }
+
   return `<span class="badge badge-blue">${texto}</span>`;
 }
 
 function msg(id, texto, tipo) {
   const el = document.getElementById(id);
+
+  if (!el) return;
+
   el.className = 'msg ' + tipo;
   el.textContent = texto;
-  setTimeout(() => el.className = 'msg', 4000);
+
+  setTimeout(() => {
+    el.className = 'msg';
+  }, 4000);
 }
 
 async function cargarContratos() {
   try {
     const data = await fetch(`${API}/contratos`).then(r => r.json());
+    const ordenados = ordenarPorNumero(data, 'idContrato');
+
     document.getElementById('cont-contratos').innerHTML = `
       <table id="tbl-contratos">
         <thead>
           <tr>
-            <th>ID</th><th> Contrato</th><th>Proyecto</th><th>Cliente</th>
-            <th>Monto</th><th>Fecha Contrato</th><th>Estado</th>
+            <th>ID</th>
+            <th>Contrato</th>
+            <th>Proyecto</th>
+            <th>Cliente</th>
+            <th>Monto</th>
+            <th>Fecha contrato</th>
+            <th>Estado</th>
           </tr>
         </thead>
         <tbody>
-          ${data.map(c => `<tr>
+          ${ordenados.map(c => `<tr>
             <td>${c.idContrato}</td>
             <td><b>${c.numeroContrato}</b></td>
             <td>${c.nombreProyecto || '-'}</td>
@@ -79,24 +116,36 @@ async function registrarContrato() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
     const data = await res.json();
-    if (!res.ok) return msg('msg-contrato', 'Error: ' + data.error, 'err');
-    
+
+    if (!res.ok) {
+      return msg('msg-contrato', 'Error: ' + data.error, 'err');
+    }
+
     msg('msg-contrato', `Contrato registrado exitosamente con ID: ${data.idContrato}`, 'ok');
-    document.querySelectorAll('#tab-registrar input').forEach(input => input.value = '');
+
+    document.querySelectorAll('#tab-registrar input').forEach(input => {
+      input.value = '';
+    });
+
+    cargarContratos();
   } catch (e) {
-    msg('msg-contrato', 'Error de conexi├│n', 'err');
+    msg('msg-contrato', 'Error de conexión', 'err');
   }
 }
 
 async function generarCuotas() {
   const idContrato = document.getElementById('cu-idcontrato').value;
+
   const body = {
     numeroCuotas: parseInt(document.getElementById('cu-cantidad').value),
     frecuenciaPago: document.getElementById('cu-frecuencia').value
   };
 
-  if (!idContrato || !body.numeroCuotas) return msg('msg-cuotas', 'Ingrese ID Contrato y N├║mero de Cuotas', 'err');
+  if (!idContrato || !body.numeroCuotas) {
+    return msg('msg-cuotas', 'Ingrese ID Contrato y número de cuotas', 'err');
+  }
 
   try {
     const res = await fetch(`${API}/contratos/${idContrato}/cuotas`, {
@@ -104,47 +153,66 @@ async function generarCuotas() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
     const data = await res.json();
-    if (!res.ok) return msg('msg-cuotas', 'Error: ' + data.error, 'err');
-    
+
+    if (!res.ok) {
+      return msg('msg-cuotas', 'Error: ' + data.error, 'err');
+    }
+
     msg('msg-cuotas', data.mensaje, 'ok');
+
     document.getElementById('cu-idcontrato').value = '';
     document.getElementById('cu-cantidad').value = '';
   } catch (e) {
-    msg('msg-cuotas', 'Error de conexi├│n', 'err');
+    msg('msg-cuotas', 'Error de conexión', 'err');
   }
 }
 
 async function consultarPorCliente() {
   const idCliente = document.getElementById('cli-id').value;
+
   if (!idCliente) return;
-  
+
   try {
     const data = await fetch(`${API}/contratos/cliente/${idCliente}`).then(r => r.json());
-    if (data.error) return document.getElementById('cont-contratos-cliente').innerHTML = `<p style="color:red">${data.error}</p>`;
-    
-    if(data.length === 0) {
-      return document.getElementById('cont-contratos-cliente').innerHTML = `<p>No se encontraron contratos para este cliente.</p>`;
+
+    if (data.error) {
+      document.getElementById('cont-contratos-cliente').innerHTML = `<p style="color:red">${data.error}</p>`;
+      return;
     }
 
+    if (data.length === 0) {
+      document.getElementById('cont-contratos-cliente').innerHTML = '<p>No se encontraron contratos para este cliente.</p>';
+      return;
+    }
+
+    const ordenados = ordenarPorNumero(data, 'idContrato');
+
     document.getElementById('cont-contratos-cliente').innerHTML = `
-      <table>
-        <thead><tr><th>ID</th><th>Contrato</th><th>Proyecto</th><th>Monto</th><th>Estado</th></tr></thead>
+      <table id="tbl-contratos-cliente">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Contrato</th>
+            <th>Proyecto</th>
+            <th>Monto</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
         <tbody>
-          ${data.map(c => `<tr>
+          ${ordenados.map(c => `<tr>
             <td>${c.idContrato}</td>
             <td><b>${c.numeroContrato}</b></td>
-            <td>${c.nombreProyecto}</td>
+            <td>${c.nombreProyecto || '-'}</td>
             <td>${c.montoTotal} Bs</td>
             <td>${badge(c.nombreEstadoContrato)}</td>
           </tr>`).join('')}
         </tbody>
-      </table>
-    `;
+      </table>`;
   } catch (e) {
-    document.getElementById('cont-contratos-cliente').innerHTML = '<p style="color:red">Error de conexi├│n</p>';
+    document.getElementById('cont-contratos-cliente').innerHTML = '<p style="color:red">Error de conexión</p>';
   }
 }
 
-// Carga Inicial
 cargarContratos();

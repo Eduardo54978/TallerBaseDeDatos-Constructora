@@ -30,3 +30,21 @@ tr:hover td { background: #F4F8F1; }
 .sidebar-title { cursor: pointer; }
 #menu-items { display: block; transition: all 0.3s; }
 #menu-items.oculto { display: none; }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar button,
+.topbar a,
+.btn-salir {
+  background: #123823 !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}

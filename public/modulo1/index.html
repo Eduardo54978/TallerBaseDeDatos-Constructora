@@ -40,6 +40,7 @@
     <button class="btn-tab activo" onclick="cambiarTab('proyectos', this)">Proyectos</button>
     <button class="btn-tab" onclick="cambiarTab('personal', this)">Personal asignado</button>
     <button class="btn-tab" onclick="cambiarTab('nuevo', this)">Nuevo proyecto</button>
+    <button class="btn-tab" onclick="cambiarTab('cambiar-estado', this)">Cambiar estado</button>
   </section>
 
   <section id="tab-proyectos" class="card contenido activo">
@@ -208,6 +209,34 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section id="tab-cambiar-estado" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Cambiar Estado de Proyecto</h2>
+        <p>Actualizacion del estado actual de un proyecto.</p>
+      </div>
+    </div>
+
+    <form id="formCambiarEstadoProyecto" class="formulario-proyecto">
+      <div class="campo">
+        <label>ID Proyecto</label>
+        <input type="number" id="cambioIdProyecto" placeholder="Ej: 1" required>
+      </div>
+
+      <div class="campo">
+        <label>Nuevo estado</label>
+        <select id="cambioEstadoProyecto" required></select>
+      </div>
+
+      <div class="acciones-form">
+        <button type="submit" class="btn-guardar">Guardar cambio</button>
+        <button type="reset" class="btn-limpiar">Limpiar</button>
+      </div>
+    </form>
+
+    <div id="mensajeCambioEstado" class="mensaje"></div>
   </section>
 
 </div>

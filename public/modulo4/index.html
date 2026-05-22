@@ -18,10 +18,11 @@
     <button class="tab-btn active" onclick="switchTab('ordenes', this)">Ordenes de Compra</button>
     <button class="tab-btn" onclick="switchTab('nueva-orden', this)">Nueva Orden</button>
     <button class="tab-btn" onclick="switchTab('detalle-orden', this)">Detalle de Orden</button>
+    <button class="tab-btn" onclick="switchTab('agregar-detalle', this)">Agregar Detalle</button>
+    <button class="tab-btn" onclick="switchTab('cancelar-orden', this)">Cancelar Orden</button>
     <button class="tab-btn" onclick="switchTab('por-proveedor', this)">Por Proveedor</button>
   </div>
 
-  <!-- TAB: ORDENES DE COMPRA -->
   <div class="tab-content active" id="tab-ordenes">
     <div class="card">
       <div class="table-header">
@@ -32,25 +33,24 @@
     </div>
   </div>
 
-  <!-- TAB: NUEVA ORDEN -->
   <div class="tab-content" id="tab-nueva-orden">
     <div class="card">
       <h3>Registrar Nueva Orden de Compra</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>Fecha de Orden *</label>
+          <label>Fecha de Orden</label>
           <input id="no-fecha" type="date">
         </div>
         <div class="form-group">
-          <label>ID Estado de Orden *</label>
+          <label>ID Estado de Orden</label>
           <input id="no-idestado" type="number" placeholder="ID del estado de la orden">
         </div>
         <div class="form-group">
-          <label>ID Proveedor *</label>
+          <label>ID Proveedor</label>
           <input id="no-idproveedor" type="number" placeholder="ID del proveedor">
         </div>
         <div class="form-group">
-          <label>Monto Total (Bs) *</label>
+          <label>Monto Total (Bs)</label>
           <input id="no-monto" type="number" step="0.01" placeholder="0.00">
         </div>
       </div>
@@ -60,7 +60,6 @@
     </div>
   </div>
 
-  <!-- TAB: DETALLE DE ORDEN -->
   <div class="tab-content" id="tab-detalle-orden">
     <div class="card">
       <h3>Detalle de Orden de Compra</h3>
@@ -75,7 +74,47 @@
     </div>
   </div>
 
-  <!-- TAB: POR PROVEEDOR -->
+  <div class="tab-content" id="tab-agregar-detalle">
+    <div class="card">
+      <h3>Agregar Detalle a Orden</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ID Orden</label>
+          <input id="ad-idorden" type="number" placeholder="Ej: 1">
+        </div>
+        <div class="form-group">
+          <label>ID Material</label>
+          <input id="ad-idmaterial" type="number" placeholder="Ej: 1">
+        </div>
+        <div class="form-group">
+          <label>Cantidad</label>
+          <input id="ad-cantidad" type="number" step="0.01" placeholder="Ej: 1">
+        </div>
+        <div class="form-group">
+          <label>Precio Unitario</label>
+          <input id="ad-precio" type="number" step="0.01" placeholder="Ej: 55">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="agregarDetalleOrden()">Agregar detalle</button>
+      <div id="msg-agregar-detalle" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-cancelar-orden">
+    <div class="card">
+      <h3>Cancelar Orden</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px;">
+        <div class="form-group">
+          <label>ID Orden de Compra</label>
+          <input id="co-idorden" type="number" placeholder="Ingresa el ID de la orden">
+        </div>
+        <button class="btn btn-red" onclick="cancelarOrden()">Cancelar orden</button>
+      </div>
+      <div id="msg-cancelar-orden" class="msg"></div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-por-proveedor">
     <div class="card">
       <h3>Ordenes por Proveedor</h3>

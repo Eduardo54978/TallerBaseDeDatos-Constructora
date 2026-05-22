@@ -12,115 +12,163 @@
 </div>
 
 <div class="container">
- 
-    <section class="resumen">
-      <div class="card dato">
-        <h3>Total materiales</h3>
-        <p id="totalMateriales">-</p>
-      </div>
-      <div class="card dato">
-        <h3>Items inventario</h3>
-        <p id="totalInventario">-</p>
-      </div>
-      <div class="card dato rojo">
-        <h3>Stock bajo</h3>
-        <p id="stockBajo">-</p>
-      </div>
-      <div class="card dato">
-        <h3>Usos en proyectos</h3>
-        <p id="totalUsos">-</p>
-      </div>
-    </section>
 
-    <section class="botones">
-      <button class="btn-tab activo" onclick="cambiarTab('materiales', this)">Materiales</button>
-      <button class="btn-tab" onclick="cambiarTab('inventario', this)">Inventario</button>
-      <button class="btn-tab" onclick="cambiarTab('usos', this)">Uso en Proyectos</button>
-    </section>
+  <section class="resumen">
+    <div class="card dato">
+      <h3>Total materiales</h3>
+      <p id="totalMateriales">-</p>
+    </div>
+    <div class="card dato">
+      <h3>Items inventario</h3>
+      <p id="totalInventario">-</p>
+    </div>
+    <div class="card dato rojo">
+      <h3>Stock bajo</h3>
+      <p id="stockBajo">-</p>
+    </div>
+    <div class="card dato">
+      <h3>Usos en proyectos</h3>
+      <p id="totalUsos">-</p>
+    </div>
+  </section>
 
-    <section id="tab-materiales" class="card contenido activo">
-      <div class="cabecera">
-        <div>
-          <h2>Listado de Materiales</h2>
-          <p>Materiales registrados en el sistema.</p>
-        </div>
-        <input type="text" id="buscarMaterial" placeholder="Buscar material...">
-      </div>
-      <div id="mensajeMateriales" class="mensaje">Cargando materiales...</div>
-      <div class="tabla">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Material</th>
-              <th>Tipo</th>
-              <th>Unidad</th>
-              <th>Precio unitario</th>
-              <th>Descripcion</th>
-            </tr>
-          </thead>
-          <tbody id="tablaMateriales"></tbody>
-        </table>
-      </div>
-    </section>
+  <section class="botones">
+    <button class="btn-tab activo" onclick="cambiarTab('materiales', this)">Materiales</button>
+    <button class="btn-tab" onclick="cambiarTab('inventario', this)">Inventario</button>
+    <button class="btn-tab" onclick="cambiarTab('usos', this)">Uso en Proyectos</button>
+    <button class="btn-tab" onclick="cambiarTab('registrar-uso', this)">Registrar Uso</button>
+    <button class="btn-tab" onclick="cambiarTab('alertas', this)">Alertas Stock</button>
+  </section>
 
-    <section id="tab-inventario" class="card contenido">
-      <div class="cabecera">
-        <div>
-          <h2>Inventario</h2>
-          <p>Stock actual de materiales.</p>
-        </div>
-        <input type="text" id="buscarInventario" placeholder="Buscar en inventario...">
+  <section id="tab-materiales" class="card contenido activo">
+    <div class="cabecera">
+      <div>
+        <h2>Listado de Materiales</h2>
+        <p>Materiales registrados en el sistema.</p>
       </div>
-      <div id="mensajeInventario" class="mensaje">Cargando inventario...</div>
-      <div class="tabla">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Material</th>
-              <th>Stock actual</th>
-              <th>Stock minimo</th>
-              <th>Ubicacion</th>
-              <th>Actualizacion</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tablaInventario"></tbody>
-        </table>
-      </div>
-    </section>
+      <input type="text" id="buscarMaterial" placeholder="Buscar material...">
+    </div>
+    <div id="mensajeMateriales" class="mensaje">Cargando materiales...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Material</th>
+            <th>Tipo</th>
+            <th>Unidad</th>
+            <th>Precio unitario</th>
+            <th>Descripcion</th>
+          </tr>
+        </thead>
+        <tbody id="tablaMateriales"></tbody>
+      </table>
+    </div>
+  </section>
 
-    <section id="tab-usos" class="card contenido">
-      <div class="cabecera">
-        <div>
-          <h2>Uso en Proyectos</h2>
-          <p>Materiales utilizados por proyecto.</p>
-        </div>
-        <input type="text" id="buscarUso" placeholder="Buscar proyecto o material...">
+  <section id="tab-inventario" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Inventario</h2>
+        <p>Stock actual de materiales.</p>
       </div>
-      <div id="mensajeUsos" class="mensaje">Cargando registros...</div>
-      <div class="tabla">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Proyecto</th>
-              <th>Material</th>
-              <th>Tipo</th>
-              <th>Unidad</th>
-              <th>Cantidad</th>
-              <th>Fecha</th>
-              <th>Costo total</th>
-            </tr>
-          </thead>
-          <tbody id="tablaUsos"></tbody>
-        </table>
+      <input type="text" id="buscarInventario" placeholder="Buscar en inventario...">
+    </div>
+    <div id="mensajeInventario" class="mensaje">Cargando inventario...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Material</th>
+            <th>Stock actual</th>
+            <th>Stock minimo</th>
+            <th>Ubicacion</th>
+            <th>Actualizacion</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tablaInventario"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-usos" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Uso en Proyectos</h2>
+        <p>Materiales utilizados por proyecto.</p>
       </div>
-    </section>
+      <input type="text" id="buscarUso" placeholder="Buscar proyecto o material...">
+    </div>
+    <div id="mensajeUsos" class="mensaje">Cargando registros...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proyecto</th>
+            <th>Material</th>
+            <th>Tipo</th>
+            <th>Unidad</th>
+            <th>Cantidad</th>
+            <th>Fecha</th>
+            <th>Costo total</th>
+          </tr>
+        </thead>
+        <tbody id="tablaUsos"></tbody>
+      </table>
+    </div>
+  </section>
 
-  </div>
+  <section id="tab-registrar-uso" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Registrar Uso de Material</h2>
+        <p>Registro de materiales utilizados en proyectos.</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>ID Proyecto</label>
+        <input id="ru-idproyecto" type="number" placeholder="Ej: 1">
+      </div>
+      <div class="form-group">
+        <label>ID Material</label>
+        <input id="ru-idmaterial" type="number" placeholder="Ej: 6">
+      </div>
+      <div class="form-group">
+        <label>Cantidad utilizada</label>
+        <input id="ru-cantidad" type="number" step="0.01" placeholder="Ej: 5">
+      </div>
+      <div class="form-group">
+        <label>Costo total</label>
+        <input id="ru-costo" type="number" step="0.01" placeholder="Ej: 375">
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input id="ru-fecha" type="date">
+      </div>
+    </div>
+    <br>
+    <button class="btn-tab activo" onclick="registrarUsoMaterial()">Registrar uso</button>
+    <div id="msg-registrar-uso" class="mensaje"></div>
+  </section>
 
-  <script src="script.js"></script>
+  <section id="tab-alertas" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Alertas de Stock</h2>
+        <p>Materiales con stock bajo o en revision.</p>
+      </div>
+      <button class="btn-tab activo" onclick="cargarAlertas()">Actualizar</button>
+    </div>
+    <div id="mensajeAlertas" class="mensaje">Presiona actualizar para cargar alertas.</div>
+    <div class="tabla" id="contenedorAlertas"></div>
+  </section>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
