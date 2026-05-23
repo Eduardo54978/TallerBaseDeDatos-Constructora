@@ -1,11 +1,11 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
-// ── GET todos los clientes ──────────────────────────────────────────────────
+// â”€â”€ GET todos los clientes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 c.idCliente,
@@ -26,10 +26,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ── GET consultar cliente por id o documentoID ─────────────────────────────
+// â”€â”€ GET consultar cliente por id o documentoID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/:id', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
@@ -55,13 +55,13 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// ── POST registrar tipo de cliente ─────────────────────────────────────────
+// â”€â”€ POST registrar tipo de cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/tipos', async (req, res) => {
     const { nombreTipoCliente, descripcionTipoCliente } = req.body;
     if (!nombreTipoCliente)
         return res.status(400).json({ error: 'nombreTipoCliente es obligatorio' });
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar duplicado
         const dup = await pool.request()
@@ -84,10 +84,10 @@ router.post('/tipos', async (req, res) => {
     }
 });
 
-// ── GET todos los tipos de cliente ─────────────────────────────────────────
+// â”€â”€ GET todos los tipos de cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/tipos/lista', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`SELECT * FROM dbo.tipocliente ORDER BY nombreTipoCliente`);
         res.json(result.recordset);
     } catch (err) {
@@ -95,7 +95,7 @@ router.get('/tipos/lista', async (req, res) => {
     }
 });
 
-// ── POST registrar cliente ─────────────────────────────────────────────────
+// â”€â”€ POST registrar cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/', async (req, res) => {
     const { nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro } = req.body;
 
@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'nombre y documentoID son obligatorios' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar documentoID duplicado
         const dupDoc = await pool.request()
@@ -147,13 +147,13 @@ router.post('/', async (req, res) => {
     }
 });
 
-// ── PUT actualizar cliente ─────────────────────────────────────────────────
+// â”€â”€ PUT actualizar cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.put('/:id', async (req, res) => {
     const { nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro } = req.body;
     const idCliente = req.params.id;
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar que el cliente exista
         const existe = await pool.request()
@@ -169,7 +169,7 @@ router.put('/:id', async (req, res) => {
                 .input('id',  sql.Int,      idCliente)
                 .query(`SELECT 1 FROM dbo.cliente WHERE documentoID = @doc AND idCliente <> @id`);
             if (dupDoc.recordset.length > 0)
-                return res.status(400).json({ error: 'documentoID ya está en uso por otro cliente' });
+                return res.status(400).json({ error: 'documentoID ya estÃ¡ en uso por otro cliente' });
         }
 
         // Validar email duplicado en otro cliente
@@ -179,7 +179,7 @@ router.put('/:id', async (req, res) => {
                 .input('id',    sql.Int,      idCliente)
                 .query(`SELECT 1 FROM dbo.cliente WHERE email = @email AND idCliente <> @id`);
             if (dupEmail.recordset.length > 0)
-                return res.status(400).json({ error: 'email ya está en uso por otro cliente' });
+                return res.status(400).json({ error: 'email ya estÃ¡ en uso por otro cliente' });
         }
 
         // Validar idTipoCliente

@@ -1,11 +1,11 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
-const { sql } = require('../config/db');
+const { sql, config } = require('../config/db');
 
-// ── GET todas las cotizaciones cliente ────────────────────────────────────
+// â”€â”€ GET todas las cotizaciones cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/', async (req, res) => {
     try {
-        const pool   = await sql.connect();
+        const pool   = await sql.connect(config);
         const result = await pool.request().query(`
             SELECT
                 cc.idCotizacionCliente,
@@ -26,10 +26,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ── GET cotizaciones por proyecto (cliente + internas) ────────────────────
+// â”€â”€ GET cotizaciones por proyecto (cliente + internas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/proyecto/:idProyecto', async (req, res) => {
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const clientes = await pool.request()
             .input('id', sql.Int, req.params.idProyecto)
@@ -71,11 +71,11 @@ router.get('/proyecto/:idProyecto', async (req, res) => {
     }
 });
 
-// ── POST crear cotización cliente ─────────────────────────────────────────
+// â”€â”€ POST crear cotizaciÃ³n cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/cliente', async (req, res) => {
     const { idProyecto, numeroCotizacion, fechaCotizacion, fechaValidez, observaciones } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         // Validar que el proyecto existe
         const proyExiste = await pool.request()
@@ -84,12 +84,12 @@ router.post('/cliente', async (req, res) => {
         if (proyExiste.recordset.length === 0)
             return res.status(400).json({ error: 'Proyecto no existe' });
 
-        // Validar número de cotización único
+        // Validar nÃºmero de cotizaciÃ³n Ãºnico
         const dupNum = await pool.request()
             .input('num', sql.NVarChar, numeroCotizacion)
             .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE numeroCotizacionCliente = @num`);
         if (dupNum.recordset.length > 0)
-            return res.status(400).json({ error: 'El número de cotización ya existe' });
+            return res.status(400).json({ error: 'El nÃºmero de cotizaciÃ³n ya existe' });
 
         // Obtener estado "Pendiente"
         const estado = await pool.request()
@@ -116,7 +116,7 @@ router.post('/cliente', async (req, res) => {
     }
 });
 
-// ── POST agregar detalle a cotización cliente ─────────────────────────────
+// â”€â”€ POST agregar detalle a cotizaciÃ³n cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/cliente/:id/detalle', async (req, res) => {
     const { concepto, descripcion, cantidad, precioUnitario } = req.body;
     const idCotizacionCliente = req.params.id;
@@ -125,13 +125,13 @@ router.post('/cliente/:id/detalle', async (req, res) => {
         return res.status(400).json({ error: 'cantidad y precioUnitario deben ser mayores a 0' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const existe = await pool.request()
             .input('id', sql.Int, idCotizacionCliente)
             .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE idCotizacionCliente = @id`);
         if (existe.recordset.length === 0)
-            return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+            return res.status(404).json({ error: 'CotizaciÃ³n cliente no encontrada' });
 
         const result = await pool.request()
             .input('idCot',          sql.Int,      idCotizacionCliente)
@@ -151,11 +151,11 @@ router.post('/cliente/:id/detalle', async (req, res) => {
     }
 });
 
-// ── POST crear cotización interna ─────────────────────────────────────────
+// â”€â”€ POST crear cotizaciÃ³n interna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/interna', async (req, res) => {
     const { idProyecto, numeroCotizacion, fechaCotizacion, observaciones } = req.body;
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const proyExiste = await pool.request()
             .input('id', sql.Int, idProyecto)
@@ -167,7 +167,7 @@ router.post('/interna', async (req, res) => {
             .input('num', sql.NVarChar, numeroCotizacion)
             .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE numeroCotizacionInterna = @num`);
         if (dupNum.recordset.length > 0)
-            return res.status(400).json({ error: 'El número de cotización interna ya existe' });
+            return res.status(400).json({ error: 'El nÃºmero de cotizaciÃ³n interna ya existe' });
 
         const estado = await pool.request()
             .query(`SELECT idEstadoCotizacion FROM dbo.estadocotizacion WHERE nombreEstadoCotizacion = 'Pendiente'`);
@@ -192,7 +192,7 @@ router.post('/interna', async (req, res) => {
     }
 });
 
-// ── POST agregar detalle de materiales a cotización interna ───────────────
+// â”€â”€ POST agregar detalle de materiales a cotizaciÃ³n interna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/interna/:id/materiales', async (req, res) => {
     const { idMaterial, cantidadEstimada, costoUnitarioEstimado } = req.body;
     const idCotizacionInterna = req.params.id;
@@ -201,13 +201,13 @@ router.post('/interna/:id/materiales', async (req, res) => {
         return res.status(400).json({ error: 'cantidad y costo deben ser mayores a 0' });
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const cotExiste = await pool.request()
             .input('id', sql.Int, idCotizacionInterna)
             .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
         if (cotExiste.recordset.length === 0)
-            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+            return res.status(404).json({ error: 'CotizaciÃ³n interna no encontrada' });
 
         const matExiste = await pool.request()
             .input('id', sql.Int, idMaterial)
@@ -232,19 +232,19 @@ router.post('/interna/:id/materiales', async (req, res) => {
     }
 });
 
-// ── POST agregar detalle de mano de obra a cotización interna ─────────────
+// â”€â”€ POST agregar detalle de mano de obra a cotizaciÃ³n interna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/interna/:id/manodeobra', async (req, res) => {
     const { idCargo, cantidadPersonas, horasEstimadas, pagoPorHora } = req.body;
     const idCotizacionInterna = req.params.id;
 
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const cotExiste = await pool.request()
             .input('id', sql.Int, idCotizacionInterna)
             .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
         if (cotExiste.recordset.length === 0)
-            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+            return res.status(404).json({ error: 'CotizaciÃ³n interna no encontrada' });
 
         const cargoExiste = await pool.request()
             .input('id', sql.Int, idCargo)
@@ -273,18 +273,18 @@ router.post('/interna/:id/manodeobra', async (req, res) => {
     }
 });
 
-// ── PUT actualizar estado de cotización ───────────────────────────────────
+// â”€â”€ PUT actualizar estado de cotizaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.put('/estado', async (req, res) => {
     const { idCotizacion, tipo, nuevoEstado } = req.body;
     // tipo: 'cliente' | 'interna'
     try {
-        const pool = await sql.connect();
+        const pool = await sql.connect(config);
 
         const estadoRow = await pool.request()
             .input('nombre', sql.NVarChar, nuevoEstado)
             .query(`SELECT idEstadoCotizacion FROM dbo.estadocotizacion WHERE nombreEstadoCotizacion = @nombre`);
         if (estadoRow.recordset.length === 0)
-            return res.status(400).json({ error: 'Estado de cotización no válido' });
+            return res.status(400).json({ error: 'Estado de cotizaciÃ³n no vÃ¡lido' });
 
         const idEstado = estadoRow.recordset[0].idEstadoCotizacion;
 
@@ -293,7 +293,7 @@ router.put('/estado', async (req, res) => {
                 .input('id', sql.Int, idCotizacion)
                 .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE idCotizacionCliente = @id`);
             if (existe.recordset.length === 0)
-                return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+                return res.status(404).json({ error: 'CotizaciÃ³n cliente no encontrada' });
 
             await pool.request()
                 .input('id',       sql.Int, idCotizacion)
@@ -305,7 +305,7 @@ router.put('/estado', async (req, res) => {
                 .input('id', sql.Int, idCotizacion)
                 .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
             if (existe.recordset.length === 0)
-                return res.status(404).json({ error: 'Cotización interna no encontrada' });
+                return res.status(404).json({ error: 'CotizaciÃ³n interna no encontrada' });
 
             await pool.request()
                 .input('id',       sql.Int, idCotizacion)

@@ -1,16 +1,17 @@
-const sql = require('mssql');
+﻿const sql = require('mssql');
 
 const config = {
-  server: 'localhost',
+  server: '127.0.0.1',
+  port: 1433,
   database: 'constructora',
   user: 'sa',
   password: 'Admin1234',
   options: {
     trustServerCertificate: true,
-    encrypt: false,
-    instanceName: 'SQLEXPRESS'
+    encrypt: false
   },
-  connectionTimeout: 30000
+  connectionTimeout: 30000,
+  requestTimeout: 30000
 };
 
 const connectDB = async () => {

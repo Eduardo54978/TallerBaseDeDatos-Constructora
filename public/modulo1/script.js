@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const formProyecto = document.getElementById("formProyecto");
   const formTipoProyecto = document.getElementById("formTipoProyecto");
   const formEstadoProyecto = document.getElementById("formEstadoProyecto");
+  const formCambiarEstadoProyecto = document.getElementById("formCambiarEstadoProyecto");
 
   if (buscarProyecto) {
     buscarProyecto.addEventListener("input", e => {
@@ -43,6 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (formEstadoProyecto) {
     formEstadoProyecto.addEventListener("submit", guardarEstadoProyecto);
   }
+
+  if (formCambiarEstadoProyecto) {
+    formCambiarEstadoProyecto.addEventListener("submit", guardarCambioEstadoProyecto);
+  }
 });
 
 function cambiarTab(nombre, boton) {
@@ -63,6 +68,34 @@ function cambiarTab(nombre, boton) {
   if (boton) {
     boton.classList.add("activo");
   }
+
+  if (nombre === "proyectos") {
+    cargarProyectos();
+  }
+
+  if (nombre === "personal") {
+    cargarPersonal();
+  }
+
+  if (nombre === "cambiar-estado") {
+    cargarOpcionesProyecto();
+  }
+}
+
+function ordenarProyectosPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idProyecto) - Number(b.idProyecto));
+}
+
+function ordenarPersonalPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idEmpleadoProyecto) - Number(b.idEmpleadoProyecto));
+}
+
+function ordenarTiposProyectoPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idTipoProyecto) - Number(b.idTipoProyecto));
+}
+
+function ordenarEstadosProyectoPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idEstadoProyecto) - Number(b.idEstadoProyecto));
 }
 
 async function cargarProyectos() {
@@ -77,9 +110,11 @@ async function cargarProyectos() {
       throw new Error(datos.error || "No se pudieron cargar los proyectos");
     }
 
-    listaProyectos = datos;
-    mostrarProyectos(datos);
-    contarProyectos(datos);
+    const datosOrdenados = ordenarProyectosPorId(datos);
+
+    listaProyectos = datosOrdenados;
+    mostrarProyectos(datosOrdenados);
+    contarProyectos(datosOrdenados);
 
     if (mensaje) {
       mensaje.textContent = "";
@@ -94,8 +129,6 @@ async function cargarProyectos() {
       mensaje.textContent = "Error al cargar proyectos";
       mensaje.classList.add("error");
     }
-
-    console.log(error.message);
   }
 }
 
@@ -111,9 +144,11 @@ async function cargarPersonal() {
       throw new Error(datos.error || "No se pudo cargar el personal");
     }
 
-    listaPersonal = datos;
-    mostrarPersonal(datos);
-    contarPersonal(datos);
+    const datosOrdenados = ordenarPersonalPorId(datos);
+
+    listaPersonal = datosOrdenados;
+    mostrarPersonal(datosOrdenados);
+    contarPersonal(datosOrdenados);
 
     if (mensaje) {
       mensaje.textContent = "";
@@ -128,8 +163,6 @@ async function cargarPersonal() {
       mensaje.textContent = "Error al cargar personal";
       mensaje.classList.add("error");
     }
-
-    console.log(error.message);
   }
 }
 
@@ -239,7 +272,7 @@ function buscarProyectos(texto) {
     );
   });
 
-  mostrarProyectos(filtrados);
+  mostrarProyectos(ordenarProyectosPorId(filtrados));
 }
 
 function buscarPersonalAsignado(texto) {
@@ -258,7 +291,7 @@ function buscarPersonalAsignado(texto) {
     );
   });
 
-  mostrarPersonal(filtrados);
+  mostrarPersonal(ordenarPersonalPorId(filtrados));
 }
 
 async function cargarOpcionesProyecto() {
@@ -270,12 +303,14 @@ async function cargarOpcionesProyecto() {
       throw new Error(datos.error || "No se pudieron cargar las opciones");
     }
 
-    llenarSelect("nuevoTipoProyecto", datos.tipos, "idTipoProyecto", "nombreTipoProyecto");
-    llenarSelect("nuevoEstadoProyecto", datos.estados, "idEstadoProyecto", "nombreEstadoProyecto");
+    const tiposOrdenados = ordenarTiposProyectoPorId(datos.tipos);
+    const estadosOrdenados = ordenarEstadosProyectoPorId(datos.estados);
+
+    llenarSelect("nuevoTipoProyecto", tiposOrdenados, "idTipoProyecto", "nombreTipoProyecto");
+    llenarSelect("nuevoEstadoProyecto", estadosOrdenados, "idEstadoProyecto", "nombreEstadoProyecto");
+    llenarSelect("cambioEstadoProyecto", estadosOrdenados, "idEstadoProyecto", "nombreEstadoProyecto");
     llenarClientes(datos.clientes);
-  } catch (error) {
-    console.log(error.message);
-  }
+  } catch (error) {}
 }
 
 function llenarSelect(id, datos, valor, texto) {
@@ -348,6 +383,52 @@ async function guardarProyecto(e) {
   }
 }
 
+async function guardarCambioEstadoProyecto(e) {
+  e.preventDefault();
+
+  const idProyecto = document.getElementById("cambioIdProyecto").value;
+  const idEstadoProyecto = document.getElementById("cambioEstadoProyecto").value;
+  const mensaje = document.getElementById("mensajeCambioEstado");
+
+  if (!idProyecto || !idEstadoProyecto) {
+    if (mensaje) {
+      mensaje.textContent = "Complete los datos.";
+      mensaje.classList.add("error");
+    }
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${idProyecto}/estado`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idEstadoProyecto })
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo cambiar el estado");
+    }
+
+    if (mensaje) {
+      mensaje.textContent = "Estado actualizado correctamente.";
+      mensaje.classList.remove("error");
+    }
+
+    document.getElementById("formCambiarEstadoProyecto").reset();
+
+    await cargarProyectos();
+  } catch (error) {
+    if (mensaje) {
+      mensaje.textContent = "Error: " + error.message;
+      mensaje.classList.add("error");
+    }
+  }
+}
+
 async function cargarParametrosProyecto() {
   try {
     const tiposResp = await fetch(apiTiposProyecto);
@@ -364,11 +445,9 @@ async function cargarParametrosProyecto() {
       throw new Error(estados.error || "No se pudieron cargar los estados");
     }
 
-    mostrarTiposProyecto(tipos);
-    mostrarEstadosProyecto(estados);
-  } catch (error) {
-    console.log(error.message);
-  }
+    mostrarTiposProyecto(ordenarTiposProyectoPorId(tipos));
+    mostrarEstadosProyecto(ordenarEstadosProyectoPorId(estados));
+  } catch (error) {}
 }
 
 function mostrarTiposProyecto(datos) {
