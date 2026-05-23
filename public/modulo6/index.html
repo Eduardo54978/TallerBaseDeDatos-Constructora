@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -17,6 +17,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Proveedores</button>
     <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Proveedor</button>
+    <button class="tab-btn" onclick="switchTab('editar', this)">Editar Proveedor</button>
     <button class="tab-btn" onclick="switchTab('materiales', this)">Catalogo de Materiales</button>
   </div>
 
@@ -66,17 +67,76 @@
     </div>
   </div>
 
+  <!-- TAB EDITAR -->
+  <div class="tab-content" id="tab-editar">
+    <div class="card">
+      <h3>Editar Proveedor</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Buscar Proveedor</label>
+          <div class="ac-wrap">
+            <input id="ed-prov-nom" type="text" placeholder="Buscar proveedor por nombre..." autocomplete="off"
+                   oninput="acSearch('ed-prov-nom','ac-ed-prov','ed-idprov','proveedores','idProveedor','nombreProveedor','cargarFormEditar')">
+            <div class="ac-drop" id="ac-ed-prov"></div>
+            <input type="hidden" id="ed-idprov">
+          </div>
+        </div>
+      </div>
+      <div id="form-editar-prov" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input id="ed-nombre" placeholder="Nombre o Razon Social">
+          </div>
+          <div class="form-group">
+            <label>Celular</label>
+            <input id="ed-cel" placeholder="Numero de contacto">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="ed-email" type="email" placeholder="correo@empresa.com">
+          </div>
+          <div class="form-group">
+            <label>Ciudad</label>
+            <input id="ed-ciudad" placeholder="Ciudad">
+          </div>
+          <div class="form-group">
+            <label>Pais</label>
+            <input id="ed-pais" placeholder="Pais">
+          </div>
+          <div class="form-group full">
+            <label>Direccion</label>
+            <input id="ed-dir" placeholder="Direccion">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionProveedor()">Guardar Cambios</button>
+        <div id="msg-editar" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-materiales">
     <div class="card">
       <h3>Asignar Material a Proveedor</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Proveedor *</label>
-          <input id="pm-idprov" type="number" placeholder="ID del proveedor">
+          <label>Proveedor *</label>
+          <div class="ac-wrap">
+            <input id="pm-prov-nom" type="text" placeholder="Buscar proveedor por nombre..." autocomplete="off"
+                   oninput="acSearch('pm-prov-nom','ac-pm-prov','pm-idprov','proveedores','idProveedor','nombreProveedor')">
+            <div class="ac-drop" id="ac-pm-prov"></div>
+            <input type="hidden" id="pm-idprov">
+          </div>
         </div>
         <div class="form-group">
-          <label>ID Material *</label>
-          <input id="pm-idmat" type="number" placeholder="ID del material">
+          <label>Material *</label>
+          <div class="ac-wrap">
+            <input id="pm-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
+                   oninput="acSearch('pm-mat-nom','ac-pm-mat','pm-idmat','materiales','idMaterial','nombreMaterial')">
+            <div class="ac-drop" id="ac-pm-mat"></div>
+            <input type="hidden" id="pm-idmat">
+          </div>
         </div>
         <div class="form-group">
           <label>Precio Unitario Ofertado (Bs) *</label>
@@ -91,15 +151,20 @@
       <button class="btn btn-accent" onclick="asignarMaterial()">Agregar al Catalogo</button>
       <div id="msg-pm" class="msg"></div>
     </div>
-    
+
     <div class="card">
       <h3>Consultar Materiales de Proveedor</h3>
-      <div style="display:flex; gap:10px; align-items:flex-end;">
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
         <div class="form-group">
-          <label>ID Proveedor</label>
-          <input id="con-idprov" type="number" placeholder="ID del proveedor">
+          <label>Proveedor</label>
+          <div class="ac-wrap">
+            <input id="con-prov-nom" type="text" placeholder="Buscar proveedor por nombre..." autocomplete="off"
+                   oninput="acSearch('con-prov-nom','ac-con-prov','con-idprov','proveedores','idProveedor','nombreProveedor')">
+            <div class="ac-drop" id="ac-con-prov"></div>
+            <input type="hidden" id="con-idprov">
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="consultarMateriales()">Ver Catologo</button>
+        <button class="btn btn-primary" onclick="consultarMateriales()">Ver Catalogo</button>
       </div>
       <div id="cont-catalogo" style="margin-top:16px;"></div>
     </div>
@@ -107,6 +172,7 @@
 
 </div>
 
+<script src="../js/autocomplete.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -27,6 +27,7 @@ const comprasRouter = require('./src/routes/compras');
 const cuotasRouter  = require('./src/routes/cuotas');
 const empleadoproyectoRouter = require('./src/routes/empleadoproyecto');
 const materialproyectoRouter = require('./src/routes/materialproyecto');
+const proveedormaterialRouter = require('./src/routes/proveedormaterial');
 
 app.use('/api/empleadoproyecto', empleadoproyectoRouter);
 app.use('/api/materialproyecto', materialproyectoRouter);
@@ -43,6 +44,7 @@ app.use('/api/materiales',  materialesRouter);
 app.use('/api/contratos',   contratosRouter);
 app.use('/api/proveedores', proveedoresRouter);
 app.use('/api/inventario',  inventarioRouter);
+app.use('/api/proveedormaterial', proveedormaterialRouter);
 
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);

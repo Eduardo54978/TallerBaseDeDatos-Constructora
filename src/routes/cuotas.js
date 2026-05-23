@@ -11,6 +11,9 @@ router.get('/pendientes', async (req, res) => {
             SELECT
                 c.idCuota,
                 c.idContrato,
+                ct.numeroContrato,
+                p.nombreProyecto,
+                cl.nombre AS nombreCliente,
                 c.numeroCuota,
                 c.fechaVencimiento,
                 c.montoCuota,
@@ -18,6 +21,9 @@ router.get('/pendientes', async (req, res) => {
                 ep.nombreEstadoPago AS estadoPago
             FROM cuota c
             JOIN estadopago ep ON c.idEstadoPago = ep.idEstadoPago
+            JOIN contrato ct ON c.idContrato = ct.idContrato
+            JOIN proyecto p ON ct.idProyecto = p.idProyecto
+            JOIN cliente  cl ON p.idCliente = cl.idCliente
             WHERE c.saldoPendiente > 0
             ORDER BY c.fechaVencimiento
         `);
@@ -34,6 +40,9 @@ router.get('/vencidas', async (req, res) => {
             SELECT
                 c.idCuota,
                 c.idContrato,
+                ct.numeroContrato,
+                p.nombreProyecto,
+                cl.nombre AS nombreCliente,
                 c.numeroCuota,
                 c.fechaVencimiento,
                 c.montoCuota,
@@ -41,6 +50,9 @@ router.get('/vencidas', async (req, res) => {
                 ep.nombreEstadoPago AS estadoPago
             FROM cuota c
             JOIN estadopago ep ON c.idEstadoPago = ep.idEstadoPago
+            JOIN contrato ct ON c.idContrato = ct.idContrato
+            JOIN proyecto p ON ct.idProyecto = p.idProyecto
+            JOIN cliente  cl ON p.idCliente = cl.idCliente
             WHERE c.fechaVencimiento < CAST(GETDATE() AS DATE)
               AND c.saldoPendiente > 0
             ORDER BY c.fechaVencimiento
@@ -60,6 +72,9 @@ router.get('/contrato/:idContrato', async (req, res) => {
                 SELECT
                     c.idCuota,
                     c.idContrato,
+                    ct.numeroContrato,
+                    p.nombreProyecto,
+                    cl.nombre AS nombreCliente,
                     c.numeroCuota,
                     c.fechaVencimiento,
                     c.montoCuota,
@@ -67,6 +82,9 @@ router.get('/contrato/:idContrato', async (req, res) => {
                     ep.nombreEstadoPago AS estadoPago
                 FROM cuota c
                 JOIN estadopago ep ON c.idEstadoPago = ep.idEstadoPago
+                JOIN contrato ct ON c.idContrato = ct.idContrato
+                JOIN proyecto p ON ct.idProyecto = p.idProyecto
+                JOIN cliente  cl ON p.idCliente = cl.idCliente
                 WHERE c.idContrato = @idContrato
                 ORDER BY c.numeroCuota
             `);
@@ -85,6 +103,9 @@ router.get('/', async (req, res) => {
             SELECT
                 c.idCuota,
                 c.idContrato,
+                ct.numeroContrato,
+                p.nombreProyecto,
+                cl.nombre AS nombreCliente,
                 c.numeroCuota,
                 c.fechaVencimiento,
                 c.montoCuota,
@@ -92,6 +113,9 @@ router.get('/', async (req, res) => {
                 ep.nombreEstadoPago AS estadoPago
             FROM cuota c
             JOIN estadopago ep ON c.idEstadoPago = ep.idEstadoPago
+            JOIN contrato ct ON c.idContrato = ct.idContrato
+            JOIN proyecto p ON ct.idProyecto = p.idProyecto
+            JOIN cliente  cl ON p.idCliente = cl.idCliente
             ORDER BY c.idContrato, c.numeroCuota
         `);
         res.json(result.recordset);

@@ -146,9 +146,9 @@ async function asignarMaterial() {
     tiempoEntrega: parseInt(document.getElementById('pm-tiempo').value) || null
   };
 
-  if (!body.idProveedor || !body.idMaterial || isNaN(body.precioProveedor)) {
-    return msg('msg-pm', 'Proveedor, material y precio son obligatorios', 'err');
-  }
+  if (!body.idProveedor) return msg('msg-pm', 'Seleccione un proveedor de la lista.', 'err');
+  if (!body.idMaterial) return msg('msg-pm', 'Seleccione un material de la lista.', 'err');
+  if (isNaN(body.precioProveedor) || body.precioProveedor <= 0) return msg('msg-pm', 'Ingrese un precio válido.', 'err');
 
   try {
     const res = await fetch(`${API}/proveedormaterial`, {
@@ -166,6 +166,8 @@ async function asignarMaterial() {
     msg('msg-pm', 'Material asignado exitosamente al catálogo', 'ok');
 
     document.getElementById('pm-idmat').value = '';
+    const matNom = document.getElementById('pm-mat-nom');
+    if (matNom) matNom.value = '';
     document.getElementById('pm-precio').value = '';
     document.getElementById('pm-tiempo').value = '';
   } catch (e) {
@@ -174,7 +176,7 @@ async function asignarMaterial() {
 }
 
 async function consultarMateriales() {
-  const idProv = document.getElementById('con-idprov').value;
+  const idProv = document.getElementById('con-idprov').value.trim();
 
   if (!idProv) return;
 
@@ -201,6 +203,7 @@ async function consultarMateriales() {
             <th>Material</th>
             <th>Precio (Bs)</th>
             <th>Tiempo entrega</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -209,11 +212,93 @@ async function consultarMateriales() {
             <td><b>${m.nombreMaterial}</b></td>
             <td>${m.precioProveedor}</td>
             <td>${m.tiempoEntrega ? m.tiempoEntrega + ' días' : '-'}</td>
+            <td>
+              <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;" onclick="editarCatalogo(${m.idProveedorMaterial}, ${m.precioProveedor}, ${m.tiempoEntrega || 0})">Editar</button>
+              <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="quitarCatalogo(${m.idProveedorMaterial})">Quitar</button>
+            </td>
           </tr>`).join('')}
         </tbody>
       </table>`;
   } catch (e) {
     document.getElementById('cont-catalogo').innerHTML = '<p style="color:red">Error de conexión</p>';
+  }
+}
+
+async function cargarFormEditar(idProveedor) {
+  try {
+    const data = await fetch(`${API}/proveedores/${idProveedor}`).then(r => r.json());
+    document.getElementById('ed-nombre').value = data.nombreProveedor || '';
+    document.getElementById('ed-cel').value = data.numCelular || '';
+    document.getElementById('ed-email').value = data.email || '';
+    document.getElementById('ed-ciudad').value = data.ciudad || '';
+    document.getElementById('ed-pais').value = data.pais || '';
+    document.getElementById('ed-dir').value = data.direccion || '';
+    document.getElementById('form-editar-prov').style.display = 'block';
+  } catch (e) {
+    alert('Error al cargar datos del proveedor');
+  }
+}
+
+async function guardarEdicionProveedor() {
+  const id = document.getElementById('ed-idprov').value;
+  if (!id) return msg('msg-editar', 'Seleccione un proveedor.', 'err');
+  const body = {
+    nombreProveedor: document.getElementById('ed-nombre').value.trim(),
+    numCelular: document.getElementById('ed-cel').value.trim(),
+    email: document.getElementById('ed-email').value.trim(),
+    ciudad: document.getElementById('ed-ciudad').value.trim(),
+    pais: document.getElementById('ed-pais').value.trim(),
+    direccion: document.getElementById('ed-dir').value.trim()
+  };
+  if (!body.nombreProveedor) return msg('msg-editar', 'El nombre es obligatorio.', 'err');
+  try {
+    const res = await fetch(`${API}/proveedores/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar', 'Error: ' + data.error, 'err');
+    msg('msg-editar', 'Proveedor actualizado correctamente', 'ok');
+    cargarProveedores();
+  } catch (e) {
+    msg('msg-editar', 'Error de conexión', 'err');
+  }
+}
+
+async function editarCatalogo(id, precioActual, tiempoActual) {
+  const nuevoPrecio = prompt('Nuevo precio (Bs):', precioActual);
+  if (nuevoPrecio === null) return;
+  const precio = parseFloat(nuevoPrecio);
+  if (Number.isNaN(precio) || precio <= 0) return alert('Precio inválido.');
+  const nuevoTiempo = prompt('Tiempo de entrega (días, opcional):', tiempoActual || '');
+  if (nuevoTiempo === null) return;
+  const tiempo = nuevoTiempo.trim() === '' ? null : parseInt(nuevoTiempo);
+  try {
+    const res = await fetch(`${API}/proveedormaterial/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ precioProveedor: precio, tiempoEntrega: tiempo })
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-pm', 'Error: ' + data.error, 'err');
+    msg('msg-pm', 'Catálogo actualizado correctamente', 'ok');
+    consultarMateriales();
+  } catch (e) {
+    msg('msg-pm', 'Error de conexión', 'err');
+  }
+}
+
+async function quitarCatalogo(id) {
+  if (!confirm(`¿Quitar el material del catálogo (ID ${id})?`)) return;
+  try {
+    const res = await fetch(`${API}/proveedormaterial/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-pm', 'Error: ' + data.error, 'err');
+    msg('msg-pm', 'Material quitado del catálogo', 'ok');
+    consultarMateriales();
+  } catch (e) {
+    msg('msg-pm', 'Error de conexión', 'err');
   }
 }
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -18,6 +18,9 @@
     <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Contratos</button>
     <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Contrato</button>
     <button class="tab-btn" onclick="switchTab('cuotas', this)">Generar Cuotas</button>
+    <button class="tab-btn" onclick="switchTab('editar', this)">Editar Contrato</button>
+    <button class="tab-btn" onclick="switchTab('estado', this)">Cambiar Estado</button>
+    <button class="tab-btn" onclick="switchTab('renovar', this)">Rescindir / Renovar</button>
     <button class="tab-btn" onclick="switchTab('cliente', this)">Contratos por Cliente</button>
   </div>
 
@@ -36,12 +39,19 @@
       <h3>Crear Nuevo Contrato</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Proyecto *</label>
-          <input id="c-idproyecto" type="number" placeholder="ID del proyecto vinculado">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="c-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('c-proy-nom','ac-c-proy','c-idproyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-c-proy"></div>
+            <input type="hidden" id="c-idproyecto">
+          </div>
         </div>
         <div class="form-group">
-          <label>ID Tipo de Contrato *</label>
-          <input id="c-idtipo" type="number" placeholder="ID del tipo de contrato">
+          <label>Tipo de Contrato *</label>
+          <select id="c-idtipo">
+            <option value="">-- Cargando... --</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Numero de Contrato *</label>
@@ -75,8 +85,13 @@
       <h3>Generar Plan de Pagos (Cuotas)</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Contrato *</label>
-          <input id="cu-idcontrato" type="number" placeholder="ID del contrato a dividir">
+          <label>Contrato *</label>
+          <div class="ac-wrap">
+            <input id="cu-cont-nom" type="text" placeholder="Buscar contrato por numero o proyecto..." autocomplete="off"
+                   oninput="acSearch('cu-cont-nom','ac-cu-cont','cu-idcontrato','contratos','idContrato','display')">
+            <div class="ac-drop" id="ac-cu-cont"></div>
+            <input type="hidden" id="cu-idcontrato">
+          </div>
         </div>
         <div class="form-group">
           <label>Numero de Cuotas *</label>
@@ -96,13 +111,106 @@
     </div>
   </div>
 
+  <div class="tab-content" id="tab-editar">
+    <div class="card">
+      <h3>Editar Contrato</h3>
+      <p style="color:#718096; margin-bottom:14px;">Solo se pueden editar contratos Vigentes. Busca por Nº, proyecto o cliente.</p>
+      <div class="form-group" style="max-width:480px;">
+        <label>Buscar contrato</label>
+        <div class="ac-wrap">
+          <input id="ec-cont-nom" type="text" placeholder="Escribe Nº de contrato, proyecto o cliente..." autocomplete="off"
+                 oninput="acSearch('ec-cont-nom','ac-ec-cont','ec-idcontrato','contratos','idContrato','display','cargarFormEditarContrato')">
+          <div class="ac-drop" id="ac-ec-cont"></div>
+          <input type="hidden" id="ec-idcontrato">
+        </div>
+      </div>
+      <div id="form-editar-contrato" style="display:none; margin-top:16px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Número de Contrato *</label>
+            <input id="ec-numero" type="text">
+          </div>
+          <div class="form-group">
+            <label>Tipo de Contrato *</label>
+            <select id="ec-idtipo"><option value="">-- Cargando... --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Monto Total (Bs) *</label>
+            <input id="ec-monto" type="number" step="0.01">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionContrato()">Guardar Cambios</button>
+        <div id="msg-editar-contrato" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-estado">
+    <div class="card">
+      <h3>Cambiar Estado / Rescindir Contrato</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Contrato *</label>
+          <div class="ac-wrap">
+            <input id="es-cont-nom" type="text" placeholder="Buscar contrato por numero o proyecto..." autocomplete="off"
+                   oninput="acSearch('es-cont-nom','ac-es-cont','es-idcontrato','contratos','idContrato','display')">
+            <div class="ac-drop" id="ac-es-cont"></div>
+            <input type="hidden" id="es-idcontrato">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nuevo Estado *</label>
+          <select id="es-idestado"><option value="">-- Cargando... --</option></select>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="cambiarEstadoContrato()">Actualizar Estado</button>
+      <div id="msg-estado" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-renovar">
+    <div class="card">
+      <h3>Rescindir y Renovar Contrato</h3>
+      <p style="color:#718096; margin-bottom:14px;">Rescinde el contrato actual (estado Rescindido) y crea uno nuevo Vigente para el mismo proyecto, con el nuevo monto acordado.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Contrato a rescindir *</label>
+          <div class="ac-wrap">
+            <input id="rn-cont-nom" type="text" placeholder="Buscar por Nº contrato, proyecto o cliente..." autocomplete="off"
+                   oninput="acSearch('rn-cont-nom','ac-rn-cont','rn-idcontrato','contratos','idContrato','display','prefillRenovar')">
+            <div class="ac-drop" id="ac-rn-cont"></div>
+            <input type="hidden" id="rn-idcontrato">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nº del nuevo contrato *</label>
+          <input id="rn-numero" placeholder="Ej: CT-2026-002">
+        </div>
+        <div class="form-group">
+          <label>Monto del nuevo contrato (Bs) *</label>
+          <input id="rn-monto" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-red" onclick="rescindirRenovar()">Rescindir y crear nuevo</button>
+      <div id="msg-renovar" class="msg"></div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-cliente">
     <div class="card">
       <h3>Consultar Contratos de un Cliente</h3>
-      <div style="display:flex; gap:10px; align-items:flex-end;">
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
         <div class="form-group">
-          <label>ID Cliente</label>
-          <input id="cli-id" type="number" placeholder="Ingresa el ID del cliente">
+          <label>Cliente</label>
+          <div class="ac-wrap">
+            <input id="cli-nom" type="text" placeholder="Escribe el nombre del cliente o su ID..." autocomplete="off"
+                   oninput="acSearch('cli-nom','ac-cli','cli-id','clientes','idCliente','nombre')">
+            <div class="ac-drop" id="ac-cli"></div>
+            <input type="hidden" id="cli-id">
+          </div>
         </div>
         <button class="btn btn-primary" onclick="consultarPorCliente()">Buscar</button>
       </div>
@@ -112,6 +220,7 @@
 
 </div>
 
+<script src="../js/autocomplete.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ const config = {
   port: 1433,
   database: 'constructora',
   user: 'sa',
-  password: 'Admin1234',
+  password: 'Constructora2026!',
   options: {
     trustServerCertificate: true,
     encrypt: false

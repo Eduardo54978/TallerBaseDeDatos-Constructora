@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router  = express.Router();
 const { sql, config } = require('../config/db');
+const { errorAmigable } = require('../config/sqlError');
 
 
 router.get('/metodos', async (req, res) => {
@@ -13,7 +14,7 @@ router.get('/metodos', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -27,7 +28,7 @@ router.get('/estados', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -55,7 +56,7 @@ router.get('/clientes/contrato/:idContrato', async (req, res) => {
             `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -66,19 +67,27 @@ router.get('/clientes', async (req, res) => {
             SELECT
                 pc.idPagoCliente,
                 pc.idContrato,
+                c.numeroContrato,
+                cl.nombre        AS nombreCliente,
+                p.nombreProyecto,
                 pc.idCuota,
+                cu.numeroCuota,
                 pc.fechaPago,
                 pc.monto,
                 mp.nombreMetodoPago AS metodoPago,
                 ep.nombreEstadoPago AS estadoPago
             FROM pagocliente pc
+            JOIN contrato   c  ON pc.idContrato = c.idContrato
+            JOIN proyecto   p  ON c.idProyecto  = p.idProyecto
+            JOIN cliente    cl ON p.idCliente   = cl.idCliente
+            LEFT JOIN cuota cu ON pc.idCuota     = cu.idCuota
             JOIN metodopago mp ON pc.idMetodoPago = mp.idMetodoPago
             JOIN estadopago ep ON pc.idEstadoPago = ep.idEstadoPago
             ORDER BY pc.fechaPago
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -92,11 +101,19 @@ router.get('/clientes/:id', async (req, res) => {
                     pc.idPagoCliente,
                     pc.idContrato,
                     pc.idCuota,
+                    pc.idMetodoPago,
+                    pc.idEstadoPago,
                     pc.fechaPago,
                     pc.monto,
+                    c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + cl.nombre + ')' AS contratoDisplay,
+                    cu.numeroCuota,
                     mp.nombreMetodoPago AS metodoPago,
                     ep.nombreEstadoPago AS estadoPago
                 FROM pagocliente pc
+                JOIN contrato   c  ON pc.idContrato = c.idContrato
+                JOIN proyecto   p  ON c.idProyecto  = p.idProyecto
+                JOIN cliente    cl ON p.idCliente   = cl.idCliente
+                LEFT JOIN cuota cu ON pc.idCuota     = cu.idCuota
                 JOIN metodopago mp ON pc.idMetodoPago = mp.idMetodoPago
                 JOIN estadopago ep ON pc.idEstadoPago = ep.idEstadoPago
                 WHERE pc.idPagoCliente = @id
@@ -104,7 +121,7 @@ router.get('/clientes/:id', async (req, res) => {
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json(result.recordset[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -126,7 +143,7 @@ router.post('/clientes', async (req, res) => {
             `);
         res.status(201).json({ idPagoCliente: result.recordset[0].idPagoCliente });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -155,7 +172,7 @@ router.put('/clientes/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago actualizado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -168,7 +185,7 @@ router.delete('/clientes/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago eliminado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -194,7 +211,7 @@ router.get('/proveedores', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -208,6 +225,7 @@ router.get('/proveedores/:id', async (req, res) => {
                     pp.idPagoProveedor,
                     pp.idProveedor,
                     p.nombreProveedor,
+                    pp.idMetodoPago,
                     pp.fechaPago,
                     pp.monto,
                     mp.nombreMetodoPago AS metodoPago,
@@ -220,7 +238,7 @@ router.get('/proveedores/:id', async (req, res) => {
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json(result.recordset[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -242,7 +260,7 @@ router.post('/proveedores', async (req, res) => {
             `);
         res.status(201).json({ idPagoProveedor: result.recordset[0].idPagoProveedor });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -271,7 +289,7 @@ router.put('/proveedores/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago actualizado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -284,7 +302,7 @@ router.delete('/proveedores/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago eliminado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -312,7 +330,7 @@ router.get('/planilla', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -329,6 +347,8 @@ router.get('/planilla/:id', async (req, res) => {
                     ppp.idProyecto,
                     p.nombreProyecto             AS proyecto,
                     ppp.idBonoAntiguedadProyecto,
+                    ppp.idMetodoPago,
+                    ppp.idEstadoPago,
                     ppp.fechaPago,
                     ppp.montoPagado,
                     mp.nombreMetodoPago          AS metodoPago,
@@ -343,7 +363,7 @@ router.get('/planilla/:id', async (req, res) => {
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json(result.recordset[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -367,7 +387,7 @@ router.post('/planilla', async (req, res) => {
             `);
         res.status(201).json({ idPagoPlanillaProyecto: result.recordset[0].idPagoPlanillaProyecto });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -398,7 +418,7 @@ router.put('/planilla/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago actualizado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -411,7 +431,7 @@ router.delete('/planilla/:id', async (req, res) => {
         if (result.rowsAffected[0] === 0) return res.status(404).json({ error: 'Pago no encontrado' });
         res.json({ mensaje: 'Pago eliminado' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 

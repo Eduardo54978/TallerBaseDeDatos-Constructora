@@ -40,6 +40,8 @@
     <button class="btn-tab activo" onclick="cambiarTab('proyectos', this)">Proyectos</button>
     <button class="btn-tab" onclick="cambiarTab('personal', this)">Personal asignado</button>
     <button class="btn-tab" onclick="cambiarTab('nuevo', this)">Nuevo proyecto</button>
+    <button class="btn-tab" onclick="cambiarTab('editar', this)">Editar proyecto</button>
+    <button class="btn-tab" onclick="cambiarTab('asignar', this)">Asignar personal</button>
     <button class="btn-tab" onclick="cambiarTab('cambiar-estado', this)">Cambiar estado</button>
   </section>
 
@@ -100,6 +102,7 @@
             <th>Inicio</th>
             <th>Fin</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="tablaPersonal"></tbody>
@@ -211,6 +214,123 @@
     </div>
   </section>
 
+  <section id="tab-editar" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Editar Proyecto</h2>
+        <p>Busca un proyecto y modifica sus datos.</p>
+      </div>
+    </div>
+
+    <div class="campo ancho">
+      <label>Buscar proyecto (puedes escribir el nombre o el número de ID)</label>
+      <div class="ac-wrap">
+        <input id="ep-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+               oninput="acSearch('ep-proy-nom','ac-ep-proy','ep-idproyecto','proyectos','idProyecto','nombreProyecto','cargarFormEditarProyecto')">
+        <div class="ac-drop" id="ac-ep-proy"></div>
+        <input type="hidden" id="ep-idproyecto">
+      </div>
+      <small id="ep-regla" style="color:#6b756d;"></small>
+    </div>
+
+    <form id="formEditarProyecto" class="formulario-proyecto" style="display:none; margin-top:16px;">
+      <div class="campo ancho">
+        <label>Nombre del proyecto</label>
+        <input type="text" id="ep-nombre" required>
+      </div>
+      <div class="campo">
+        <label>Tipo</label>
+        <select id="ep-tipo" required></select>
+      </div>
+      <div class="campo">
+        <label>Cliente</label>
+        <select id="ep-cliente" required></select>
+      </div>
+      <div class="campo">
+        <label>Estado</label>
+        <select id="ep-estado" required></select>
+      </div>
+      <div class="campo ancho">
+        <label>Descripcion</label>
+        <textarea id="ep-descripcion" rows="3"></textarea>
+      </div>
+      <div class="campo ancho">
+        <label>Ubicacion</label>
+        <input type="text" id="ep-ubicacion">
+      </div>
+      <div class="campo">
+        <label>Fecha inicio</label>
+        <input type="date" id="ep-fechaInicio">
+      </div>
+      <div class="campo">
+        <label>Fecha fin estimada</label>
+        <input type="date" id="ep-fechaFin">
+      </div>
+      <div class="acciones-form">
+        <button type="submit" class="btn-guardar">Guardar cambios</button>
+      </div>
+    </form>
+    <div id="mensajeEditarProyecto" class="mensaje"></div>
+  </section>
+
+  <section id="tab-asignar" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Asignar Personal a Proyecto</h2>
+        <p>Solo se pueden asignar empleados disponibles (sin proyecto activo) a proyectos no finalizados.</p>
+      </div>
+    </div>
+
+    <form id="formAsignar" class="formulario-proyecto">
+      <div class="campo ancho">
+        <label>Proyecto (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="as-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+                 oninput="acSearch('as-proy-nom','ac-as-proy','as-idproyecto','proyectos','idProyecto','nombreProyecto')">
+          <div class="ac-drop" id="ac-as-proy"></div>
+          <input type="hidden" id="as-idproyecto">
+        </div>
+      </div>
+      <div class="campo ancho">
+        <label>Empleado disponible (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="as-emp-nom" type="text" placeholder="Escribe el nombre del empleado o su ID..." autocomplete="off"
+                 oninput="acSearch('as-emp-nom','ac-as-emp','as-idempleado','empleadoproyecto/disponibles','idEmpleado','nombreCompleto')">
+          <div class="ac-drop" id="ac-as-emp"></div>
+          <input type="hidden" id="as-idempleado">
+        </div>
+        <small style="color:#6b756d;">Solo aparecen empleados activos y disponibles.</small>
+      </div>
+      <div class="campo">
+        <label>Rol en el proyecto</label>
+        <select id="as-rol" required></select>
+      </div>
+      <div class="campo">
+        <label>Fecha inicio</label>
+        <input type="date" id="as-fechaInicio">
+      </div>
+      <div class="campo">
+        <label>Fecha fin (opcional)</label>
+        <input type="date" id="as-fechaFin">
+      </div>
+      <div class="acciones-form">
+        <button type="submit" class="btn-guardar">Asignar empleado</button>
+      </div>
+    </form>
+    <div id="mensajeAsignar" class="mensaje"></div>
+
+    <div class="separador" style="margin:20px 0;"></div>
+    <h3>Disponibilidad del personal</h3>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Empleado</th><th>Cargo</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="tablaDisponibilidad"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="tab-cambiar-estado" class="card contenido">
     <div class="cabecera">
       <div>
@@ -221,8 +341,13 @@
 
     <form id="formCambiarEstadoProyecto" class="formulario-proyecto">
       <div class="campo">
-        <label>ID Proyecto</label>
-        <input type="number" id="cambioIdProyecto" placeholder="Ej: 1" required>
+        <label>Proyecto (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="cambio-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+                 oninput="acSearch('cambio-proy-nom','ac-cambio-proy','cambioIdProyecto','proyectos','idProyecto','nombreProyecto')">
+          <div class="ac-drop" id="ac-cambio-proy"></div>
+          <input type="hidden" id="cambioIdProyecto">
+        </div>
       </div>
 
       <div class="campo">
@@ -237,10 +362,23 @@
     </form>
 
     <div id="mensajeCambioEstado" class="mensaje"></div>
+
+    <div class="separador" style="margin:20px 0;"></div>
+    <h3>Proyectos existentes</h3>
+    <p style="color:#6b756d;">Haz clic en "Seleccionar" para cargar el proyecto en el formulario.</p>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Proyecto</th><th>Cliente</th><th>Estado actual</th><th></th></tr>
+        </thead>
+        <tbody id="tablaProyectosEstado"></tbody>
+      </table>
+    </div>
   </section>
 
 </div>
 
+<script src="../js/autocomplete.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -74,6 +74,7 @@ async function cargarClientes() {
             <th>Celular</th>
             <th>Email</th>
             <th>Registro</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -85,6 +86,7 @@ async function cargarClientes() {
             <td>${c.numCelular || '-'}</td>
             <td>${c.email || '-'}</td>
             <td>${c.fechaRegistro ? c.fechaRegistro.substring(0, 10) : '-'}</td>
+            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCliente(${c.idCliente})">Eliminar</button></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -207,6 +209,68 @@ async function registrarTipo() {
     cargarSelectTipos();
   } catch (e) {
     msg('msg-tipo', 'Error de conexión', 'err');
+  }
+}
+
+async function cargarFormEditarCliente(idCliente) {
+  try {
+    const data = await fetch(`${API}/clientes/${idCliente}`).then(r => r.json());
+    document.getElementById('ec-nombre').value = data.nombre || '';
+    document.getElementById('ec-doc').value = data.documentoID || '';
+    document.getElementById('ec-cel').value = data.numCelular || '';
+    document.getElementById('ec-email').value = data.email || '';
+    document.getElementById('ec-dir').value = data.direccion || '';
+    await cargarSelectTiposEditar(data.idTipoCliente);
+    document.getElementById('form-editar-cliente').style.display = 'block';
+  } catch (e) {
+    alert('Error al cargar datos del cliente');
+  }
+}
+
+async function cargarSelectTiposEditar(idSeleccionado) {
+  const data = await fetch(`${API}/clientes/tipos/lista`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('ec-tipo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+    data.map(t => `<option value="${t.idTipoCliente}" ${t.idTipoCliente === idSeleccionado ? 'selected' : ''}>${t.nombreTipoCliente}</option>`).join('');
+}
+
+async function guardarEdicionCliente() {
+  const id = document.getElementById('ec-idcliente').value;
+  if (!id) return msg('msg-editar-cli', 'Seleccione un cliente de la lista.', 'err');
+  const body = {
+    nombre: document.getElementById('ec-nombre').value.trim(),
+    documentoID: document.getElementById('ec-doc').value.trim(),
+    idTipoCliente: parseInt(document.getElementById('ec-tipo').value) || null,
+    numCelular: document.getElementById('ec-cel').value.trim(),
+    email: document.getElementById('ec-email').value.trim(),
+    direccion: document.getElementById('ec-dir').value.trim()
+  };
+  if (!body.nombre) return msg('msg-editar-cli', 'El nombre es obligatorio.', 'err');
+  try {
+    const res = await fetch(`${API}/clientes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar-cli', 'Error: ' + data.error, 'err');
+    msg('msg-editar-cli', 'Cliente actualizado correctamente', 'ok');
+    cargarClientes();
+  } catch (e) {
+    msg('msg-editar-cli', 'Error de conexión', 'err');
+  }
+}
+
+async function eliminarCliente(id) {
+  if (!confirm(`¿Eliminar el cliente ID ${id}? Esta acción no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`${API}/clientes/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    cargarClientes();
+  } catch (e) {
+    alert('Error de conexión');
   }
 }
 

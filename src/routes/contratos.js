@@ -1,8 +1,36 @@
 ﻿const express = require('express');
 const router  = express.Router();
 const { sql, config } = require('../config/db');
+const { errorAmigable } = require('../config/sqlError');
 
-// ÔöÇÔöÇ GET todos los contratos ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`SELECT TOP 10 c.idContrato, c.numeroContrato, p.nombreProyecto, cl.nombre AS nombreCliente, c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + cl.nombre + ')' AS display FROM dbo.contrato c JOIN dbo.proyecto p ON c.idProyecto = p.idProyecto JOIN dbo.cliente cl ON p.idCliente = cl.idCliente WHERE c.numeroContrato LIKE @q OR p.nombreProyecto LIKE @q OR cl.nombre LIKE @q OR CAST(c.idContrato AS NVARCHAR) LIKE @q ORDER BY c.numeroContrato`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/tipos/lista', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request().query(`SELECT idTipoContrato, nombreTipoContrato FROM dbo.tipocontrato ORDER BY nombreTipoContrato`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/estados/lista', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request().query(`SELECT idEstadoContrato, nombreEstadoContrato FROM dbo.estadocontrato ORDER BY idEstadoContrato`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/', async (req, res) => {
     try {
         const pool   = await sql.connect(config);
@@ -20,7 +48,7 @@ router.get('/', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -62,7 +90,7 @@ router.get('/:id', async (req, res) => {
 
         res.json(contratoCompleto);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -84,7 +112,7 @@ router.get('/cliente/:idCliente', async (req, res) => {
             `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -123,7 +151,7 @@ router.post('/', async (req, res) => {
             `);
         res.status(201).json({ idContrato: result.recordset[0].idContrato, mensaje: 'Contrato creado con estado Vigente.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -144,7 +172,7 @@ router.put('/:id/estado', async (req, res) => {
             
         res.json({ mensaje: 'Estado del contrato actualizado correctamente' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -212,7 +240,128 @@ router.post('/:id/cuotas', async (req, res) => {
         }
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── PUT editar datos básicos del contrato (solo si está Vigente) ─────────────
+router.put('/:id', async (req, res) => {
+    const { numeroContrato, montoTotal, idTipoContrato } = req.body;
+
+    if (!numeroContrato || !montoTotal || Number(montoTotal) <= 0 || !idTipoContrato)
+        return res.status(400).json({ error: 'Número, monto (mayor a 0) y tipo son obligatorios' });
+
+    try {
+        const pool = await sql.connect(config);
+
+        const actual = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT idEstadoContrato FROM dbo.contrato WHERE idContrato = @id`);
+        if (actual.recordset.length === 0)
+            return res.status(404).json({ error: 'Contrato no encontrado' });
+
+        // estadocontrato: 1=Vigente, 2=Finalizado, 3=Rescindido
+        if (actual.recordset[0].idEstadoContrato !== 1)
+            return res.status(400).json({ error: 'Solo se puede editar un contrato Vigente. Para uno finalizado/rescindido use Rescindir/Renovar.' });
+
+        const dup = await pool.request()
+            .input('num', sql.NVarChar, numeroContrato)
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.contrato WHERE numeroContrato = @num AND idContrato <> @id`);
+        if (dup.recordset.length > 0)
+            return res.status(400).json({ error: 'El número de contrato ya está en uso por otro contrato' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('num', sql.NVarChar, numeroContrato)
+            .input('monto', sql.Decimal(15, 2), montoTotal)
+            .input('idTipo', sql.Int, idTipoContrato)
+            .query(`
+                UPDATE dbo.contrato
+                SET numeroContrato = @num, montoTotal = @monto, idTipoContrato = @idTipo
+                WHERE idContrato = @id
+            `);
+        res.json({ mensaje: 'Contrato actualizado correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── POST rescindir contrato actual y crear uno nuevo (renovación) ────────────
+router.post('/:id/rescindir-renovar', async (req, res) => {
+    const { numeroContrato, montoTotal } = req.body;
+
+    if (!numeroContrato || !montoTotal || Number(montoTotal) <= 0)
+        return res.status(400).json({ error: 'Número de contrato y monto (mayor a 0) son obligatorios' });
+
+    try {
+        const pool = await sql.connect(config);
+
+        const viejo = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT idProyecto, idTipoContrato, idEstadoContrato FROM dbo.contrato WHERE idContrato = @id`);
+        if (viejo.recordset.length === 0)
+            return res.status(404).json({ error: 'Contrato no encontrado' });
+
+        const dup = await pool.request()
+            .input('num', sql.NVarChar, numeroContrato)
+            .query(`SELECT 1 FROM dbo.contrato WHERE numeroContrato = @num`);
+        if (dup.recordset.length > 0)
+            return res.status(400).json({ error: 'El número del nuevo contrato ya existe' });
+
+        const rescindido = await pool.request()
+            .query(`SELECT idEstadoContrato FROM dbo.estadocontrato WHERE nombreEstadoContrato = 'Rescindido'`);
+        const vigente = await pool.request()
+            .query(`SELECT idEstadoContrato FROM dbo.estadocontrato WHERE nombreEstadoContrato = 'Vigente'`);
+        if (rescindido.recordset.length === 0 || vigente.recordset.length === 0)
+            return res.status(500).json({ error: 'Estados Rescindido/Vigente no configurados en BD' });
+
+        // 1. Rescindir el contrato actual
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('estado', sql.Int, rescindido.recordset[0].idEstadoContrato)
+            .query(`UPDATE dbo.contrato SET idEstadoContrato = @estado WHERE idContrato = @id`);
+
+        // 2. Crear el nuevo contrato (mismo proyecto y tipo, nuevo número y monto)
+        const nuevo = await pool.request()
+            .input('idProy', sql.Int, viejo.recordset[0].idProyecto)
+            .input('idTipo', sql.Int, viejo.recordset[0].idTipoContrato)
+            .input('idEstado', sql.Int, vigente.recordset[0].idEstadoContrato)
+            .input('num', sql.NVarChar, numeroContrato)
+            .input('fechaC', sql.Date, new Date().toISOString().substring(0, 10))
+            .input('monto', sql.Decimal(15, 2), montoTotal)
+            .query(`
+                INSERT INTO dbo.contrato (idProyecto, idTipoContrato, idEstadoContrato, numeroContrato, fechaContrato, montoTotal)
+                OUTPUT INSERTED.idContrato
+                VALUES (@idProy, @idTipo, @idEstado, @num, @fechaC, @monto)
+            `);
+
+        res.status(201).json({
+            mensaje: 'Contrato anterior rescindido y nuevo contrato creado (Vigente).',
+            idContratoNuevo: nuevo.recordset[0].idContrato
+        });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── DELETE eliminar contrato ─────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.contrato WHERE idContrato = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Contrato no encontrado' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.contrato WHERE idContrato = @id`);
+        res.json({ mensaje: 'Contrato eliminado correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: 'No se puede eliminar: el contrato tiene cuotas o pagos asociados. Considere rescindirlo cambiando su estado.' });
     }
 });
 
