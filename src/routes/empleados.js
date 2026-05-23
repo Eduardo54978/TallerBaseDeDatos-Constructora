@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const { sql, config } = require('../config/db');
+const { errorAmigable } = require('../config/sqlError');
 
 router.get('/cargos/lista', async (req, res) => {
     try {
@@ -13,7 +14,7 @@ router.get('/cargos/lista', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -46,7 +47,7 @@ router.post('/cargos', async (req, res) => {
 
         res.status(201).json({ idCargo: result.recordset[0].idCargo });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -61,7 +62,7 @@ router.get('/departamentos/lista', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -94,7 +95,7 @@ router.post('/departamentos', async (req, res) => {
 
         res.status(201).json({ idDepartamento: result.recordset[0].idDepartamento });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -127,7 +128,7 @@ router.post('/roles', async (req, res) => {
 
         res.status(201).json({ idRolProyecto: result.recordset[0].idRolProyecto });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -180,7 +181,7 @@ router.post('/horas', async (req, res) => {
             totalPago
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -248,7 +249,7 @@ router.post('/bonificaciones', async (req, res) => {
             montoCalculado
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -276,7 +277,7 @@ router.get('/', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -376,7 +377,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({ idEmpleado: result.recordset[0].idEmpleado });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -410,7 +411,7 @@ router.get('/:id/asignaciones', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -458,8 +459,20 @@ router.get('/:id/horas', async (req, res) => {
             totalGanado
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
+});
+
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`SELECT TOP 10 idEmpleado, nombre, apellido, nombre + ' ' + apellido AS nombreCompleto FROM dbo.empleado WHERE nombre LIKE @q OR apellido LIKE @q OR (nombre + ' ' + apellido) LIKE @q OR CAST(idEmpleado AS NVARCHAR) LIKE @q ORDER BY nombre`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:id', async (req, res) => {
@@ -486,7 +499,42 @@ router.get('/:id', async (req, res) => {
 
         res.json(result.recordset[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+router.put('/:id/estado', async (req, res) => {
+    const { idEstadoEmpleado } = req.body;
+    try {
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.empleado WHERE idEmpleado = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Empleado no encontrado' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('idEstado', sql.Int, idEstadoEmpleado)
+            .query(`UPDATE dbo.empleado SET idEstadoEmpleado = @idEstado WHERE idEmpleado = @id`);
+        res.json({ mensaje: 'Estado del empleado actualizado correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+router.delete('/horas/:idRegistro', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.idRegistro)
+            .query(`DELETE FROM dbo.registrohoras WHERE idRegistroHoras = @id`);
+        if (result.rowsAffected[0] === 0)
+            return res.status(404).json({ error: 'Registro de horas no encontrado' });
+        res.json({ mensaje: 'Registro de horas eliminado' });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -577,7 +625,7 @@ router.put('/:id', async (req, res) => {
 
         res.json({ mensaje: 'Empleado actualizado correctamente' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 

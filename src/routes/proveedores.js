@@ -17,7 +17,18 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ÔöÇÔöÇ GET proveedor por id ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`SELECT TOP 10 idProveedor, nombreProveedor FROM dbo.proveedor WHERE nombreProveedor LIKE @q OR CAST(idProveedor AS NVARCHAR) LIKE @q ORDER BY nombreProveedor`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const pool   = await sql.connect(config);
@@ -122,8 +133,15 @@ router.delete('/:id', async (req, res) => {
             
         res.json({ mensaje: 'Proveedor desactivado/eliminado correctamente' });
     } catch (err) {
-        // Capturar el RAISERROR / THROW del Trigger
-        res.status(400).json({ error: err.message });
+        // El trigger bloquea si el proveedor tiene órdenes de compra pendientes
+        const msg = (err.message || '').toLowerCase();
+        let amigable = 'No se pudo desactivar el proveedor.';
+        if (msg.includes('orden') || msg.includes('pendiente') || msg.includes('trg')) {
+            amigable = 'No se puede desactivar este proveedor porque tiene órdenes de compra pendientes. Primero entregue o cancele esas órdenes.';
+        } else if (msg.includes('reference') || msg.includes('fk_') || msg.includes('constraint')) {
+            amigable = 'No se puede desactivar este proveedor porque tiene registros asociados (órdenes o catálogo de materiales).';
+        }
+        res.status(400).json({ error: amigable });
     }
 });
 
@@ -134,8 +152,8 @@ router.get('/:id/materiales', async (req, res) => {
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
-                SELECT 
-                    pm.idProveedorMaterial, m.nombreMaterial, 
+                SELECT
+                    pm.idProveedorMaterial, m.idMaterial, m.nombreMaterial,
                     pm.precioProveedor, pm.tiempoEntrega
                 FROM dbo.proveedormaterial pm
                 JOIN dbo.material m ON pm.idMaterial = m.idMaterial

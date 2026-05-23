@@ -123,6 +123,7 @@ async function cargarCotizaciones() {
             <th>Validez</th>
             <th>Observaciones</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -133,6 +134,7 @@ async function cargarCotizaciones() {
             <td>${c.fechaValidez ? c.fechaValidez.substring(0, 10) : '-'}</td>
             <td>${c.observaciones || '-'}</td>
             <td>${badge(c.nombreEstadoCotizacion)}</td>
+            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -169,7 +171,7 @@ async function crearCotizacionCliente() {
 
     msg('msg-cc', `Cotización creada con ID: ${data.idCotizacionCliente}. Úsalo para agregar detalles.`, 'ok');
 
-    ['cc-proyecto', 'cc-num', 'cc-fecha', 'cc-validez', 'cc-obs'].forEach(id => {
+    ['cc-proy-nom', 'cc-proyecto', 'cc-num', 'cc-fecha', 'cc-validez', 'cc-obs'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
@@ -250,7 +252,7 @@ async function crearCotizacionInterna() {
 
     msg('msg-ci', `Cotización interna creada con ID: ${data.idCotizacionInterna}`, 'ok');
 
-    ['ci-proyecto', 'ci-num', 'ci-fecha', 'ci-obs'].forEach(id => {
+    ['ci-proy-nom', 'ci-proyecto', 'ci-num', 'ci-fecha', 'ci-obs'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
@@ -287,7 +289,7 @@ async function agregarMateriales() {
 
     msg('msg-dm', 'Material agregado correctamente', 'ok');
 
-    ['dm-mat', 'dm-cant', 'dm-costo'].forEach(idInput => {
+    ['dm-mat-nom', 'dm-mat', 'dm-cant', 'dm-costo'].forEach(idInput => {
       const input = document.getElementById(idInput);
       if (input) input.value = '';
     });
@@ -367,6 +369,7 @@ async function buscarPorProyecto() {
                <th>Fecha</th>
                <th>Validez</th>
                <th>Estado</th>
+               <th>Acciones</th>
              </tr>
            </thead>
            <tbody>
@@ -376,6 +379,7 @@ async function buscarPorProyecto() {
                <td>${c.fechaCotizacion ? c.fechaCotizacion.substring(0, 10) : '-'}</td>
                <td>${c.fechaValidez ? c.fechaValidez.substring(0, 10) : '-'}</td>
                <td>${badge(c.nombreEstadoCotizacion)}</td>
+               <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button></td>
              </tr>`).join('')}
            </tbody>
          </table>`
@@ -390,6 +394,7 @@ async function buscarPorProyecto() {
                <th>Número</th>
                <th>Fecha</th>
                <th>Estado</th>
+               <th>Acciones</th>
              </tr>
            </thead>
            <tbody>
@@ -398,6 +403,7 @@ async function buscarPorProyecto() {
                <td>${c.numeroCotizacionInterna || '-'}</td>
                <td>${c.fechaCotizacion ? c.fechaCotizacion.substring(0, 10) : '-'}</td>
                <td>${badge(c.nombreEstadoCotizacion)}</td>
+               <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('interna', ${c.idCotizacionInterna})">Eliminar</button></td>
              </tr>`).join('')}
            </tbody>
          </table>`
@@ -407,6 +413,133 @@ async function buscarPorProyecto() {
   } catch (e) {
     document.getElementById('cont-por-proyecto').innerHTML = '<p style="color:red">Error al buscar</p>';
   }
+}
+
+let edTimer = null;
+function resetBuscadorEditar() {
+  document.getElementById('ed-nom').value = '';
+  document.getElementById('ed-id').value = '';
+  document.getElementById('form-editar-cot').style.display = 'none';
+  const drop = document.getElementById('ac-ed');
+  if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+}
+
+function buscarCotizacionEditar() {
+  clearTimeout(edTimer);
+  edTimer = setTimeout(async () => {
+    const tipo = document.getElementById('ed-tipo').value;
+    const q = document.getElementById('ed-nom').value.trim();
+    const drop = document.getElementById('ac-ed');
+    if (!q || q.length < 2) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
+    try {
+      const data = await fetch(`${API}/cotizaciones/${tipo}/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+      if (!Array.isArray(data) || !data.length) {
+        drop.innerHTML = '<div class="ac-empty">Sin resultados</div>';
+        drop.style.display = 'block';
+        return;
+      }
+      const idField = tipo === 'cliente' ? 'idCotizacionCliente' : 'idCotizacionInterna';
+      drop.innerHTML = data.slice(0, 8).map(item => {
+        const id = item[idField];
+        const name = String(item.display || '').replace(/'/g, '&#39;');
+        return `<div class="ac-item" onmousedown="cargarFormEditarCotizacion(${id}, '${name}')">${item.display}</div>`;
+      }).join('');
+      drop.style.display = 'block';
+    } catch (e) { drop.style.display = 'none'; }
+  }, 200);
+}
+
+async function cargarFormEditarCotizacion(id, nombre) {
+  const tipo = document.getElementById('ed-tipo').value;
+  document.getElementById('ed-id').value = id;
+  document.getElementById('ed-nom').value = nombre;
+  const drop = document.getElementById('ac-ed');
+  if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+  try {
+    const data = await fetch(`${API}/cotizaciones/${tipo}/${id}`).then(r => r.json());
+    if (data.error) return msg('msg-editar-cot', data.error, 'err');
+    document.getElementById('ed-numero').value = (tipo === 'cliente' ? data.numeroCotizacionCliente : data.numeroCotizacionInterna) || '';
+    document.getElementById('ed-fecha').value = data.fechaCotizacion ? data.fechaCotizacion.substring(0, 10) : '';
+    document.getElementById('ed-obs').value = data.observaciones || '';
+    const validezGroup = document.getElementById('ed-validez-group');
+    if (tipo === 'cliente') {
+      validezGroup.style.display = '';
+      document.getElementById('ed-validez').value = data.fechaValidez ? data.fechaValidez.substring(0, 10) : '';
+    } else {
+      validezGroup.style.display = 'none';
+    }
+    document.getElementById('form-editar-cot').style.display = 'block';
+  } catch (e) {
+    msg('msg-editar-cot', 'Error al cargar la cotización', 'err');
+  }
+}
+
+async function guardarEdicionCotizacion() {
+  const tipo = document.getElementById('ed-tipo').value;
+  const id = document.getElementById('ed-id').value;
+  if (!id) return msg('msg-editar-cot', 'Busque una cotización primero.', 'err');
+  const body = {
+    numeroCotizacion: document.getElementById('ed-numero').value.trim(),
+    fechaCotizacion: document.getElementById('ed-fecha').value,
+    observaciones: document.getElementById('ed-obs').value.trim()
+  };
+  if (tipo === 'cliente') body.fechaValidez = document.getElementById('ed-validez').value || null;
+  if (!body.numeroCotizacion || !body.fechaCotizacion) {
+    return msg('msg-editar-cot', 'Número y fecha son obligatorios.', 'err');
+  }
+  try {
+    const res = await fetch(`${API}/cotizaciones/${tipo}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar-cot', 'Error: ' + data.error, 'err');
+    msg('msg-editar-cot', 'Cotización actualizada correctamente', 'ok');
+    cargarCotizaciones();
+  } catch (e) {
+    msg('msg-editar-cot', 'Error de conexión', 'err');
+  }
+}
+
+let estTimer = null;
+function resetBuscadorEstado() {
+  document.getElementById('est-nom').value = '';
+  document.getElementById('est-id').value = '';
+  const drop = document.getElementById('ac-est');
+  if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+}
+
+function buscarCotizacionEstado() {
+  clearTimeout(estTimer);
+  estTimer = setTimeout(async () => {
+    const tipo = document.getElementById('est-tipo').value;
+    const q = document.getElementById('est-nom').value.trim();
+    const drop = document.getElementById('ac-est');
+    if (!q || q.length < 2) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
+    try {
+      const data = await fetch(`${API}/cotizaciones/${tipo}/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+      if (!Array.isArray(data) || !data.length) {
+        drop.innerHTML = '<div class="ac-empty">Sin resultados</div>';
+        drop.style.display = 'block';
+        return;
+      }
+      const idField = tipo === 'cliente' ? 'idCotizacionCliente' : 'idCotizacionInterna';
+      drop.innerHTML = data.slice(0, 8).map(item => {
+        const id = item[idField];
+        const name = String(item.display || '').replace(/'/g, '&#39;');
+        return `<div class="ac-item" onmousedown="seleccionarCotizacionEstado(${id}, '${name}')">${item.display}</div>`;
+      }).join('');
+      drop.style.display = 'block';
+    } catch (e) { drop.style.display = 'none'; }
+  }, 200);
+}
+
+function seleccionarCotizacionEstado(id, nombre) {
+  document.getElementById('est-id').value = id;
+  document.getElementById('est-nom').value = nombre;
+  const drop = document.getElementById('ac-est');
+  if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
 }
 
 async function cambiarEstado() {
@@ -435,10 +568,37 @@ async function cambiarEstado() {
 
     msg('msg-est', 'Estado actualizado correctamente', 'ok');
 
+    resetBuscadorEstado();
     cargarCotizaciones();
   } catch (e) {
     msg('msg-est', 'Error de conexión', 'err');
   }
 }
+
+async function cargarSelectCargos9() {
+  const data = await fetch(`${API}/empleados/cargos/lista`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('mo-cargo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Cargo --</option>' +
+    data.map(c => `<option value="${c.idCargo}">${c.nombreCargo}</option>`).join('');
+}
+
+async function eliminarCotizacion(tipo, id) {
+  if (!confirm(`¿Eliminar la cotización ${tipo} ID ${id}? Se borrarán también sus detalles. Esta acción no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`${API}/cotizaciones/${tipo}/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    cargarCotizaciones();
+    const ppId = document.getElementById('pp-id');
+    if (ppId && ppId.value) buscarPorProyecto();
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarSelectCargos9();
+});
 
 cargarCotizaciones();

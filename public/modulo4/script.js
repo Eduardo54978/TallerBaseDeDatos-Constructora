@@ -1,15 +1,61 @@
 ﻿const API = 'http://localhost:3000/api';
 
+const PAG_SIZE = 10;
+
+function mostrarCarga(id) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = '<div class="cargando">Cargando datos...</div>';
+}
+
+function aplicarPaginacion(tablaId) {
+  const tabla = document.getElementById(tablaId);
+  if (!tabla) return;
+  const filas = Array.from(tabla.querySelectorAll('tbody tr'));
+  if (filas.length <= PAG_SIZE) return;
+  let pagina = 1;
+  const totalPags = Math.ceil(filas.length / PAG_SIZE);
+  function render() {
+    const ini = (pagina - 1) * PAG_SIZE;
+    filas.forEach((f, i) => { f.style.display = (i >= ini && i < ini + PAG_SIZE) ? '' : 'none'; });
+    let nav = document.getElementById('nav-' + tablaId);
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.id = 'nav-' + tablaId;
+      nav.className = 'pag-nav';
+      tabla.parentNode.insertBefore(nav, tabla.nextSibling);
+    }
+    nav.innerHTML = `
+      <button id="prev-${tablaId}">← Anterior</button>
+      <span>Página ${pagina} / ${totalPags} &nbsp;·&nbsp; ${filas.length} registros</span>
+      <button id="next-${tablaId}">Siguiente →</button>`;
+    document.getElementById('prev-' + tablaId).disabled = pagina === 1;
+    document.getElementById('next-' + tablaId).disabled = pagina === totalPags;
+    document.getElementById('prev-' + tablaId).onclick = () => { pagina--; render(); };
+    document.getElementById('next-' + tablaId).onclick = () => { pagina++; render(); };
+  }
+  render();
+}
+
+function confirmarAccion(mensaje) {
+  return confirm(mensaje);
+}
+
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
 
+async function cargarEstadosOrden() {
+  const data = await fetch(`${API}/compras/estados`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('no-idestado');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Estado de orden --</option>' +
+    data.map(e => `<option value="${e.idEstadoOrden}">${e.nombreEstadoOrden}</option>`).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const fecha = document.getElementById('no-fecha');
-
-  if (fecha) {
-    fecha.value = new Date().toISOString().substring(0, 10);
-  }
+  if (fecha) fecha.value = new Date().toISOString().substring(0, 10);
+  cargarEstadosOrden();
 });
 
 function switchTab(name, btn) {
@@ -73,6 +119,7 @@ function msg(id, texto, tipo) {
 }
 
 async function cargarOrdenes() {
+  mostrarCarga('cont-ordenes');
   try {
     const data = await fetch(`${API}/compras`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idOrdenCompra');
@@ -86,6 +133,7 @@ async function cargarOrdenes() {
             <th>Proveedor</th>
             <th>Monto Total (Bs)</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -95,9 +143,14 @@ async function cargarOrdenes() {
             <td>${o.nombreProveedor || '-'}</td>
             <td>${moneda(o.montoTotal)}</td>
             <td>${badge(o.estadoOrden)}</td>
+            <td>
+              ${(o.estadoOrden || '').toLowerCase().includes('pendiente') ? `<button class="btn" style="padding:4px 10px;font-size:.78rem;background:#b7791f;color:#fff;" onclick="cancelarOrden(${o.idOrdenCompra})">Cancelar compra</button>` : ''}
+              <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarOrden(${o.idOrdenCompra})">Eliminar</button>
+            </td>
           </tr>`).join('')}
         </tbody>
       </table>`;
+    aplicarPaginacion('tbl-ordenes');
   } catch (e) {
     document.getElementById('cont-ordenes').innerHTML = '<p style="color:red">Error al cargar órdenes de compra</p>';
   }
@@ -111,8 +164,14 @@ async function crearOrden() {
     montoTotal: parseFloat(document.getElementById('no-monto').value)
   };
 
-  if (!body.fechaOrden || !body.idEstadoOrden || !body.idProveedor || Number.isNaN(body.montoTotal)) {
+  if (!body.fechaOrden || !body.idEstadoOrden || Number.isNaN(body.montoTotal)) {
     return msg('msg-orden', 'Llene todos los campos obligatorios (*)', 'err');
+  }
+  if (!body.idProveedor) return msg('msg-orden', 'Seleccione un proveedor de la lista.', 'err');
+
+  const hoy = new Date().toISOString().substring(0, 10);
+  if (body.fechaOrden > hoy) {
+    return msg('msg-orden', 'La fecha de la orden no puede ser futura.', 'err');
   }
 
   try {
@@ -147,7 +206,8 @@ async function crearOrden() {
 }
 
 async function buscarDetalle() {
-  const idOrden = document.getElementById('do-idorden').value.trim();
+  const idOrden = document.getElementById('do-idorden').value.trim() ||
+    (/^\d+$/.test((document.getElementById('do-orden-nom') || {}).value || '') ? (document.getElementById('do-orden-nom') || {}).value.trim() : '');
 
   if (!idOrden) return;
 
@@ -175,6 +235,7 @@ async function buscarDetalle() {
             <th>Cantidad</th>
             <th>Precio Unitario (Bs)</th>
             <th>Total (Bs)</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -184,16 +245,52 @@ async function buscarDetalle() {
             <td>${d.cantidad}</td>
             <td>${moneda(d.precioUnitario)}</td>
             <td>${moneda(d.total)}</td>
+            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarDetalle(${d.idDetalleCompra})">Eliminar</button></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
+    aplicarPaginacion('tbl-detalle-orden');
   } catch (e) {
     document.getElementById('cont-detalle-orden').innerHTML = '<p style="color:red">Error de conexión</p>';
   }
 }
 
+let catalogoOrden = [];
+
+async function cargarMaterialesDeOrden(idOrden) {
+  const sel = document.getElementById('ad-idmaterial');
+  sel.innerHTML = '<option value="">Cargando catálogo...</option>';
+  catalogoOrden = [];
+  try {
+    const orden = await fetch(`${API}/compras/${idOrden}`).then(r => r.json());
+    if (!orden || !orden.idProveedor) {
+      sel.innerHTML = '<option value="">No se pudo obtener el proveedor</option>';
+      return;
+    }
+    const catalogo = await fetch(`${API}/proveedores/${orden.idProveedor}/materiales`).then(r => r.json());
+    catalogoOrden = Array.isArray(catalogo) ? catalogo : [];
+    if (!catalogoOrden.length) {
+      sel.innerHTML = '<option value="">El proveedor no tiene materiales en su catálogo</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">-- Seleccionar material --</option>' +
+      catalogoOrden.map(m => `<option value="${m.idMaterial}" data-precio="${m.precioProveedor}">${m.nombreMaterial} (Bs ${m.precioProveedor})</option>`).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Error al cargar catálogo</option>';
+  }
+}
+
+function autoPrecioMaterial() {
+  const sel = document.getElementById('ad-idmaterial');
+  const opt = sel.options[sel.selectedIndex];
+  const precio = opt ? opt.getAttribute('data-precio') : null;
+  if (precio) document.getElementById('ad-precio').value = precio;
+}
+
 async function agregarDetalleOrden() {
   const idOrden = document.getElementById('ad-idorden').value.trim();
+
+  if (!idOrden) return msg('msg-agregar-detalle', 'Seleccione una orden de la lista.', 'err');
 
   const body = {
     idMaterial: parseInt(document.getElementById('ad-idmaterial').value),
@@ -201,8 +298,8 @@ async function agregarDetalleOrden() {
     precioUnitario: parseFloat(document.getElementById('ad-precio').value)
   };
 
-  if (!idOrden || !body.idMaterial || Number.isNaN(body.cantidad) || Number.isNaN(body.precioUnitario)) {
-    return msg('msg-agregar-detalle', 'Complete todos los campos.', 'err');
+  if (!body.idMaterial || Number.isNaN(body.cantidad) || Number.isNaN(body.precioUnitario)) {
+    return msg('msg-agregar-detalle', 'Seleccione material y complete cantidad y precio.', 'err');
   }
 
   try {
@@ -236,36 +333,21 @@ async function agregarDetalleOrden() {
   }
 }
 
-async function cancelarOrden() {
-  const idOrden = document.getElementById('co-idorden').value.trim();
-
-  if (!idOrden) {
-    return msg('msg-cancelar-orden', 'Ingrese el ID de la orden.', 'err');
-  }
-
-  if (!confirm(`¿Seguro que quieres cancelar la orden ${idOrden}?`)) {
+async function cancelarOrden(idOrden) {
+  if (!idOrden) return;
+  if (!confirmarAccion(`¿Seguro que quieres cancelar la compra (orden #${idOrden})? Solo se pueden cancelar órdenes pendientes.`)) {
     return;
   }
-
   try {
     const res = await fetch(`${API}/compras/${idOrden}/cancelar`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' }
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      return msg('msg-cancelar-orden', 'Error: ' + data.error, 'err');
-    }
-
-    msg('msg-cancelar-orden', data.mensaje || 'Orden cancelada correctamente', 'ok');
-
-    document.getElementById('co-idorden').value = '';
-
+    if (!res.ok) return alert('Error: ' + data.error);
     cargarOrdenes();
   } catch (e) {
-    msg('msg-cancelar-orden', 'Error de conexión', 'err');
+    alert('Error de conexión');
   }
 }
 
@@ -310,8 +392,83 @@ async function buscarPorProveedor() {
           </tr>`).join('')}
         </tbody>
       </table>`;
+    aplicarPaginacion('tbl-por-proveedor');
   } catch (e) {
     document.getElementById('cont-por-proveedor').innerHTML = '<p style="color:red">Error de conexión</p>';
+  }
+}
+
+async function cargarFormEditarOrden(idOrden) {
+  try {
+    const data = await fetch(`${API}/compras/${idOrden}`).then(r => r.json());
+    if (data.error) { alert('Orden no encontrada'); return; }
+    document.getElementById('eo-fecha').value = data.fechaOrden ? data.fechaOrden.substring(0, 10) : '';
+    document.getElementById('eo-monto').value = data.montoTotal || '';
+    document.getElementById('eo-prov-nom').value = data.nombreProveedor || '';
+    document.getElementById('eo-idproveedor').value = data.idProveedor || '';
+    await cargarEstadosOrdenEditar(data.idEstadoOrden);
+    document.getElementById('form-editar-orden').style.display = 'block';
+  } catch (e) {
+    alert('Error al cargar datos de la orden');
+  }
+}
+
+async function cargarEstadosOrdenEditar(idSeleccionado) {
+  const data = await fetch(`${API}/compras/estados`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('eo-idestado');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Estado --</option>' +
+    data.map(e => `<option value="${e.idEstadoOrden}" ${e.idEstadoOrden === idSeleccionado ? 'selected' : ''}>${e.nombreEstadoOrden}</option>`).join('');
+}
+
+async function guardarEdicionOrden() {
+  const id = document.getElementById('eo-idorden').value;
+  if (!id) return msg('msg-editar-orden', 'Seleccione una orden de la lista.', 'err');
+  const body = {
+    fechaOrden: document.getElementById('eo-fecha').value,
+    idEstadoOrden: parseInt(document.getElementById('eo-idestado').value) || null,
+    idProveedor: parseInt(document.getElementById('eo-idproveedor').value) || null,
+    montoTotal: parseFloat(document.getElementById('eo-monto').value) || null
+  };
+  if (!body.fechaOrden || !body.idEstadoOrden || !body.idProveedor || !body.montoTotal) {
+    return msg('msg-editar-orden', 'Todos los campos son obligatorios.', 'err');
+  }
+  try {
+    const res = await fetch(`${API}/compras/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar-orden', 'Error: ' + data.error, 'err');
+    msg('msg-editar-orden', 'Orden actualizada correctamente', 'ok');
+    cargarOrdenes();
+  } catch (e) {
+    msg('msg-editar-orden', 'Error de conexión', 'err');
+  }
+}
+
+async function eliminarOrden(id) {
+  if (!confirmarAccion(`¿Eliminar la orden de compra ID ${id}? Esta acción no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`${API}/compras/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    cargarOrdenes();
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+async function eliminarDetalle(idDetalle) {
+  if (!confirmarAccion(`¿Eliminar el ítem de detalle ID ${idDetalle}?`)) return;
+  try {
+    const res = await fetch(`${API}/compras/detalle/${idDetalle}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    buscarDetalle();
+  } catch (e) {
+    alert('Error de conexión');
   }
 }
 

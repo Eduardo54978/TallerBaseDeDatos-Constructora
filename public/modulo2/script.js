@@ -66,6 +66,259 @@ function cambiarTab(nombre, boton) {
   if (nombre === "alertas") {
     cargarAlertas();
   }
+
+  if (nombre === "nuevo-material") {
+    cargarSelectsMaterial("nm-tipo", "nm-unidad");
+  }
+
+  if (nombre === "editar-material") {
+    cargarSelectsMaterial("em-tipo", "em-unidad");
+  }
+}
+
+async function cargarSelectsMaterial(idTipo, idUnidad, tipoSel, unidadSel) {
+  const [tipos, unidades] = await Promise.all([
+    fetch(`${apiMateriales}/tipos/lista`).then(r => r.json()).catch(() => []),
+    fetch(`${apiMateriales}/unidades/lista`).then(r => r.json()).catch(() => [])
+  ]);
+  const selT = document.getElementById(idTipo);
+  const selU = document.getElementById(idUnidad);
+  if (selT) selT.innerHTML = '<option value="">-- Tipo --</option>' +
+    tipos.map(t => `<option value="${t.idTipoMaterial}" ${t.idTipoMaterial === tipoSel ? 'selected' : ''}>${t.nombreTipoMaterial}</option>`).join("");
+  if (selU) selU.innerHTML = '<option value="">-- Unidad --</option>' +
+    unidades.map(u => `<option value="${u.idUnidadMedida}" ${u.idUnidadMedida === unidadSel ? 'selected' : ''}>${u.nombreUnidadMedida}</option>`).join("");
+}
+
+function mensajeEl(id, texto, esError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = texto;
+  el.classList.toggle("error", !!esError);
+}
+
+async function registrarMaterial() {
+  const body = {
+    nombreMaterial: document.getElementById("nm-nombre").value.trim(),
+    idTipoMaterial: parseInt(document.getElementById("nm-tipo").value),
+    idUnidadMedida: parseInt(document.getElementById("nm-unidad").value),
+    precioUnitario: parseFloat(document.getElementById("nm-precio").value),
+    descripcion: document.getElementById("nm-desc").value.trim()
+  };
+  if (!body.nombreMaterial || !body.idTipoMaterial || !body.idUnidadMedida || Number.isNaN(body.precioUnitario)) {
+    return mensajeEl("msg-nuevo-material", "Complete nombre, tipo, unidad y precio.", true);
+  }
+  try {
+    const res = await fetch(apiMateriales, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return mensajeEl("msg-nuevo-material", "Error: " + data.error, true);
+    mensajeEl("msg-nuevo-material", "Material registrado con ID: " + data.idMaterial, false);
+    ["nm-nombre", "nm-precio", "nm-desc"].forEach(id => { document.getElementById(id).value = ""; });
+    document.getElementById("nm-tipo").value = "";
+    document.getElementById("nm-unidad").value = "";
+    await cargarMateriales();
+  } catch (e) {
+    mensajeEl("msg-nuevo-material", "Error de conexion", true);
+  }
+}
+
+function editarMaterialDesdeTabla(id) {
+  document.querySelectorAll(".contenido").forEach(s => s.classList.remove("activo"));
+  document.querySelectorAll(".btn-tab").forEach(b => b.classList.remove("activo"));
+  document.getElementById("tab-editar-material").classList.add("activo");
+  const btn = Array.from(document.querySelectorAll(".btn-tab")).find(b => b.getAttribute("onclick") && b.getAttribute("onclick").includes("editar-material"));
+  if (btn) btn.classList.add("activo");
+  cargarFormEditarMaterial(id);
+}
+
+async function cargarFormEditarMaterial(id) {
+  try {
+    const data = await fetch(`${apiMateriales}/${id}`).then(r => r.json());
+    if (data.error) { mensajeEl("msg-editar-material", data.error, true); return; }
+    document.getElementById("em-idmaterial").value = data.idMaterial;
+    document.getElementById("em-mat-nom").value = data.nombreMaterial || "";
+    document.getElementById("em-nombre").value = data.nombreMaterial || "";
+    document.getElementById("em-precio").value = data.precioUnitario || "";
+    document.getElementById("em-desc").value = data.descripcion || "";
+    await cargarSelectsMaterial("em-tipo", "em-unidad", data.idTipoMaterial, data.idUnidadMedida);
+    document.getElementById("form-editar-material").style.display = "block";
+  } catch (e) {
+    mensajeEl("msg-editar-material", "Error al cargar el material", true);
+  }
+}
+
+async function guardarEdicionMaterial() {
+  const id = document.getElementById("em-idmaterial").value;
+  if (!id) return mensajeEl("msg-editar-material", "Busque un material primero.", true);
+  const body = {
+    nombreMaterial: document.getElementById("em-nombre").value.trim(),
+    idTipoMaterial: parseInt(document.getElementById("em-tipo").value),
+    idUnidadMedida: parseInt(document.getElementById("em-unidad").value),
+    precioUnitario: parseFloat(document.getElementById("em-precio").value),
+    descripcion: document.getElementById("em-desc").value.trim()
+  };
+  if (!body.nombreMaterial || !body.idTipoMaterial || !body.idUnidadMedida || Number.isNaN(body.precioUnitario)) {
+    return mensajeEl("msg-editar-material", "Complete nombre, tipo, unidad y precio.", true);
+  }
+  try {
+    const res = await fetch(`${apiMateriales}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return mensajeEl("msg-editar-material", "Error: " + data.error, true);
+    mensajeEl("msg-editar-material", "Material actualizado correctamente", false);
+    await cargarMateriales();
+  } catch (e) {
+    mensajeEl("msg-editar-material", "Error de conexion", true);
+  }
+}
+
+async function eliminarMaterialDesdeForm() {
+  const id = document.getElementById("em-idmaterial").value;
+  if (!id) return mensajeEl("msg-editar-material", "Busque un material primero.", true);
+  await eliminarMaterial(id, "msg-editar-material");
+  document.getElementById("form-editar-material").style.display = "none";
+  document.getElementById("em-mat-nom").value = "";
+  document.getElementById("em-idmaterial").value = "";
+}
+
+async function eliminarMaterial(id, msgId) {
+  if (!confirm(`Esta seguro de eliminar el material ID ${id}? Esta accion no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`${apiMateriales}/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) {
+      if (msgId) mensajeEl(msgId, "Error: " + data.error, true);
+      else alert("Error: " + data.error);
+      return;
+    }
+    if (msgId) mensajeEl(msgId, "Material eliminado correctamente", false);
+    await cargarMateriales();
+  } catch (e) {
+    if (msgId) mensajeEl(msgId, "Error de conexion", true);
+    else alert("Error de conexion");
+  }
+}
+
+async function crearInventario() {
+  const body = {
+    idMaterial: parseInt(document.getElementById("ni-idmaterial").value),
+    stockActual: parseFloat(document.getElementById("ni-stock").value),
+    stockMinimo: parseFloat(document.getElementById("ni-minimo").value),
+    ubicacion: document.getElementById("ni-ubicacion").value.trim()
+  };
+  if (!body.idMaterial || Number.isNaN(body.stockActual) || Number.isNaN(body.stockMinimo)) {
+    return mensajeEl("msg-nuevo-inv", "Seleccione material e ingrese stock actual y minimo.", true);
+  }
+  try {
+    const res = await fetch(apiInventario, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return mensajeEl("msg-nuevo-inv", "Error: " + data.error, true);
+    mensajeEl("msg-nuevo-inv", "Registro creado con ID: " + data.idInventario, false);
+    ["ni-mat-nom", "ni-idmaterial", "ni-stock", "ni-minimo", "ni-ubicacion"].forEach(id => { document.getElementById(id).value = ""; });
+    await cargarInventario();
+  } catch (e) {
+    mensajeEl("msg-nuevo-inv", "Error de conexion", true);
+  }
+}
+
+function ajustarInventario(idInv, nombre, stock, minimo, ubicacion) {
+  document.querySelectorAll(".contenido").forEach(s => s.classList.remove("activo"));
+  document.querySelectorAll(".btn-tab").forEach(b => b.classList.remove("activo"));
+  document.getElementById("tab-gestionar-stock").classList.add("activo");
+  const btn = Array.from(document.querySelectorAll(".btn-tab")).find(b => b.getAttribute("onclick") && b.getAttribute("onclick").includes("gestionar-stock"));
+  if (btn) btn.classList.add("activo");
+  document.getElementById("ei-idinv").value = idInv;
+  document.getElementById("ei-mat-nom").value = nombre;
+  document.getElementById("ei-stock").value = stock;
+  document.getElementById("ei-minimo").value = minimo;
+  document.getElementById("ei-ubicacion").value = ubicacion;
+  document.getElementById("form-editar-inv").style.display = "block";
+  document.getElementById("hint-editar-inv").style.display = "none";
+}
+
+async function cargarComparativo(idProyecto) {
+  const cont = document.getElementById("contenedorComparativo");
+  const mensaje = document.getElementById("mensajeComparativo");
+  if (!idProyecto) return;
+  try {
+    const data = await fetch(`${apiUsos}/comparativo/${idProyecto}`).then(r => r.json());
+    if (!Array.isArray(data) || data.length === 0) {
+      mensaje.textContent = "Este proyecto no tiene materiales cotizados ni usados.";
+      cont.innerHTML = "";
+      return;
+    }
+    mensaje.textContent = "";
+    cont.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Cant. cotizada</th>
+            <th>Costo cotizado</th>
+            <th>Cant. gastada</th>
+            <th>Costo gastado</th>
+            <th>Diferencia costo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(r => {
+            const dif = Number(r.diferenciaCosto || 0);
+            const color = dif > 0 ? "#c0392b" : (dif < 0 ? "#276749" : "#6b756d");
+            const signo = dif > 0 ? "+" : "";
+            const etiqueta = dif > 0 ? " (excedido)" : (dif < 0 ? " (ahorro)" : "");
+            return `<tr>
+              <td><strong>${r.nombreMaterial}</strong></td>
+              <td>${Number(r.cantidadCotizada).toFixed(2)}</td>
+              <td>${moneda(r.costoCotizado)}</td>
+              <td>${Number(r.cantidadGastada).toFixed(2)}</td>
+              <td>${moneda(r.costoGastado)}</td>
+              <td style="color:${color};font-weight:600;">${signo}${moneda(dif)}${etiqueta}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    mensaje.textContent = "Error al cargar el comparativo.";
+    mensaje.classList.add("error");
+    cont.innerHTML = "";
+  }
+}
+
+async function guardarEdicionInventario() {
+  const id = document.getElementById("ei-idinv").value;
+  if (!id) return mensajeEl("msg-editar-inv", "Seleccione un registro de la tabla.", true);
+  const body = {
+    stockActual: parseFloat(document.getElementById("ei-stock").value),
+    stockMinimo: parseFloat(document.getElementById("ei-minimo").value),
+    ubicacion: document.getElementById("ei-ubicacion").value.trim()
+  };
+  if (Number.isNaN(body.stockActual) || Number.isNaN(body.stockMinimo)) {
+    return mensajeEl("msg-editar-inv", "Ingrese stock actual y minimo.", true);
+  }
+  try {
+    const res = await fetch(`${apiInventario}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return mensajeEl("msg-editar-inv", "Error: " + data.error, true);
+    mensajeEl("msg-editar-inv", "Inventario actualizado correctamente", false);
+    await cargarInventario();
+    await cargarAlertas();
+  } catch (e) {
+    mensajeEl("msg-editar-inv", "Error de conexion", true);
+  }
 }
 
 function ordenarMaterialesPorId(datos) {
@@ -259,7 +512,7 @@ function mostrarMateriales(datos) {
   tabla.innerHTML = "";
 
   if (!datos || datos.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="6">No se encontraron materiales.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="7">No se encontraron materiales.</td></tr>`;
     return;
   }
 
@@ -273,6 +526,10 @@ function mostrarMateriales(datos) {
       <td>${m.nombreUnidadMedida || "-"}</td>
       <td>${moneda(m.precioUnitario)}</td>
       <td>${m.descripcion || "-"}</td>
+      <td>
+        <button class="btn btn-accent" style="padding:5px 12px;font-size:.78rem;" onclick="editarMaterialDesdeTabla(${m.idMaterial})">Editar</button>
+        <button class="btn btn-red" style="padding:5px 12px;font-size:.78rem;" onclick="eliminarMaterial(${m.idMaterial})">Eliminar</button>
+      </td>
     `;
 
     tabla.appendChild(fila);
@@ -287,7 +544,7 @@ function mostrarInventario(datos) {
   tabla.innerHTML = "";
 
   if (!datos || datos.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="7">No se encontraron registros.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="8">No se encontraron registros.</td></tr>`;
     return;
   }
 
@@ -304,6 +561,9 @@ function mostrarInventario(datos) {
       <td>${i.ubicacion || "-"}</td>
       <td>${fecha(i.fechaActualizacion)}</td>
       <td>${estadoStock(actual, minimo)}</td>
+      <td>
+        <button class="btn btn-accent" style="padding:5px 12px;font-size:.78rem;" onclick="ajustarInventario(${i.idInventario}, '${(i.nombreMaterial || '').replace(/'/g, "&#39;")}', ${actual}, ${minimo}, '${(i.ubicacion || '').replace(/'/g, "&#39;")}')">Ajustar</button>
+      </td>
     `;
 
     tabla.appendChild(fila);
@@ -383,7 +643,9 @@ async function registrarUsoMaterial() {
       mensaje.classList.remove("error");
     }
 
+    document.getElementById("ru-proy-nom").value = "";
     document.getElementById("ru-idproyecto").value = "";
+    document.getElementById("ru-mat-nom").value = "";
     document.getElementById("ru-idmaterial").value = "";
     document.getElementById("ru-cantidad").value = "";
     document.getElementById("ru-costo").value = "";

@@ -20,6 +20,7 @@
     <button class="tab-btn" onclick="switchTab('nueva-cliente', this)">Cotizacion Cliente</button>
     <button class="tab-btn" onclick="switchTab('nueva-interna', this)">Cotizacion Interna</button>
     <button class="tab-btn" onclick="switchTab('por-proyecto', this)">Por Proyecto</button>
+    <button class="tab-btn" onclick="switchTab('editar', this)">Editar Cotizacion</button>
     <button class="tab-btn" onclick="switchTab('estado', this)">Cambiar Estado</button>
   </div>
 
@@ -40,8 +41,13 @@
       <h3>Crear Cotizacion para Cliente</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Proyecto *</label>
-          <input id="cc-proyecto" type="number" placeholder="ID del proyecto">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="cc-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('cc-proy-nom','ac-cc-proy','cc-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-cc-proy"></div>
+            <input type="hidden" id="cc-proyecto">
+          </div>
         </div>
         <div class="form-group">
           <label>Numero de Cotizacion *</label>
@@ -67,11 +73,16 @@
 
     <div class="card">
       <h3>Agregar Detalle a Cotizacion Cliente</h3>
-      <div class="info-box">Primero crea la cotizacion arriba y anota el ID generado.</div>
+      <div class="info-box">Busca la cotización por su número o nombre de proyecto (también acepta el ID).</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Cotizacion Cliente *</label>
-          <input id="dc-idcot" type="number" placeholder="ID de la cotizacion">
+          <label>Cotizacion Cliente *</label>
+          <div class="ac-wrap">
+            <input id="dc-idcot-nom" type="text" placeholder="Buscar por número o proyecto..." autocomplete="off"
+                   oninput="acSearch('dc-idcot-nom','ac-dc-idcot','dc-idcot','cotizaciones/cliente','idCotizacionCliente','display')">
+            <div class="ac-drop" id="ac-dc-idcot"></div>
+            <input type="hidden" id="dc-idcot">
+          </div>
         </div>
         <div class="form-group">
           <label>Concepto *</label>
@@ -103,8 +114,13 @@
       <h3>Crear Cotizacion Interna</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Proyecto *</label>
-          <input id="ci-proyecto" type="number" placeholder="ID del proyecto">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="ci-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('ci-proy-nom','ac-ci-proy','ci-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-ci-proy"></div>
+            <input type="hidden" id="ci-proyecto">
+          </div>
         </div>
         <div class="form-group">
           <label>Numero de Cotizacion *</label>
@@ -128,12 +144,22 @@
       <h3>Agregar Materiales</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Cotizacion Interna *</label>
-          <input id="dm-idcot" type="number" placeholder="ID cotizacion interna">
+          <label>Cotizacion Interna *</label>
+          <div class="ac-wrap">
+            <input id="dm-idcot-nom" type="text" placeholder="Buscar por número o proyecto..." autocomplete="off"
+                   oninput="acSearch('dm-idcot-nom','ac-dm-idcot','dm-idcot','cotizaciones/interna','idCotizacionInterna','display')">
+            <div class="ac-drop" id="ac-dm-idcot"></div>
+            <input type="hidden" id="dm-idcot">
+          </div>
         </div>
         <div class="form-group">
-          <label>ID Material *</label>
-          <input id="dm-mat" type="number" placeholder="ID del material">
+          <label>Material *</label>
+          <div class="ac-wrap">
+            <input id="dm-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
+                   oninput="acSearch('dm-mat-nom','ac-dm-mat','dm-mat','materiales','idMaterial','nombreMaterial')">
+            <div class="ac-drop" id="ac-dm-mat"></div>
+            <input type="hidden" id="dm-mat">
+          </div>
         </div>
         <div class="form-group">
           <label>Cantidad Estimada *</label>
@@ -153,12 +179,19 @@
       <h3>Agregar Mano de Obra</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Cotizacion Interna *</label>
-          <input id="mo-idcot" type="number" placeholder="ID cotizacion interna">
+          <label>Cotizacion Interna *</label>
+          <div class="ac-wrap">
+            <input id="mo-idcot-nom" type="text" placeholder="Buscar por número o proyecto..." autocomplete="off"
+                   oninput="acSearch('mo-idcot-nom','ac-mo-idcot','mo-idcot','cotizaciones/interna','idCotizacionInterna','display')">
+            <div class="ac-drop" id="ac-mo-idcot"></div>
+            <input type="hidden" id="mo-idcot">
+          </div>
         </div>
         <div class="form-group">
-          <label>ID Cargo *</label>
-          <input id="mo-cargo" type="number" placeholder="ID del cargo">
+          <label>Cargo *</label>
+          <select id="mo-cargo">
+            <option value="">-- Cargando... --</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Cantidad de Personas *</label>
@@ -188,12 +221,65 @@
       <h3>Cotizaciones por Proyecto</h3>
       <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
         <div class="form-group">
-          <label>ID Proyecto</label>
-          <input id="pp-id" type="number" placeholder="Ingresa el ID">
+          <label>Proyecto</label>
+          <div class="ac-wrap">
+            <input id="pp-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('pp-proy-nom','ac-pp-proy','pp-id','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-pp-proy"></div>
+            <input type="hidden" id="pp-id">
+          </div>
         </div>
         <button class="btn btn-accent" onclick="buscarPorProyecto()">Buscar</button>
       </div>
       <div id="cont-por-proyecto" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- EDITAR COTIZACION -->
+  <div class="tab-content" id="tab-editar">
+    <div class="card">
+      <h3>Editar Cotizacion</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select id="ed-tipo" onchange="resetBuscadorEditar()">
+            <option value="cliente">Cliente</option>
+            <option value="interna">Interna</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cotizacion * (busca por número o proyecto)</label>
+          <div class="ac-wrap">
+            <input id="ed-nom" type="text" placeholder="Selecciona el tipo y busca la cotización..." autocomplete="off"
+                   oninput="buscarCotizacionEditar()">
+            <div class="ac-drop" id="ac-ed"></div>
+            <input type="hidden" id="ed-id">
+          </div>
+        </div>
+      </div>
+      <div id="form-editar-cot" style="display:none; margin-top:16px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Numero de Cotizacion *</label>
+            <input id="ed-numero" type="text">
+          </div>
+          <div class="form-group">
+            <label>Fecha de Cotizacion *</label>
+            <input id="ed-fecha" type="date">
+          </div>
+          <div class="form-group" id="ed-validez-group">
+            <label>Fecha de Validez</label>
+            <input id="ed-validez" type="date">
+          </div>
+          <div class="form-group full">
+            <label>Observaciones</label>
+            <input id="ed-obs" type="text" placeholder="Observaciones opcionales">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionCotizacion()">Guardar Cambios</button>
+        <div id="msg-editar-cot" class="msg"></div>
+      </div>
     </div>
   </div>
 
@@ -203,15 +289,20 @@
       <h3>Actualizar Estado de Cotizacion</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Cotizacion *</label>
-          <input id="est-id" type="number" placeholder="ID de la cotizacion">
-        </div>
-        <div class="form-group">
           <label>Tipo *</label>
-          <select id="est-tipo">
+          <select id="est-tipo" onchange="resetBuscadorEstado()">
             <option value="cliente">Cliente</option>
             <option value="interna">Interna</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Cotizacion * (busca por número o proyecto)</label>
+          <div class="ac-wrap">
+            <input id="est-nom" type="text" placeholder="Selecciona el tipo y busca la cotización..." autocomplete="off"
+                   oninput="buscarCotizacionEstado()">
+            <div class="ac-drop" id="ac-est"></div>
+            <input type="hidden" id="est-id">
+          </div>
         </div>
         <div class="form-group full">
           <label>Nuevo Estado *</label>
@@ -231,6 +322,7 @@
 
 </div>
 
+<script src="../js/autocomplete.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

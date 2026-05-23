@@ -4786,14 +4786,11 @@ GO
 GO
 
 GO
-
--- ==========================================================
 -- CORRECCION FINAL FORZADA DE CARACTERES ESPECIALES
 -- Este bloque se ejecuta al final de DatosPrecargados.sql
 -- para limpiar textos dañados por codificación.
--- ==========================================================
 
-USE [constructora];
+USE constructora;
 GO
 
 -- Crear función temporal de corrección

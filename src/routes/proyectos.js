@@ -30,6 +30,18 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`SELECT TOP 10 idProyecto, nombreProyecto FROM dbo.proyecto WHERE nombreProyecto LIKE @q OR CAST(idProyecto AS NVARCHAR) LIKE @q ORDER BY nombreProyecto`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/form/opciones', async (req, res) => {
     try {
         const pool = await sql.connect(config);
@@ -250,6 +262,88 @@ router.post('/parametros/estados', async (req, res) => {
             `);
 
         res.json({ message: 'Estado registrado' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT idProyecto, nombreProyecto, descripcion, idTipoProyecto, ubicacion,
+                       fechaInicio, fechaFinEstimada, fechaFinReal, idEstadoProyecto, idCliente
+                FROM dbo.proyecto
+                WHERE idProyecto = @id
+            `);
+        if (result.recordset.length === 0)
+            return res.status(404).json({ error: 'Proyecto no encontrado' });
+        res.json(result.recordset[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.put('/:id', async (req, res) => {
+    const { nombreProyecto, descripcion, idTipoProyecto, ubicacion, fechaInicio, fechaFinEstimada, idEstadoProyecto, idCliente } = req.body;
+
+    if (!nombreProyecto || !idTipoProyecto || !idEstadoProyecto || !idCliente)
+        return res.status(400).json({ error: 'Nombre, tipo, estado y cliente son obligatorios' });
+
+    if (fechaInicio && fechaFinEstimada && fechaFinEstimada <= fechaInicio)
+        return res.status(400).json({ error: 'La fecha fin estimada debe ser posterior a la fecha de inicio' });
+
+    try {
+        const pool = await sql.connect(config);
+
+        const actual = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT idEstadoProyecto FROM dbo.proyecto WHERE idProyecto = @id`);
+        if (actual.recordset.length === 0)
+            return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+        const estadoActual = actual.recordset[0].idEstadoProyecto;
+
+        // Reglas por estado: 1=Planificación, 2=Ejecución, 3=Finalizado, 4=Suspendido
+        if (estadoActual === 3) {
+            return res.status(400).json({ error: 'Un proyecto Finalizado no se puede editar.' });
+        }
+
+        if (estadoActual === 2) {
+            // En ejecución: solo se permite editar la fecha fin estimada
+            await pool.request()
+                .input('id', sql.Int, req.params.id)
+                .input('fechaFinEstimada', sql.Date, fechaFinEstimada || null)
+                .query(`UPDATE dbo.proyecto SET fechaFinEstimada = @fechaFinEstimada WHERE idProyecto = @id`);
+            return res.json({ mensaje: 'Fecha fin estimada actualizada (proyecto en ejecución).' });
+        }
+
+        // Planificación o Suspendido: edición completa
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('nombreProyecto', sql.NVarChar(150), nombreProyecto)
+            .input('descripcion', sql.NVarChar(255), descripcion || '')
+            .input('idTipoProyecto', sql.Int, Number(idTipoProyecto))
+            .input('ubicacion', sql.NVarChar(150), ubicacion || null)
+            .input('fechaInicio', sql.Date, fechaInicio || null)
+            .input('fechaFinEstimada', sql.Date, fechaFinEstimada || null)
+            .input('idEstadoProyecto', sql.Int, Number(idEstadoProyecto))
+            .input('idCliente', sql.Int, Number(idCliente))
+            .query(`
+                UPDATE dbo.proyecto SET
+                    nombreProyecto   = @nombreProyecto,
+                    descripcion      = @descripcion,
+                    idTipoProyecto   = @idTipoProyecto,
+                    ubicacion        = @ubicacion,
+                    fechaInicio      = @fechaInicio,
+                    fechaFinEstimada = @fechaFinEstimada,
+                    idEstadoProyecto = @idEstadoProyecto,
+                    idCliente        = @idCliente
+                WHERE idProyecto = @id
+            `);
+        res.json({ mensaje: 'Proyecto actualizado correctamente' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

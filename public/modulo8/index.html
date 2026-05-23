@@ -18,6 +18,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('lista', this)">Empleados</button>
     <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Empleado</button>
+    <button class="tab-btn" onclick="switchTab('editar-emp', this)">Editar Empleado</button>
     <button class="tab-btn" onclick="switchTab('horas', this)">Registrar Horas</button>
     <button class="tab-btn" onclick="switchTab('consultar-horas', this)">Consultar Horas</button>
     <button class="tab-btn" onclick="switchTab('bonificacion', this)">Bonificacion</button>
@@ -99,18 +100,92 @@
     </div>
   </div>
 
+  <!-- EDITAR EMPLEADO -->
+  <div class="tab-content" id="tab-editar-emp">
+    <div class="card">
+      <h3>Editar Empleado</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Buscar Empleado</label>
+          <div class="ac-wrap">
+            <input id="ee-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('ee-emp-nom','ac-ee-emp','ee-idemplrado','empleados','idEmpleado','nombreCompleto','cargarFormEditarEmp')">
+            <div class="ac-drop" id="ac-ee-emp"></div>
+            <input type="hidden" id="ee-idemplrado">
+          </div>
+        </div>
+      </div>
+      <div id="form-editar-emp" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input id="ee-nombre" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input id="ee-apellido" placeholder="Apellido">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="ee-email" type="email">
+          </div>
+          <div class="form-group">
+            <label>Celular</label>
+            <input id="ee-cel">
+          </div>
+          <div class="form-group">
+            <label>Salario (Bs)</label>
+            <input id="ee-salario" type="number" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <select id="ee-cargo"><option value="">-- Seleccionar --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Departamento</label>
+            <select id="ee-depto"><option value="">-- Seleccionar --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="ee-estado">
+              <option value="1">Activo</option>
+              <option value="2">Inactivo</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Direccion</label>
+            <input id="ee-dir">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionEmpleado()">Guardar Cambios</button>
+        <div id="msg-editar-emp" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- REGISTRAR HORAS -->
   <div class="tab-content" id="tab-horas">
     <div class="card">
       <h3>Registrar Horas Trabajadas</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Empleado *</label>
-          <input id="h-empleado" type="number" placeholder="ID del empleado">
+          <label>Empleado *</label>
+          <div class="ac-wrap">
+            <input id="h-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('h-emp-nom','ac-h-emp','h-empleado','empleados','idEmpleado','nombreCompleto')">
+            <div class="ac-drop" id="ac-h-emp"></div>
+            <input type="hidden" id="h-empleado">
+          </div>
         </div>
         <div class="form-group">
-          <label>ID Proyecto *</label>
-          <input id="h-proyecto" type="number" placeholder="ID del proyecto">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="h-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('h-proy-nom','ac-h-proy','h-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-h-proy"></div>
+            <input type="hidden" id="h-proyecto">
+          </div>
         </div>
         <div class="form-group">
           <label>Fecha *</label>
@@ -138,10 +213,15 @@
   <div class="tab-content" id="tab-consultar-horas">
     <div class="card">
       <h3>Consultar Horas por Empleado</h3>
-      <div style="display:flex; gap:10px; align-items:flex-end;">
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
         <div class="form-group">
-          <label>ID Empleado</label>
-          <input id="ch-id" type="number" placeholder="Ingresa el ID">
+          <label>Empleado</label>
+          <div class="ac-wrap">
+            <input id="ch-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('ch-emp-nom','ac-ch-emp','ch-id','empleados','idEmpleado','nombreCompleto')">
+            <div class="ac-drop" id="ac-ch-emp"></div>
+            <input type="hidden" id="ch-id">
+          </div>
         </div>
         <button class="btn btn-accent" onclick="consultarHoras()">Buscar</button>
       </div>
@@ -156,8 +236,13 @@
       <h3>Registrar Bonificacion</h3>
       <div class="form-grid">
         <div class="form-group">
-          <label>ID Empleado *</label>
-          <input id="b-emp" type="number" placeholder="ID del empleado">
+          <label>Empleado *</label>
+          <div class="ac-wrap">
+            <input id="b-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('b-emp-nom','ac-b-emp','b-emp','empleados','idEmpleado','nombreCompleto')">
+            <div class="ac-drop" id="ac-b-emp"></div>
+            <input type="hidden" id="b-emp">
+          </div>
         </div>
         <div class="form-group">
           <label>Tipo de Bonificacion *</label>
@@ -248,6 +333,7 @@
 
 </div>
 
+<script src="../js/autocomplete.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -21,6 +21,10 @@ function switchTab(name, btn) {
   if (name === 'lista') {
     cargarContratos();
   }
+
+  if (name === 'estado') {
+    cargarEstadosContrato();
+  }
 }
 
 function filtrarTabla(id, texto) {
@@ -76,6 +80,7 @@ async function cargarContratos() {
             <th>Monto</th>
             <th>Fecha contrato</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -87,6 +92,7 @@ async function cargarContratos() {
             <td>${c.montoTotal} Bs</td>
             <td>${c.fechaContrato ? c.fechaContrato.substring(0, 10) : '-'}</td>
             <td>${badge(c.nombreEstadoContrato)}</td>
+            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarContrato(${c.idContrato})">Eliminar</button></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -106,7 +112,8 @@ async function registrarContrato() {
     fechaVencimiento: document.getElementById('c-fechav').value || null
   };
 
-  if (!body.numeroContrato || !body.montoTotal || !body.idProyecto || !body.fechaContrato) {
+  if (!body.idProyecto) return msg('msg-contrato', 'Seleccione un proyecto de la lista.', 'err');
+  if (!body.numeroContrato || !body.montoTotal || !body.fechaContrato) {
     return msg('msg-contrato', 'Llene todos los campos obligatorios (*)', 'err');
   }
 
@@ -143,9 +150,8 @@ async function generarCuotas() {
     frecuenciaPago: document.getElementById('cu-frecuencia').value
   };
 
-  if (!idContrato || !body.numeroCuotas) {
-    return msg('msg-cuotas', 'Ingrese ID Contrato y número de cuotas', 'err');
-  }
+  if (!idContrato) return msg('msg-cuotas', 'Seleccione un contrato de la lista.', 'err');
+  if (!body.numeroCuotas) return msg('msg-cuotas', 'Ingrese el número de cuotas.', 'err');
 
   try {
     const res = await fetch(`${API}/contratos/${idContrato}/cuotas`, {
@@ -214,5 +220,146 @@ async function consultarPorCliente() {
     document.getElementById('cont-contratos-cliente').innerHTML = '<p style="color:red">Error de conexión</p>';
   }
 }
+
+async function cargarTiposContrato() {
+  const data = await fetch(`${API}/contratos/tipos/lista`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('c-idtipo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Tipo de contrato --</option>' +
+    data.map(t => `<option value="${t.idTipoContrato}">${t.nombreTipoContrato}</option>`).join('');
+}
+
+async function cargarEstadosContrato() {
+  const data = await fetch(`${API}/contratos/estados/lista`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('es-idestado');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Nuevo estado --</option>' +
+    data.map(e => `<option value="${e.idEstadoContrato}">${e.nombreEstadoContrato}</option>`).join('');
+}
+
+async function cambiarEstadoContrato() {
+  const id = document.getElementById('es-idcontrato').value;
+  const idEstadoContrato = parseInt(document.getElementById('es-idestado').value);
+  if (!id) return msg('msg-estado', 'Seleccione un contrato de la lista.', 'err');
+  if (!idEstadoContrato) return msg('msg-estado', 'Seleccione el nuevo estado.', 'err');
+  try {
+    const res = await fetch(`${API}/contratos/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idEstadoContrato })
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-estado', 'Error: ' + data.error, 'err');
+    msg('msg-estado', 'Estado del contrato actualizado correctamente', 'ok');
+    document.getElementById('es-cont-nom').value = '';
+    document.getElementById('es-idcontrato').value = '';
+    cargarContratos();
+  } catch (e) {
+    msg('msg-estado', 'Error de conexión', 'err');
+  }
+}
+
+async function cargarFormEditarContrato(idContrato) {
+  try {
+    const data = await fetch(`${API}/contratos/${idContrato}`).then(r => r.json());
+    if (data.error) return msg('msg-editar-contrato', data.error, 'err');
+    if (data.idEstadoContrato !== 1) {
+      document.getElementById('form-editar-contrato').style.display = 'none';
+      return msg('msg-editar-contrato', 'Este contrato no está Vigente, no se puede editar. Usa Rescindir/Renovar.', 'err');
+    }
+    document.getElementById('ec-numero').value = data.numeroContrato || '';
+    document.getElementById('ec-monto').value = data.montoTotal || '';
+    await cargarTiposContratoEditar(data.idTipoContrato);
+    document.getElementById('form-editar-contrato').style.display = 'block';
+  } catch (e) {
+    msg('msg-editar-contrato', 'Error al cargar el contrato', 'err');
+  }
+}
+
+async function cargarTiposContratoEditar(idSeleccionado) {
+  const data = await fetch(`${API}/contratos/tipos/lista`).then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('ec-idtipo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Tipo de contrato --</option>' +
+    data.map(t => `<option value="${t.idTipoContrato}" ${t.idTipoContrato === idSeleccionado ? 'selected' : ''}>${t.nombreTipoContrato}</option>`).join('');
+}
+
+async function guardarEdicionContrato() {
+  const id = document.getElementById('ec-idcontrato').value;
+  if (!id) return msg('msg-editar-contrato', 'Busque un contrato primero.', 'err');
+  const body = {
+    numeroContrato: document.getElementById('ec-numero').value.trim(),
+    montoTotal: parseFloat(document.getElementById('ec-monto').value),
+    idTipoContrato: parseInt(document.getElementById('ec-idtipo').value)
+  };
+  if (!body.numeroContrato || Number.isNaN(body.montoTotal) || body.montoTotal <= 0 || !body.idTipoContrato) {
+    return msg('msg-editar-contrato', 'Complete número, monto válido y tipo.', 'err');
+  }
+  try {
+    const res = await fetch(`${API}/contratos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar-contrato', 'Error: ' + data.error, 'err');
+    msg('msg-editar-contrato', 'Contrato actualizado correctamente', 'ok');
+    cargarContratos();
+  } catch (e) {
+    msg('msg-editar-contrato', 'Error de conexión', 'err');
+  }
+}
+
+async function prefillRenovar(idContrato) {
+  try {
+    const data = await fetch(`${API}/contratos/${idContrato}`).then(r => r.json());
+    if (data && data.montoTotal != null) {
+      document.getElementById('rn-monto').value = data.montoTotal;
+    }
+  } catch (e) {}
+}
+
+async function rescindirRenovar() {
+  const id = document.getElementById('rn-idcontrato').value;
+  const numeroContrato = document.getElementById('rn-numero').value.trim();
+  const montoTotal = parseFloat(document.getElementById('rn-monto').value);
+  if (!id) return msg('msg-renovar', 'Seleccione el contrato a rescindir.', 'err');
+  if (!numeroContrato) return msg('msg-renovar', 'Ingrese el número del nuevo contrato.', 'err');
+  if (Number.isNaN(montoTotal) || montoTotal <= 0) return msg('msg-renovar', 'Ingrese un monto válido.', 'err');
+  if (!confirm('Esto rescindirá el contrato actual y creará uno nuevo Vigente. ¿Continuar?')) return;
+  try {
+    const res = await fetch(`${API}/contratos/${id}/rescindir-renovar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numeroContrato, montoTotal })
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-renovar', 'Error: ' + data.error, 'err');
+    msg('msg-renovar', `${data.mensaje} Nuevo contrato Nº interno ${data.idContratoNuevo}.`, 'ok');
+    ['rn-cont-nom', 'rn-idcontrato', 'rn-numero', 'rn-monto'].forEach(i => {
+      const el = document.getElementById(i);
+      if (el) el.value = '';
+    });
+    cargarContratos();
+  } catch (e) {
+    msg('msg-renovar', 'Error de conexión', 'err');
+  }
+}
+
+async function eliminarContrato(id) {
+  if (!confirm(`¿Eliminar el contrato ID ${id}? Esta acción no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`${API}/contratos/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    cargarContratos();
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarTiposContrato();
+});
 
 cargarContratos();

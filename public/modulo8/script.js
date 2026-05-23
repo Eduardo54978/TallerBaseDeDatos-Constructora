@@ -1,5 +1,45 @@
 const API = 'http://localhost:3000/api';
 
+const PAG_SIZE = 10;
+
+function mostrarCarga(id) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = '<div class="cargando">Cargando datos...</div>';
+}
+
+function aplicarPaginacion(tablaId) {
+  const tabla = document.getElementById(tablaId);
+  if (!tabla) return;
+  const filas = Array.from(tabla.querySelectorAll('tbody tr'));
+  if (filas.length <= PAG_SIZE) return;
+  let pagina = 1;
+  const totalPags = Math.ceil(filas.length / PAG_SIZE);
+  function render() {
+    const ini = (pagina - 1) * PAG_SIZE;
+    filas.forEach((f, i) => { f.style.display = (i >= ini && i < ini + PAG_SIZE) ? '' : 'none'; });
+    let nav = document.getElementById('nav-' + tablaId);
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.id = 'nav-' + tablaId;
+      nav.className = 'pag-nav';
+      tabla.parentNode.insertBefore(nav, tabla.nextSibling);
+    }
+    nav.innerHTML = `
+      <button id="prev-${tablaId}">← Anterior</button>
+      <span>Página ${pagina} / ${totalPags} &nbsp;·&nbsp; ${filas.length} registros</span>
+      <button id="next-${tablaId}">Siguiente →</button>`;
+    document.getElementById('prev-' + tablaId).disabled = pagina === 1;
+    document.getElementById('next-' + tablaId).disabled = pagina === totalPags;
+    document.getElementById('prev-' + tablaId).onclick = () => { pagina--; render(); };
+    document.getElementById('next-' + tablaId).onclick = () => { pagina++; render(); };
+  }
+  render();
+}
+
+function confirmarAccion(mensaje) {
+  return confirm(mensaje);
+}
+
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
@@ -123,6 +163,7 @@ document.addEventListener('input', () => {
 });
 
 async function cargarEmpleados() {
+  mostrarCarga('cont-empleados');
   try {
     const data = await fetch(`${API}/empleados`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idEmpleado');
@@ -138,10 +179,16 @@ async function cargarEmpleados() {
             <th>Departamento</th>
             <th>Salario</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          ${ordenados.map(e => `<tr>
+          ${ordenados.map(e => {
+            const esActivo = (e.nombreEstadoEmpleado || '').toLowerCase().includes('activo') && !(e.nombreEstadoEmpleado || '').toLowerCase().includes('inactivo');
+            const accion = esActivo
+              ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 2)">Dar de baja</button>`
+              : `<button class="btn btn-green" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 1)">Activar</button>`;
+            return `<tr>
             <td>${e.idEmpleado}</td>
             <td>${e.nombre}</td>
             <td>${e.apellido}</td>
@@ -149,9 +196,12 @@ async function cargarEmpleados() {
             <td>${e.nombreDepartamento || '-'}</td>
             <td>Bs ${Number(e.salario || 0).toLocaleString()}</td>
             <td>${badge(e.nombreEstadoEmpleado)}</td>
-          </tr>`).join('')}
+            <td>${accion}</td>
+          </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
+    aplicarPaginacion('tbl-emp');
   } catch (e) {
     document.getElementById('cont-empleados').innerHTML = '<p style="color:red">Error al cargar empleados</p>';
   }
@@ -259,6 +309,11 @@ async function registrarHoras() {
     return msg('msg-horas', 'Todos los campos son obligatorios', 'err');
   }
 
+  const hoy = new Date().toISOString().substring(0, 10);
+  if (body.fecha > hoy) {
+    return msg('msg-horas', 'La fecha no puede ser futura.', 'err');
+  }
+
   try {
     const res = await fetch(`${API}/empleados/horas`, {
       method: 'POST',
@@ -274,7 +329,7 @@ async function registrarHoras() {
 
     msg('msg-horas', `Horas registradas. Total: Bs ${data.totalPago}`, 'ok');
 
-    ['h-empleado', 'h-proyecto', 'h-fecha', 'h-horas', 'h-pago'].forEach(id => {
+    ['h-emp-nom', 'h-empleado', 'h-proy-nom', 'h-proyecto', 'h-fecha', 'h-horas', 'h-pago'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
@@ -339,6 +394,7 @@ async function consultarHoras() {
             <th>Horas</th>
             <th>Bs/Hora</th>
             <th>Total</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -346,6 +402,7 @@ async function consultarHoras() {
             const horas = Number(h.horasTrabajadas || h.horas || 0);
             const pago = Number(h.pagoPorHora || h.precioHora || 0);
             const total = h.totalPago !== undefined ? Number(h.totalPago) : horas * pago;
+            const idReg = h.idRegistroHoras;
 
             return `<tr>
               <td>${h.fecha ? h.fecha.substring(0, 10) : '-'}</td>
@@ -353,10 +410,12 @@ async function consultarHoras() {
               <td>${horas}</td>
               <td>Bs ${pago.toFixed(2)}</td>
               <td>Bs ${total.toFixed(2)}</td>
+              <td>${idReg ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarRegistroHoras(${idReg})">Eliminar</button>` : '-'}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>`;
+    aplicarPaginacion('tbl-horas-emp');
   } catch (e) {
     document.getElementById('resumen-horas').innerHTML = '<p style="color:red">Error o empleado no encontrado</p>';
     document.getElementById('cont-horas-emp').innerHTML = '';
@@ -393,7 +452,7 @@ async function registrarBonificacion() {
 
     msg('msg-bono', `Bonificación registrada. Monto: Bs ${data.montoCalculado}`, 'ok');
 
-    ['b-emp', 'b-tipo', 'b-anios', 'b-pct', 'b-salario', 'b-gestion', 'b-desc'].forEach(id => {
+    ['b-emp-nom', 'b-emp', 'b-tipo', 'b-anios', 'b-pct', 'b-salario', 'b-gestion', 'b-desc'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
@@ -514,6 +573,97 @@ async function registrarDepto() {
 
   cargarDeptos();
   cargarSelectDeptos();
+}
+
+async function cargarFormEditarEmp(idEmpleado) {
+  try {
+    const data = await fetch(`${API}/empleados/${idEmpleado}`).then(r => r.json());
+    const emp = data.empleado || data;
+    document.getElementById('ee-nombre').value = emp.nombre || '';
+    document.getElementById('ee-apellido').value = emp.apellido || '';
+    document.getElementById('ee-email').value = emp.email || '';
+    document.getElementById('ee-cel').value = emp.numCelular || '';
+    document.getElementById('ee-salario').value = emp.salario || '';
+    document.getElementById('ee-dir').value = emp.direccion || '';
+    await cargarSelectsEditorEmp(emp.idCargo, emp.idDepartamento);
+    const estadoSel = document.getElementById('ee-estado');
+    if (estadoSel) estadoSel.value = emp.idEstadoEmpleado || 1;
+    document.getElementById('form-editar-emp').style.display = 'block';
+  } catch (e) {
+    alert('Error al cargar datos del empleado');
+  }
+}
+
+async function cargarSelectsEditorEmp(idCargo, idDepto) {
+  const [cargos, deptos] = await Promise.all([
+    fetch(`${API}/empleados/cargos/lista`).then(r => r.json()).catch(() => []),
+    fetch(`${API}/empleados/departamentos/lista`).then(r => r.json()).catch(() => [])
+  ]);
+  const selC = document.getElementById('ee-cargo');
+  const selD = document.getElementById('ee-depto');
+  if (selC) selC.innerHTML = '<option value="">-- Seleccionar --</option>' +
+    cargos.map(c => `<option value="${c.idCargo}" ${c.idCargo === idCargo ? 'selected' : ''}>${c.nombreCargo}</option>`).join('');
+  if (selD) selD.innerHTML = '<option value="">-- Seleccionar --</option>' +
+    deptos.map(d => `<option value="${d.idDepartamento}" ${d.idDepartamento === idDepto ? 'selected' : ''}>${d.nombreDepartamento}</option>`).join('');
+}
+
+async function guardarEdicionEmpleado() {
+  const id = document.getElementById('ee-idemplrado').value;
+  if (!id) return msg('msg-editar-emp', 'Seleccione un empleado de la lista.', 'err');
+  const body = {
+    nombre: document.getElementById('ee-nombre').value.trim(),
+    apellido: document.getElementById('ee-apellido').value.trim(),
+    email: document.getElementById('ee-email').value.trim(),
+    numCelular: document.getElementById('ee-cel').value.trim(),
+    salario: parseFloat(document.getElementById('ee-salario').value) || null,
+    idCargo: parseInt(document.getElementById('ee-cargo').value) || null,
+    idDepartamento: parseInt(document.getElementById('ee-depto').value) || null,
+    idEstadoEmpleado: parseInt(document.getElementById('ee-estado').value) || 1,
+    direccion: document.getElementById('ee-dir').value.trim()
+  };
+  if (!body.nombre || !body.apellido) return msg('msg-editar-emp', 'Nombre y apellido son obligatorios.', 'err');
+  try {
+    const res = await fetch(`${API}/empleados/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-editar-emp', 'Error: ' + data.error, 'err');
+    msg('msg-editar-emp', 'Empleado actualizado correctamente', 'ok');
+    cargarEmpleados();
+  } catch (e) {
+    msg('msg-editar-emp', 'Error de conexión', 'err');
+  }
+}
+
+async function cambiarEstadoEmpleado(id, idEstado) {
+  const accion = idEstado === 2 ? 'dar de baja' : 'reactivar';
+  if (!confirmarAccion(`¿Seguro que quieres ${accion} al empleado ID ${id}?`)) return;
+  try {
+    const res = await fetch(`${API}/empleados/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idEstadoEmpleado: idEstado })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    cargarEmpleados();
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+async function eliminarRegistroHoras(idReg) {
+  if (!confirmarAccion(`¿Eliminar el registro de horas ID ${idReg}?`)) return;
+  try {
+    const res = await fetch(`${API}/empleados/horas/${idReg}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert('Error: ' + data.error);
+    consultarHoras();
+  } catch (e) {
+    alert('Error de conexión');
+  }
 }
 
 cargarEmpleados();

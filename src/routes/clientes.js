@@ -26,7 +26,18 @@ router.get('/', async (req, res) => {
     }
 });
 
-// â”€â”€ GET consultar cliente por id o documentoID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`SELECT TOP 10 idCliente, nombre FROM dbo.cliente WHERE nombre LIKE @q OR CAST(idCliente AS NVARCHAR) LIKE @q ORDER BY nombre`);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const pool   = await sql.connect(config);
@@ -214,6 +225,26 @@ router.put('/:id', async (req, res) => {
         res.json({ mensaje: 'Cliente actualizado correctamente' });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ── DELETE eliminar cliente ──────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cliente WHERE idCliente = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.cliente WHERE idCliente = @id`);
+        res.json({ mensaje: 'Cliente eliminado correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: 'No se puede eliminar: el cliente tiene proyectos o contratos asociados.' });
     }
 });
 

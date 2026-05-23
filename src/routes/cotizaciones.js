@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router  = express.Router();
 const { sql, config } = require('../config/db');
+const { errorAmigable } = require('../config/sqlError');
 
 // â”€â”€ GET todas las cotizaciones cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/', async (req, res) => {
@@ -22,8 +23,48 @@ router.get('/', async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
+});
+
+// Búsqueda de cotizaciones cliente por número, proyecto o ID
+router.get('/cliente/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`
+                SELECT TOP 10 cc.idCotizacionCliente,
+                       cc.numeroCotizacionCliente + ' — ' + p.nombreProyecto AS display
+                FROM dbo.cotizacioncliente cc
+                JOIN dbo.proyecto p ON cc.idProyecto = p.idProyecto
+                WHERE cc.numeroCotizacionCliente LIKE @q OR p.nombreProyecto LIKE @q OR CAST(cc.idCotizacionCliente AS NVARCHAR) LIKE @q
+                ORDER BY cc.idCotizacionCliente DESC
+            `);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Búsqueda de cotizaciones internas por número, proyecto o ID
+router.get('/interna/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('q', sql.NVarChar, `%${q}%`)
+            .query(`
+                SELECT TOP 10 ci.idCotizacionInterna,
+                       ci.numeroCotizacionInterna + ' — ' + p.nombreProyecto AS display
+                FROM dbo.cotizacioninterna ci
+                JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
+                WHERE ci.numeroCotizacionInterna LIKE @q OR p.nombreProyecto LIKE @q OR CAST(ci.idCotizacionInterna AS NVARCHAR) LIKE @q
+                ORDER BY ci.idCotizacionInterna DESC
+            `);
+        res.json(result.recordset);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // â”€â”€ GET cotizaciones por proyecto (cliente + internas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -67,7 +108,7 @@ router.get('/proyecto/:idProyecto', async (req, res) => {
             cotizacionesInternas: internas.recordset
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -112,7 +153,7 @@ router.post('/cliente', async (req, res) => {
             `);
         res.status(201).json({ idCotizacionCliente: result.recordset[0].idCotizacionCliente });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -147,7 +188,7 @@ router.post('/cliente/:id/detalle', async (req, res) => {
             `);
         res.status(201).json({ idDetalleCotizacionCliente: result.recordset[0].idDetalleCotizacionCliente });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -188,7 +229,7 @@ router.post('/interna', async (req, res) => {
             `);
         res.status(201).json({ idCotizacionInterna: result.recordset[0].idCotizacionInterna });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -228,7 +269,7 @@ router.post('/interna/:id/materiales', async (req, res) => {
             `);
         res.status(201).json({ idDetalleCotizacionInterna: result.recordset[0].idDetalleCotizacionInterna });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -252,24 +293,23 @@ router.post('/interna/:id/manodeobra', async (req, res) => {
         if (cargoExiste.recordset.length === 0)
             return res.status(400).json({ error: 'Cargo no existe' });
 
-        const totalEstimado = cantidadPersonas * horasEstimadas * pagoPorHora;
+        // totalEstimado se calcula solo para informar al usuario; la tabla no lo almacena
+        const totalEstimado = cantidadPersonas * horasEstimadas * (pagoPorHora || 0);
 
         const result = await pool.request()
             .input('idCot',             sql.Int,     idCotizacionInterna)
             .input('idCargo',           sql.Int,     idCargo)
             .input('cantidadPersonas',  sql.Int,     cantidadPersonas)
             .input('horasEstimadas',    sql.Decimal, horasEstimadas)
-            .input('pagoPorHora',       sql.Decimal, pagoPorHora)
-            .input('totalEstimado',     sql.Decimal, totalEstimado)
             .query(`
-                INSERT INTO dbo.detallecotizacionmanodeobra
-                    (idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas, pagoPorHora, totalEstimado)
+                INSERT INTO dbo.detallecotizacionmanoobra
+                    (idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas)
                 OUTPUT INSERTED.idDetalleManoObra
-                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas, @pagoPorHora, @totalEstimado)
+                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas)
             `);
         res.status(201).json({ idDetalleManoObra: result.recordset[0].idDetalleManoObra, totalEstimado });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
@@ -317,7 +357,162 @@ router.put('/estado', async (req, res) => {
 
         res.json({ mensaje: 'Estado actualizado correctamente' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── GET / PUT editar cotización cliente ──────────────────────────────────────
+router.get('/cliente/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT cc.idCotizacionCliente, cc.numeroCotizacionCliente, cc.fechaCotizacion,
+                       cc.fechaValidez, cc.observaciones, cc.idProyecto, p.nombreProyecto, cc.idEstadoCotizacion
+                FROM dbo.cotizacioncliente cc
+                JOIN dbo.proyecto p ON cc.idProyecto = p.idProyecto
+                WHERE cc.idCotizacionCliente = @id
+            `);
+        if (result.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+        res.json(result.recordset[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/cliente/:id', async (req, res) => {
+    const { numeroCotizacion, fechaCotizacion, fechaValidez, observaciones } = req.body;
+    if (!numeroCotizacion || !fechaCotizacion)
+        return res.status(400).json({ error: 'Número y fecha son obligatorios' });
+    try {
+        const pool = await sql.connect(config);
+        const existe = await pool.request().input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE idCotizacionCliente = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+
+        const dup = await pool.request()
+            .input('num', sql.NVarChar, numeroCotizacion)
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE numeroCotizacionCliente = @num AND idCotizacionCliente <> @id`);
+        if (dup.recordset.length > 0)
+            return res.status(400).json({ error: 'Ese número de cotización ya existe' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('num', sql.NVarChar, numeroCotizacion)
+            .input('fecha', sql.Date, fechaCotizacion)
+            .input('validez', sql.Date, fechaValidez || null)
+            .input('obs', sql.NVarChar, observaciones || null)
+            .query(`
+                UPDATE dbo.cotizacioncliente
+                SET numeroCotizacionCliente = @num, fechaCotizacion = @fecha,
+                    fechaValidez = @validez, observaciones = @obs
+                WHERE idCotizacionCliente = @id
+            `);
+        res.json({ mensaje: 'Cotización cliente actualizada correctamente' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── GET / PUT editar cotización interna ──────────────────────────────────────
+router.get('/interna/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT ci.idCotizacionInterna, ci.numeroCotizacionInterna, ci.fechaCotizacion,
+                       ci.observaciones, ci.idProyecto, p.nombreProyecto, ci.idEstadoCotizacion
+                FROM dbo.cotizacioninterna ci
+                JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
+                WHERE ci.idCotizacionInterna = @id
+            `);
+        if (result.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+        res.json(result.recordset[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/interna/:id', async (req, res) => {
+    const { numeroCotizacion, fechaCotizacion, observaciones } = req.body;
+    if (!numeroCotizacion || !fechaCotizacion)
+        return res.status(400).json({ error: 'Número y fecha son obligatorios' });
+    try {
+        const pool = await sql.connect(config);
+        const existe = await pool.request().input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+
+        const dup = await pool.request()
+            .input('num', sql.NVarChar, numeroCotizacion)
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE numeroCotizacionInterna = @num AND idCotizacionInterna <> @id`);
+        if (dup.recordset.length > 0)
+            return res.status(400).json({ error: 'Ese número de cotización ya existe' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('num', sql.NVarChar, numeroCotizacion)
+            .input('fecha', sql.Date, fechaCotizacion)
+            .input('obs', sql.NVarChar, observaciones || null)
+            .query(`
+                UPDATE dbo.cotizacioninterna
+                SET numeroCotizacionInterna = @num, fechaCotizacion = @fecha, observaciones = @obs
+                WHERE idCotizacionInterna = @id
+            `);
+        res.json({ mensaje: 'Cotización interna actualizada correctamente' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── DELETE cotización cliente (con sus detalles) ─────────────────────────────
+router.delete('/cliente/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE idCotizacionCliente = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.detallecotizacioncliente WHERE idCotizacionCliente = @id`);
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.cotizacioncliente WHERE idCotizacionCliente = @id`);
+
+        res.json({ mensaje: 'Cotización cliente eliminada correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── DELETE cotización interna (materiales + mano de obra + cabecera) ──────────
+router.delete('/interna/:id', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT 1 FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
+        if (existe.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.detallecotizacioninterna WHERE idCotizacionInterna = @id`);
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.detallecotizacionmanoobra WHERE idCotizacionInterna = @id`);
+        await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.cotizacioninterna WHERE idCotizacionInterna = @id`);
+
+        res.json({ mensaje: 'Cotización interna eliminada correctamente' });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
     }
 });
 
