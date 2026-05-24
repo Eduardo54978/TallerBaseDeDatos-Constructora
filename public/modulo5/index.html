@@ -26,6 +26,7 @@
 
   <div class="tab-content active" id="tab-lista">
     <div class="card">
+      <div id="cont-stats"></div>
       <div class="table-header">
         <h3>Contratos Registrados</h3>
         <input class="search" placeholder="Buscar contrato..." oninput="filtrarTabla('tbl-contratos', this.value)">
@@ -56,22 +57,32 @@
         <div class="form-group">
           <label>Numero de Contrato *</label>
           <input id="c-numero" placeholder="Ej: CT-2026-001">
+          <small style="color:#718096;">Identificador único del contrato (ej: CT-AÑO-NRO)</small>
         </div>
         <div class="form-group">
           <label>Monto Total (Bs) *</label>
           <input id="c-monto" type="number" step="0.01" placeholder="0.00">
+          <small style="color:#718096;">Valor total acordado en bolivianos</small>
         </div>
         <div class="form-group">
           <label>Fecha de Contrato *</label>
           <input id="c-fechac" type="date">
+          <small style="color:#718096;">Fecha en que se redactó el contrato</small>
         </div>
         <div class="form-group">
           <label>Fecha de Inicio</label>
           <input id="c-fechai" type="date">
+          <small style="color:#718096;">Cuándo inician los trabajos del proyecto</small>
         </div>
         <div class="form-group">
           <label>Fecha de Vencimiento</label>
           <input id="c-fechav" type="date">
+          <small style="color:#718096;">Fecha límite para finalizar la obra</small>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Firma</label>
+          <input id="c-fechaf" type="date">
+          <small style="color:#718096;">Fecha en que ambas partes firmaron el contrato</small>
         </div>
       </div>
       <br>
@@ -88,14 +99,16 @@
           <label>Contrato *</label>
           <div class="ac-wrap">
             <input id="cu-cont-nom" type="text" placeholder="Buscar contrato por numero o proyecto..." autocomplete="off"
-                   oninput="acSearch('cu-cont-nom','ac-cu-cont','cu-idcontrato','contratos','idContrato','display')">
+                   oninput="acSearch('cu-cont-nom','ac-cu-cont','cu-idcontrato','contratos','idContrato','display','onSelContratoCuotas')">
             <div class="ac-drop" id="ac-cu-cont"></div>
             <input type="hidden" id="cu-idcontrato">
           </div>
+          <small id="cu-cont-info" style="color:#276749; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Numero de Cuotas *</label>
-          <input id="cu-cantidad" type="number" placeholder="Ej: 12">
+          <input id="cu-cantidad" type="number" placeholder="Ej: 12" oninput="calcCuotaPreview()">
+          <small id="cu-preview" style="color:#276749; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Frecuencia de Pago *</label>

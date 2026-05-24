@@ -69,6 +69,7 @@
             <th>Inicio</th>
             <th>Fin estimado</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="tablaProyectos"></tbody>
@@ -291,11 +292,18 @@
           <input type="hidden" id="as-idproyecto">
         </div>
       </div>
+      <div class="campo">
+        <label>Filtrar por cargo</label>
+        <select id="as-filtro-cargo" onchange="limpiarSeleccionEmpleado()">
+          <option value="">— Todos los cargos —</option>
+        </select>
+        <small style="color:#6b756d;">Opcional: filtra la búsqueda de empleados por cargo.</small>
+      </div>
       <div class="campo ancho">
         <label>Empleado disponible (nombre o ID)</label>
         <div class="ac-wrap">
           <input id="as-emp-nom" type="text" placeholder="Escribe el nombre del empleado o su ID..." autocomplete="off"
-                 oninput="acSearch('as-emp-nom','ac-as-emp','as-idempleado','empleadoproyecto/disponibles','idEmpleado','nombreCompleto')">
+                 oninput="buscarEmpleadoDisponible()">
           <div class="ac-drop" id="ac-as-emp"></div>
           <input type="hidden" id="as-idempleado">
         </div>
@@ -320,15 +328,61 @@
     <div id="mensajeAsignar" class="mensaje"></div>
 
     <div class="separador" style="margin:20px 0;"></div>
-    <h3>Disponibilidad del personal</h3>
+    <h3>Asignación rápida de varios empleados</h3>
+    <p style="color:#6b756d;">Filtra el personal, marca uno o varios empleados disponibles, elige proyecto y rol, y revisa la lista antes de aplicar.</p>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:12px 0;">
+      <div class="campo">
+        <label>Buscar</label>
+        <input type="text" id="filtro-disp-texto" placeholder="Nombre o ID..." oninput="renderDisponibilidad()">
+      </div>
+      <div class="campo">
+        <label>Cargo</label>
+        <select id="filtro-disp-cargo" onchange="renderDisponibilidad()"><option value="">— Todos —</option></select>
+      </div>
+      <div class="campo">
+        <label>Disponibilidad</label>
+        <select id="filtro-disp-estado" onchange="renderDisponibilidad()">
+          <option value="">— Todos —</option>
+          <option value="1">Solo disponibles</option>
+          <option value="0">Solo ocupados</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:12px 0; padding:12px; background:#f1f5ef; border-radius:8px;">
+      <div class="campo ancho" style="min-width:240px;">
+        <label>Proyecto destino (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="ms-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+                 oninput="acSearch('ms-proy-nom','ac-ms-proy','ms-idproyecto','proyectos','idProyecto','nombreProyecto')">
+          <div class="ac-drop" id="ac-ms-proy"></div>
+          <input type="hidden" id="ms-idproyecto">
+        </div>
+      </div>
+      <div class="campo">
+        <label>Rol en el proyecto</label>
+        <select id="ms-rol"></select>
+      </div>
+      <div class="campo">
+        <label>Fecha inicio</label>
+        <input type="date" id="ms-fechaInicio">
+      </div>
+      <button type="button" class="btn-guardar" onclick="previsualizarAsignacion()">Previsualizar (<span id="ms-count">0</span>)</button>
+    </div>
+
     <div class="tabla">
       <table>
         <thead>
-          <tr><th>ID</th><th>Empleado</th><th>Cargo</th><th>Estado</th></tr>
+          <tr>
+            <th style="width:40px;"><input type="checkbox" id="chk-todos" onclick="marcarTodosDisponibles(this.checked)"></th>
+            <th>ID</th><th>Empleado</th><th>Cargo</th><th>Estado</th>
+          </tr>
         </thead>
         <tbody id="tablaDisponibilidad"></tbody>
       </table>
     </div>
+    <div id="mensajeMultiAsignar" class="mensaje"></div>
   </section>
 
   <section id="tab-cambiar-estado" class="card contenido">
@@ -379,6 +433,7 @@
 </div>
 
 <script src="../js/autocomplete.js"></script>
+<script src="../js/inspeccion.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

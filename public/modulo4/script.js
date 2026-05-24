@@ -124,6 +124,14 @@ async function cargarOrdenes() {
     const data = await fetch(`${API}/compras`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idOrdenCompra');
 
+    const pendientes = ordenados.filter(o => (o.estadoOrden || '').toLowerCase().includes('pendiente')).length;
+    const montoTotal = ordenados.reduce((s, o) => s + Number(o.montoTotal || 0), 0);
+    renderStatsCards('ord-stats', [
+      { n: ordenados.length, l: 'Órdenes' },
+      { n: pendientes, l: 'Pendientes' },
+      { n: 'Bs ' + montoTotal.toLocaleString('es-BO'), l: 'Monto total' },
+    ]);
+
     document.getElementById('cont-ordenes').innerHTML = `
       <table id="tbl-ordenes">
         <thead>
@@ -192,6 +200,10 @@ async function crearOrden() {
     document.querySelectorAll('#tab-nueva-orden input').forEach(i => {
       i.value = '';
     });
+    const refPanel = document.getElementById('no-catalogo-ref');
+    if (refPanel) { refPanel.style.display = 'none'; refPanel.innerHTML = ''; }
+    const montoHint = document.getElementById('no-monto-hint');
+    if (montoHint) montoHint.textContent = '';
 
     const fecha = document.getElementById('no-fecha');
 
@@ -202,6 +214,45 @@ async function crearOrden() {
     cargarOrdenes();
   } catch (e) {
     msg('msg-orden', 'Error de conexión', 'err');
+  }
+}
+
+// Al elegir proveedor en "Nueva orden", muestra su catálogo como referencia
+// de precios para estimar el monto acordado.
+async function onSelProveedorOrden(idProveedor) {
+  const panel = document.getElementById('no-catalogo-ref');
+  const hint = document.getElementById('no-monto-hint');
+  if (!panel) return;
+  if (!idProveedor) { panel.style.display = 'none'; if (hint) hint.textContent = ''; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = 'Cargando catálogo del proveedor...';
+  try {
+    const cat = await fetch(`${API}/proveedores/${idProveedor}/materiales`).then(r => r.json());
+    if (!Array.isArray(cat) || !cat.length) {
+      panel.innerHTML = '<b>Este proveedor no tiene materiales en su catálogo todavía.</b> Puedes registrar la orden igual y agregarlos luego.';
+      if (hint) hint.textContent = '';
+      return;
+    }
+    const precios = cat.map(m => Number(m.precioProveedor || 0));
+    const min = Math.min(...precios), max = Math.max(...precios);
+    if (hint) hint.textContent = `Precios del proveedor: entre Bs ${min.toFixed(2)} y Bs ${max.toFixed(2)} por material.`;
+    panel.innerHTML = `
+      <b style="color:#173F24;">Catálogo de referencia (${cat.length} materiales)</b>
+      <table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
+        <thead><tr style="background:#123823;color:#fff;">
+          <th style="text-align:left;padding:6px;">Material</th>
+          <th style="text-align:right;padding:6px;">Precio (Bs)</th>
+          <th style="text-align:left;padding:6px;">Entrega</th>
+        </tr></thead>
+        <tbody>${cat.map(m => `<tr>
+          <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
+          <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${Number(m.precioProveedor).toFixed(2)}</td>
+          <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.tiempoEntrega != null ? m.tiempoEntrega + ' días' : '-'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <small style="color:#6b756d;">Usa estos precios para estimar el monto acordado de la orden.</small>`;
+  } catch (e) {
+    panel.innerHTML = 'No se pudo cargar el catálogo del proveedor.';
   }
 }
 
@@ -256,6 +307,7 @@ async function buscarDetalle() {
 }
 
 let catalogoOrden = [];
+let _montoOrdenActual = 0;   // monto acordado de la orden elegida en "Agregar detalle"
 
 async function cargarMaterialesDeOrden(idOrden) {
   const sel = document.getElementById('ad-idmaterial');
@@ -267,16 +319,51 @@ async function cargarMaterialesDeOrden(idOrden) {
       sel.innerHTML = '<option value="">No se pudo obtener el proveedor</option>';
       return;
     }
+    _montoOrdenActual = Number(orden.montoTotal || 0);
     const catalogo = await fetch(`${API}/proveedores/${orden.idProveedor}/materiales`).then(r => r.json());
     catalogoOrden = Array.isArray(catalogo) ? catalogo : [];
     if (!catalogoOrden.length) {
       sel.innerHTML = '<option value="">El proveedor no tiene materiales en su catálogo</option>';
-      return;
+    } else {
+      sel.innerHTML = '<option value="">-- Seleccionar material --</option>' +
+        catalogoOrden.map(m => `<option value="${m.idMaterial}" data-precio="${m.precioProveedor}">${m.nombreMaterial} (Bs ${m.precioProveedor})</option>`).join('');
     }
-    sel.innerHTML = '<option value="">-- Seleccionar material --</option>' +
-      catalogoOrden.map(m => `<option value="${m.idMaterial}" data-precio="${m.precioProveedor}">${m.nombreMaterial} (Bs ${m.precioProveedor})</option>`).join('');
+    await renderPresupuestoOrden(idOrden);
   } catch (e) {
     sel.innerHTML = '<option value="">Error al cargar catálogo</option>';
+  }
+}
+
+// Muestra presupuesto (acordado / gastado / disponible) y los ítems ya cargados.
+async function renderPresupuestoOrden(idOrden) {
+  const panel = document.getElementById('ad-presupuesto');
+  const cont = document.getElementById('ad-items-actuales');
+  if (!panel) return;
+  try {
+    const detalle = await fetch(`${API}/compras/${idOrden}/detalle`).then(r => r.json());
+    const items = Array.isArray(detalle) ? detalle : [];
+    const gastado = items.reduce((s, d) => s + Number(d.total || 0), 0);
+    const disponible = _montoOrdenActual - gastado;
+    const colorDisp = disponible < 0 ? '#b91c1c' : '#28512b';
+
+    panel.style.display = 'flex';
+    panel.style.cssText += 'display:flex;flex-wrap:wrap;gap:16px;';
+    panel.innerHTML = `
+      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Monto acordado</div><b style="font-size:1.2rem;color:#173F24;">${moneda(_montoOrdenActual)}</b></div>
+      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Gastado en detalle</div><b style="font-size:1.2rem;color:#173F24;">${moneda(gastado)}</b></div>
+      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Disponible</div><b style="font-size:1.2rem;color:${colorDisp};">${moneda(disponible)}</b></div>`;
+
+    if (cont) {
+      cont.innerHTML = items.length
+        ? `<b style="color:#173F24;">Materiales ya cargados en esta orden (${items.length})</b>
+           <table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
+             <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Material</th><th style="text-align:right;padding:6px;">Cantidad</th><th style="text-align:right;padding:6px;">P. Unit</th><th style="text-align:right;padding:6px;">Total</th></tr></thead>
+             <tbody>${items.map(d => `<tr><td style="padding:6px;border-bottom:1px solid #e1e6dd;">${d.nombreMaterial || '-'}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${d.cantidad}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.precioUnitario)}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.total)}</td></tr>`).join('')}</tbody>
+           </table>`
+        : '<p style="color:#6b756d;">Esta orden aún no tiene materiales cargados.</p>';
+    }
+  } catch (e) {
+    panel.style.display = 'none';
   }
 }
 
@@ -285,6 +372,19 @@ function autoPrecioMaterial() {
   const opt = sel.options[sel.selectedIndex];
   const precio = opt ? opt.getAttribute('data-precio') : null;
   if (precio) document.getElementById('ad-precio').value = precio;
+  calcularSubtotalDetalle();
+}
+
+// Subtotal en vivo (cantidad × precio) con aviso si supera lo disponible.
+function calcularSubtotalDetalle() {
+  const out = document.getElementById('ad-subtotal');
+  if (!out) return;
+  const cant = parseFloat(document.getElementById('ad-cantidad').value);
+  const precio = parseFloat(document.getElementById('ad-precio').value);
+  if (Number.isNaN(cant) || Number.isNaN(precio)) { out.textContent = ''; return; }
+  const subtotal = cant * precio;
+  out.style.color = '#28512b';
+  out.textContent = `Subtotal: ${moneda(subtotal)}`;
 }
 
 async function agregarDetalleOrden() {
@@ -320,8 +420,11 @@ async function agregarDetalleOrden() {
     document.getElementById('ad-idmaterial').value = '';
     document.getElementById('ad-cantidad').value = '';
     document.getElementById('ad-precio').value = '';
+    const sub = document.getElementById('ad-subtotal');
+    if (sub) sub.textContent = '';
 
     cargarOrdenes();
+    renderPresupuestoOrden(idOrden);   // refresca presupuesto e ítems
 
     const detalleInput = document.getElementById('do-idorden');
 

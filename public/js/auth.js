@@ -8,7 +8,7 @@ if (!usuario) {
 // Módulos que puede ver cada rol
 const MODULOS_POR_ROL = {
     rol_gerente:    ['dashboard','proyectos','materiales','pagos','compras',
-                     'contratos','proveedores','clientes','empleados','cotizaciones'],
+                     'contratos','proveedores','clientes','empleados','cotizaciones','movimientos'],
     rol_jefe_obra:  ['dashboard','proyectos','empleados','materiales'],
     rol_rrhh:       ['dashboard','empleados','cotizaciones'],
     rol_logistica:  ['dashboard','proveedores','materiales','compras'],
@@ -32,6 +32,7 @@ const NOMBRES_MODULOS = {
     cotizaciones: 'M9 - Cotizaciones',
     horas:        'Registro de Horas',
     inventario:   'Inventario',
+    movimientos:  'Bitácora / Movimientos',
 };
 
 // Links de módulos con página propia
@@ -45,6 +46,7 @@ const LINKS_MODULOS = {
     clientes:     'modulo7/index.html',
     empleados:    'modulo8/index.html',
     cotizaciones: 'modulo9/index.html',
+    movimientos:  'movimientos/index.html',
 };
 
 function inicializarSistema() {

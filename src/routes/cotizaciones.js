@@ -3,7 +3,7 @@ const router  = express.Router();
 const { sql, config } = require('../config/db');
 const { errorAmigable } = require('../config/sqlError');
 
-// â”€â”€ GET todas las cotizaciones cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── GET todas las cotizaciones cliente ──────────────────────────────────────
 router.get('/', async (req, res) => {
     try {
         const pool   = await sql.connect(config);
@@ -15,7 +15,8 @@ router.get('/', async (req, res) => {
                 cc.fechaValidez,
                 cc.observaciones,
                 p.nombreProyecto,
-                ec.nombreEstadoCotizacion
+                ec.nombreEstadoCotizacion,
+                ISNULL((SELECT SUM(dcc.cantidad * dcc.precioUnitario) FROM dbo.detallecotizacioncliente dcc WHERE dcc.idCotizacionCliente = cc.idCotizacionCliente), 0) AS totalEstimado
             FROM dbo.cotizacioncliente cc
             JOIN dbo.proyecto          p  ON cc.idProyecto         = p.idProyecto
             JOIN dbo.estadocotizacion  ec ON cc.idEstadoCotizacion  = ec.idEstadoCotizacion
@@ -24,6 +25,32 @@ router.get('/', async (req, res) => {
         res.json(result.recordset);
     } catch (err) {
         res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── GET todas las cotizaciones internas con total estimado ───────────────────
+router.get('/interna', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request().query(`
+            SELECT
+                ci.idCotizacionInterna,
+                ci.numeroCotizacionInterna,
+                ci.fechaCotizacion,
+                ci.observaciones,
+                p.nombreProyecto,
+                ec.nombreEstadoCotizacion,
+                ISNULL((SELECT SUM(dci.cantidadEstimada * dci.costoUnitarioEstimado) FROM dbo.detallecotizacioninterna dci WHERE dci.idCotizacionInterna = ci.idCotizacionInterna), 0)
+                + ISNULL((SELECT SUM(dmo.cantidadPersonas * dmo.horasEstimadas * c.pagoPorHora) FROM dbo.detallecotizacionmanoobra dmo JOIN dbo.cargo c ON dmo.idCargo = c.idCargo WHERE dmo.idCotizacionInterna = ci.idCotizacionInterna), 0)
+                AS totalEstimado
+            FROM dbo.cotizacioninterna ci
+            JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
+            JOIN dbo.estadocotizacion ec ON ci.idEstadoCotizacion = ec.idEstadoCotizacion
+            ORDER BY ci.fechaCotizacion DESC
+        `);
+        res.json(result.recordset);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
     }
 });
 
@@ -148,8 +175,8 @@ router.post('/cliente', async (req, res) => {
             .query(`
                 INSERT INTO dbo.cotizacioncliente
                     (numeroCotizacionCliente, fechaCotizacion, fechaValidez, observaciones, idProyecto, idEstadoCotizacion)
-                OUTPUT INSERTED.idCotizacionCliente
-                VALUES (@num, @fecha, @validez, @obs, @idProyecto, @idEstado)
+                VALUES (@num, @fecha, @validez, @obs, @idProyecto, @idEstado);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idCotizacionCliente;
             `);
         res.status(201).json({ idCotizacionCliente: result.recordset[0].idCotizacionCliente });
     } catch (err) {
@@ -183,8 +210,8 @@ router.post('/cliente/:id/detalle', async (req, res) => {
             .query(`
                 INSERT INTO dbo.detallecotizacioncliente
                     (idCotizacionCliente, concepto, descripcion, cantidad, precioUnitario)
-                OUTPUT INSERTED.idDetalleCotizacionCliente
-                VALUES (@idCot, @concepto, @descripcion, @cantidad, @precioUnitario)
+                VALUES (@idCot, @concepto, @descripcion, @cantidad, @precioUnitario);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idDetalleCotizacionCliente;
             `);
         res.status(201).json({ idDetalleCotizacionCliente: result.recordset[0].idDetalleCotizacionCliente });
     } catch (err) {
@@ -224,8 +251,8 @@ router.post('/interna', async (req, res) => {
             .query(`
                 INSERT INTO dbo.cotizacioninterna
                     (numeroCotizacionInterna, fechaCotizacion, observaciones, idProyecto, idEstadoCotizacion)
-                OUTPUT INSERTED.idCotizacionInterna
-                VALUES (@num, @fecha, @obs, @idProyecto, @idEstado)
+                VALUES (@num, @fecha, @obs, @idProyecto, @idEstado);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idCotizacionInterna;
             `);
         res.status(201).json({ idCotizacionInterna: result.recordset[0].idCotizacionInterna });
     } catch (err) {
@@ -264,8 +291,8 @@ router.post('/interna/:id/materiales', async (req, res) => {
             .query(`
                 INSERT INTO dbo.detallecotizacioninterna
                     (idCotizacionInterna, idMaterial, cantidadEstimada, costoUnitarioEstimado)
-                OUTPUT INSERTED.idDetalleCotizacionInterna
-                VALUES (@idCot, @idMat, @cantidad, @costo)
+                VALUES (@idCot, @idMat, @cantidad, @costo);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idDetalleCotizacionInterna;
             `);
         res.status(201).json({ idDetalleCotizacionInterna: result.recordset[0].idDetalleCotizacionInterna });
     } catch (err) {
@@ -304,8 +331,8 @@ router.post('/interna/:id/manodeobra', async (req, res) => {
             .query(`
                 INSERT INTO dbo.detallecotizacionmanoobra
                     (idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas)
-                OUTPUT INSERTED.idDetalleManoObra
-                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas)
+                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idDetalleManoObra;
             `);
         res.status(201).json({ idDetalleManoObra: result.recordset[0].idDetalleManoObra, totalEstimado });
     } catch (err) {
@@ -377,6 +404,91 @@ router.get('/cliente/:id', async (req, res) => {
         if (result.recordset.length === 0)
             return res.status(404).json({ error: 'Cotización cliente no encontrada' });
         res.json(result.recordset[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /cliente/:id/detalle — cabecera + ítems + monto total (para "Ver detalles")
+router.get('/cliente/:id/detalle', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const cab = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT cc.idCotizacionCliente, cc.numeroCotizacionCliente, cc.fechaCotizacion,
+                       cc.fechaValidez, cc.observaciones, cc.idProyecto, p.nombreProyecto,
+                       cl.nombre AS nombreCliente, ec.nombreEstadoCotizacion AS estado
+                FROM dbo.cotizacioncliente cc
+                JOIN dbo.proyecto p ON cc.idProyecto = p.idProyecto
+                LEFT JOIN dbo.cliente cl ON p.idCliente = cl.idCliente
+                LEFT JOIN dbo.estadocotizacion ec ON cc.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE cc.idCotizacionCliente = @id
+            `);
+        if (cab.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización cliente no encontrada' });
+
+        const items = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT concepto, descripcion, cantidad, precioUnitario,
+                       CAST(cantidad * precioUnitario AS DECIMAL(14,2)) AS subtotal
+                FROM dbo.detallecotizacioncliente
+                WHERE idCotizacionCliente = @id
+                ORDER BY idDetalleCotizacionCliente
+            `);
+        const total = items.recordset.reduce((s, i) => s + Number(i.subtotal || 0), 0);
+        res.json({ ...cab.recordset[0], items: items.recordset, montoTotal: Number(total.toFixed(2)) });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /interna/:id/detalle — cabecera + materiales + personal (mano de obra) + totales
+router.get('/interna/:id/detalle', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const cab = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT ci.idCotizacionInterna, ci.numeroCotizacionInterna, ci.fechaCotizacion,
+                       ci.observaciones, ci.idProyecto, p.nombreProyecto,
+                       ec.nombreEstadoCotizacion AS estado
+                FROM dbo.cotizacioninterna ci
+                JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
+                LEFT JOIN dbo.estadocotizacion ec ON ci.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE ci.idCotizacionInterna = @id
+            `);
+        if (cab.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+
+        const materiales = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT m.nombreMaterial, d.cantidadEstimada, d.costoUnitarioEstimado,
+                       CAST(d.cantidadEstimada * d.costoUnitarioEstimado AS DECIMAL(14,2)) AS subtotal
+                FROM dbo.detallecotizacioninterna d
+                JOIN dbo.material m ON d.idMaterial = m.idMaterial
+                WHERE d.idCotizacionInterna = @id
+                ORDER BY d.idDetalleCotizacionInterna
+            `);
+        // Personal asignado a la cotización (mano de obra por cargo).
+        const personal = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT c.nombreCargo, d.cantidadPersonas, d.horasEstimadas, c.pagoPorHora,
+                       CAST(d.cantidadPersonas * d.horasEstimadas * c.pagoPorHora AS DECIMAL(14,2)) AS subtotal
+                FROM dbo.detallecotizacionmanoobra d
+                JOIN dbo.cargo c ON d.idCargo = c.idCargo
+                WHERE d.idCotizacionInterna = @id
+                ORDER BY d.idDetalleManoObra
+            `);
+        const totalMat = materiales.recordset.reduce((s, i) => s + Number(i.subtotal || 0), 0);
+        const totalMO  = personal.recordset.reduce((s, i) => s + Number(i.subtotal || 0), 0);
+        res.json({
+            ...cab.recordset[0],
+            materiales: materiales.recordset,
+            personal: personal.recordset,
+            totalMateriales: Number(totalMat.toFixed(2)),
+            totalManoObra: Number(totalMO.toFixed(2)),
+            montoTotal: Number((totalMat + totalMO).toFixed(2)),
+        });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

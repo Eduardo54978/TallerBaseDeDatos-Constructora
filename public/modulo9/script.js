@@ -1,5 +1,105 @@
 const API = 'http://localhost:3000/api';
 
+let tipoCotActual = 'cliente';
+
+function switchTipoCot(tipo, btn) {
+  tipoCotActual = tipo;
+  document.querySelectorAll('#tab-lista .btn').forEach(b => {
+    b.style.background = '#e2e8f0';
+    b.style.color = '#2d3748';
+  });
+  if (btn) { btn.style.background = '#276749'; btn.style.color = '#fff'; }
+  cargarListaCotizaciones();
+}
+
+async function cargarStatsCotizaciones() {
+  if (typeof renderStatsCards !== 'function') return;
+  try {
+    const [cliente, internas] = await Promise.all([
+      fetch(`${API}/cotizaciones`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/cotizaciones/interna`).then(r => r.json()).catch(() => []),
+    ]);
+    const cli = Array.isArray(cliente) ? cliente : [];
+    const int = Array.isArray(internas) ? internas : [];
+    const aprobadas = [...cli, ...int].filter(c => (c.nombreEstadoCotizacion || '').toLowerCase().includes('aprob')).length;
+    renderStatsCards('cot-stats', [
+      { n: cli.length, l: 'Cotiz. cliente' },
+      { n: int.length, l: 'Cotiz. internas' },
+      { n: aprobadas, l: 'Aprobadas' },
+    ]);
+  } catch (e) { /* sin stats */ }
+}
+
+async function cargarListaCotizaciones() {
+  const cont = document.getElementById('cont-cot');
+  if (!cont) return;
+  cargarStatsCotizaciones();
+  cont.innerHTML = '<p>Cargando...</p>';
+  try {
+    if (tipoCotActual === 'cliente') {
+      const data = await fetch(`${API}/cotizaciones`).then(r => r.json());
+      if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones de cliente registradas.</p>'; return; }
+      cont.innerHTML = `<table id="tbl-cot"><thead><tr>
+        <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
+      </tr></thead><tbody>
+        ${data.map(c => `<tr>
+          <td>${c.idCotizacionCliente}</td>
+          <td><b>${c.numeroCotizacionCliente}</b></td>
+          <td>${c.nombreProyecto}</td>
+          <td>${(c.fechaCotizacion||'').substring(0,10)}</td>
+          <td>${Number(c.totalEstimado||0).toFixed(2)}</td>
+          <td>${badge(c.nombreEstadoCotizacion)}</td>
+          <td>
+            <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('cliente', ${c.idCotizacionCliente})">Ver detalles</button>
+            <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>`;
+    } else {
+      const data = await fetch(`${API}/cotizaciones/interna`).then(r => r.json());
+      if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones internas registradas.</p>'; return; }
+      cont.innerHTML = `<table id="tbl-cot"><thead><tr>
+        <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
+      </tr></thead><tbody>
+        ${data.map(c => `<tr>
+          <td>${c.idCotizacionInterna}</td>
+          <td><b>${c.numeroCotizacionInterna}</b></td>
+          <td>${c.nombreProyecto}</td>
+          <td>${(c.fechaCotizacion||'').substring(0,10)}</td>
+          <td>${Number(c.totalEstimado||0).toFixed(2)}</td>
+          <td>${badge(c.nombreEstadoCotizacion)}</td>
+          <td>
+            <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('interna', ${c.idCotizacionInterna})">Ver detalles</button>
+            <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('interna', ${c.idCotizacionInterna})">Eliminar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>`;
+    }
+  } catch (e) {
+    cont.innerHTML = '<p style="color:red">Error al cargar cotizaciones</p>';
+  }
+}
+
+function adaptarFormDetalle() {
+  const tipo = document.getElementById('dm-tipo-concepto')?.value || '';
+  const labelCant = document.getElementById('dm-label-cantidad');
+  const labelPrecio = document.getElementById('dm-label-precio');
+  const hint = document.getElementById('dm-concepto-hint');
+  if (tipo === 'Mano de obra') {
+    if (labelCant) labelCant.textContent = 'Cantidad (personas × horas) *';
+    if (labelPrecio) labelPrecio.textContent = 'Pago por hora (Bs) *';
+    if (hint) hint.textContent = 'Ej: Albañil, Electricista, Plomero...';
+  } else if (tipo === 'Materiales') {
+    if (labelCant) labelCant.textContent = 'Cantidad *';
+    if (labelPrecio) labelPrecio.textContent = 'Precio Unitario (Bs) *';
+    if (hint) hint.textContent = 'Ej: Cemento Portland, Arena fina, Varilla de acero...';
+  } else {
+    if (labelCant) labelCant.textContent = 'Cantidad *';
+    if (labelPrecio) labelPrecio.textContent = 'Precio Unitario (Bs) *';
+    if (hint) hint.textContent = 'Detalle específico del ítem';
+  }
+}
+
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
@@ -42,7 +142,7 @@ function switchTab(name, btn) {
   }
 
   if (name === 'lista') {
-    cargarCotizaciones();
+    cargarListaCotizaciones();
   }
 }
 
@@ -97,6 +197,13 @@ function calcDetalleCliente() {
   }
 }
 
+function calcMaterialInterno() {
+  const c = parseFloat(document.getElementById('dm-cant').value) || 0;
+  const p = parseFloat(document.getElementById('dm-costo').value) || 0;
+  const prev = document.getElementById('dm-preview');
+  if (prev) prev.textContent = (c && p) ? `Subtotal: Bs ${(c * p).toFixed(2)}` : '';
+}
+
 function calcManoObra() {
   const pers = parseFloat(document.getElementById('mo-pers').value) || 0;
   const horas = parseFloat(document.getElementById('mo-horas').value) || 0;
@@ -108,39 +215,8 @@ function calcManoObra() {
   }
 }
 
-async function cargarCotizaciones() {
-  try {
-    const data = await fetch(`${API}/cotizaciones`).then(r => r.json());
-    const ordenados = ordenarCotizacionesCliente(data);
-
-    document.getElementById('cont-cotizaciones').innerHTML = `
-      <table id="tbl-cot">
-        <thead>
-          <tr>
-            <th>Número</th>
-            <th>Proyecto</th>
-            <th>Fecha</th>
-            <th>Validez</th>
-            <th>Observaciones</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${ordenados.map(c => `<tr>
-            <td><b>${c.numeroCotizacionCliente || '-'}</b></td>
-            <td>${c.nombreProyecto || '-'}</td>
-            <td>${c.fechaCotizacion ? c.fechaCotizacion.substring(0, 10) : '-'}</td>
-            <td>${c.fechaValidez ? c.fechaValidez.substring(0, 10) : '-'}</td>
-            <td>${c.observaciones || '-'}</td>
-            <td>${badge(c.nombreEstadoCotizacion)}</td>
-            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } catch (e) {
-    document.getElementById('cont-cotizaciones').innerHTML = '<p style="color:red">Error al cargar cotizaciones</p>';
-  }
+function cargarCotizaciones() {
+  cargarListaCotizaciones();
 }
 
 async function crearCotizacionCliente() {
@@ -186,7 +262,7 @@ async function agregarDetalleCliente() {
   const id = document.getElementById('dc-idcot').value;
 
   const body = {
-    concepto: document.getElementById('dc-concepto').value.trim(),
+    concepto: (document.getElementById('dm-tipo-concepto')?.value || '') + ': ' + document.getElementById('dc-concepto').value.trim(),
     descripcion: document.getElementById('dc-desc').value.trim(),
     cantidad: parseFloat(document.getElementById('dc-cantidad').value),
     precioUnitario: parseFloat(document.getElementById('dc-precio').value)
@@ -293,6 +369,8 @@ async function agregarMateriales() {
       const input = document.getElementById(idInput);
       if (input) input.value = '';
     });
+    const prevDm = document.getElementById('dm-preview');
+    if (prevDm) prevDm.textContent = '';
   } catch (e) {
     msg('msg-dm', 'Error de conexión', 'err');
   }
@@ -379,7 +457,10 @@ async function buscarPorProyecto() {
                <td>${c.fechaCotizacion ? c.fechaCotizacion.substring(0, 10) : '-'}</td>
                <td>${c.fechaValidez ? c.fechaValidez.substring(0, 10) : '-'}</td>
                <td>${badge(c.nombreEstadoCotizacion)}</td>
-               <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button></td>
+               <td>
+                 <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('cliente', ${c.idCotizacionCliente})">Ver detalles</button>
+                 <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button>
+               </td>
              </tr>`).join('')}
            </tbody>
          </table>`
@@ -403,7 +484,10 @@ async function buscarPorProyecto() {
                <td>${c.numeroCotizacionInterna || '-'}</td>
                <td>${c.fechaCotizacion ? c.fechaCotizacion.substring(0, 10) : '-'}</td>
                <td>${badge(c.nombreEstadoCotizacion)}</td>
-               <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('interna', ${c.idCotizacionInterna})">Eliminar</button></td>
+               <td>
+                 <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('interna', ${c.idCotizacionInterna})">Ver detalles</button>
+                 <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('interna', ${c.idCotizacionInterna})">Eliminar</button>
+               </td>
              </tr>`).join('')}
            </tbody>
          </table>`
@@ -430,7 +514,7 @@ function buscarCotizacionEditar() {
     const tipo = document.getElementById('ed-tipo').value;
     const q = document.getElementById('ed-nom').value.trim();
     const drop = document.getElementById('ac-ed');
-    if (!q || q.length < 2) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
+    if (!q) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
     try {
       const data = await fetch(`${API}/cotizaciones/${tipo}/search?q=${encodeURIComponent(q)}`).then(r => r.json());
       if (!Array.isArray(data) || !data.length) {
@@ -516,7 +600,7 @@ function buscarCotizacionEstado() {
     const tipo = document.getElementById('est-tipo').value;
     const q = document.getElementById('est-nom').value.trim();
     const drop = document.getElementById('ac-est');
-    if (!q || q.length < 2) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
+    if (!q) { drop.innerHTML = ''; drop.style.display = 'none'; return; }
     try {
       const data = await fetch(`${API}/cotizaciones/${tipo}/search?q=${encodeURIComponent(q)}`).then(r => r.json());
       if (!Array.isArray(data) || !data.length) {
@@ -597,8 +681,73 @@ async function eliminarCotizacion(tipo, id) {
   }
 }
 
+// ── Ver detalles de una cotización (monto total, proyecto, ítems, personal) ──
+function cerrarModalCot() {
+  const m = document.getElementById('modal-cot');
+  if (m) m.remove();
+}
+
+function tablaSimple(titulo, encabezados, filas) {
+  if (!filas.length) return `<p style="color:#718096;">Sin ${titulo.toLowerCase()}.</p>`;
+  return `<h4 style="margin:14px 0 8px;color:var(--primary);">${titulo}</h4>
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <thead><tr>${encabezados.map(h => `<th style="text-align:left;border-bottom:2px solid #123823;padding:6px;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${filas.map(f => `<tr>${f.map(c => `<td style="border-bottom:1px solid #e1e6dd;padding:6px;">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+}
+
+async function verDetalleCotizacion(tipo, id) {
+  try {
+    const d = await fetch(`${API}/cotizaciones/${tipo}/${id}/detalle`).then(r => r.json());
+    if (d.error) return alert('Error: ' + d.error);
+
+    const numero = d.numeroCotizacionCliente || d.numeroCotizacionInterna || ('#' + id);
+    let cuerpo = `
+      <div style="display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:10px;font-size:.9rem;">
+        <div><b>Proyecto:</b> ${d.nombreProyecto || '-'}</div>
+        ${d.nombreCliente ? `<div><b>Cliente:</b> ${d.nombreCliente}</div>` : ''}
+        <div><b>Estado:</b> ${d.estado || '-'}</div>
+        <div><b>Fecha:</b> ${(d.fechaCotizacion || '').substring(0, 10) || '-'}</div>
+      </div>`;
+
+    if (tipo === 'cliente') {
+      cuerpo += tablaSimple('Ítems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
+        (d.items || []).map(i => [i.concepto, i.cantidad, Number(i.precioUnitario).toFixed(2), Number(i.subtotal).toFixed(2)]));
+    } else {
+      cuerpo += tablaSimple('Materiales', ['Material', 'Cantidad', 'Costo Unit (Bs)', 'Subtotal (Bs)'],
+        (d.materiales || []).map(i => [i.nombreMaterial, i.cantidadEstimada, Number(i.costoUnitarioEstimado).toFixed(2), Number(i.subtotal).toFixed(2)]));
+      cuerpo += tablaSimple('Personal asignado (mano de obra)', ['Cargo', 'Personas', 'Horas', 'Pago/Hora (Bs)', 'Subtotal (Bs)'],
+        (d.personal || []).map(i => [i.nombreCargo, i.cantidadPersonas, i.horasEstimadas, Number(i.pagoPorHora).toFixed(2), Number(i.subtotal).toFixed(2)]));
+      cuerpo += `<div style="margin-top:10px;font-size:.85rem;color:#445;">
+        Materiales: <b>Bs ${Number(d.totalMateriales).toFixed(2)}</b> &nbsp;·&nbsp;
+        Mano de obra: <b>Bs ${Number(d.totalManoObra).toFixed(2)}</b></div>`;
+    }
+
+    cuerpo += `<div style="margin-top:16px;padding-top:12px;border-top:2px solid #123823;font-size:1.05rem;">
+      <b>Monto total estimado: Bs ${Number(d.montoTotal).toFixed(2)}</b></div>`;
+
+    cerrarModalCot();
+    const modal = document.createElement('div');
+    modal.id = 'modal-cot';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:1000;padding:40px 16px;overflow:auto;';
+    modal.onclick = (e) => { if (e.target === modal) cerrarModalCot(); };
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2F5F2F;padding-bottom:10px;margin-bottom:14px;">
+          <h3 style="color:#173F24;">Detalle de cotización ${tipo === 'cliente' ? 'cliente' : 'interna'} — ${numero}</h3>
+          <button onclick="cerrarModalCot()" style="background:#B91C1C;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Cerrar</button>
+        </div>
+        ${cuerpo}
+      </div>`;
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Error al cargar el detalle de la cotización');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   cargarSelectCargos9();
+  adaptarFormDetalle();
 });
 
-cargarCotizaciones();
+cargarListaCotizaciones();

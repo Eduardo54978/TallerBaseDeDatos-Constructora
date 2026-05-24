@@ -170,9 +170,9 @@ router.post('/horas', async (req, res) => {
             .query(`
                 INSERT INTO dbo.registrohoras
                     (idEmpleado, idProyecto, fecha, horasTrabajadas)
-                OUTPUT INSERTED.idRegistroHoras
                 VALUES
-                    (@idEmpleado, @idProyecto, @fecha, @horasTrabajadas)
+                    (@idEmpleado, @idProyecto, @fecha, @horasTrabajadas);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idRegistroHoras;
             `);
 
         res.status(201).json({
@@ -398,6 +398,7 @@ router.get('/:id/asignaciones', async (req, res) => {
             .query(`
                 SELECT
                     ep.idEmpleadoProyecto,
+                    ep.idProyecto,
                     ep.fechaInicio,
                     ep.fechaFin,
                     p.nombreProyecto,
@@ -434,6 +435,7 @@ router.get('/:id/horas', async (req, res) => {
                     rh.idRegistroHoras,
                     rh.fecha,
                     rh.horasTrabajadas,
+                    rh.idProyecto,
                     c.pagoPorHora,
                     (rh.horasTrabajadas * c.pagoPorHora) AS totalPago,
                     p.nombreProyecto

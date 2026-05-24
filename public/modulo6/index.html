@@ -23,6 +23,7 @@
 
   <div class="tab-content active" id="tab-lista">
     <div class="card">
+      <div id="prov-stats"></div>
       <div class="table-header">
         <h3>Directorio de Proveedores</h3>
         <input class="search" placeholder="Buscar proveedor..." oninput="filtrarTabla('tbl-prov', this.value)">
@@ -39,14 +40,17 @@
         <div class="form-group">
           <label>Nombre de Proveedor *</label>
           <input id="p-nombre" placeholder="Nombre o Razon Social">
+          <small style="color:#6b756d;">No puede repetirse: el sistema rechaza nombres de proveedor duplicados.</small>
         </div>
         <div class="form-group">
           <label>Celular</label>
           <input id="p-cel" placeholder="Numero de contacto">
+          <small style="color:#6b756d;">Opcional.</small>
         </div>
         <div class="form-group">
           <label>Email</label>
           <input id="p-email" type="email" placeholder="correo@empresa.com">
+          <small style="color:#6b756d;">Opcional.</small>
         </div>
         <div class="form-group">
           <label>Ciudad</label>
@@ -133,18 +137,21 @@
           <label>Material *</label>
           <div class="ac-wrap">
             <input id="pm-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
-                   oninput="acSearch('pm-mat-nom','ac-pm-mat','pm-idmat','materiales','idMaterial','nombreMaterial')">
+                   oninput="acSearch('pm-mat-nom','ac-pm-mat','pm-idmat','materiales','idMaterial','nombreMaterial','onSelMaterialProv')">
             <div class="ac-drop" id="ac-pm-mat"></div>
             <input type="hidden" id="pm-idmat">
           </div>
+          <small id="pm-mat-ref" style="color:#276749; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Precio Unitario Ofertado (Bs) *</label>
           <input id="pm-precio" type="number" step="0.01" placeholder="0.00">
+          <small style="color:#6b756d;">Precio al que este proveedor vende el material. Debe ser mayor a 0.</small>
         </div>
         <div class="form-group">
           <label>Tiempo de Entrega (Dias)</label>
           <input id="pm-tiempo" type="number" placeholder="Dias">
+          <small style="color:#6b756d;">Opcional: días que tarda en entregar el material.</small>
         </div>
       </div>
       <br>

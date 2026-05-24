@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitácora - Movimientos del Sistema</title>
+  <link rel="stylesheet" href="../modulo3/styles.css">
+  <style>
+    .filtros { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px; }
+    .filtros .form-group { min-width:160px; }
+
+    .cards-resumen { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:22px; }
+    .mini-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:0; overflow:hidden;
+                 box-shadow:0 2px 10px rgba(23,63,36,.06); transition:transform .15s, box-shadow .15s; }
+    .mini-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(23,63,36,.12); }
+    .mini-card .mc-head { display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#173F24,#2F5F2F);
+                          color:#fff; padding:12px 18px; }
+    .mini-card .mc-head .ico { font-size:1.2rem; line-height:1; }
+    .mini-card .mc-head h4 { color:#fff; font-size:.78rem; margin:0; text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
+    .mini-card .mc-body { padding:10px 18px 14px; }
+    .mini-card .linea { font-size:.88rem; color:var(--text); display:flex; justify-content:space-between; align-items:center;
+                        padding:6px 0; border-bottom:1px dashed #eef0ec; }
+    .mini-card .linea:last-child { border-bottom:none; }
+    .mini-card .linea .pill { background:#EEF4EA; color:#28512B; font-weight:700; border-radius:20px; padding:2px 12px; font-size:.82rem; min-width:34px; text-align:center; }
+
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:12px; margin-bottom:22px; }
+    .stat { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center;
+            box-shadow:0 2px 10px rgba(23,63,36,.06); }
+    .stat .num { font-size:1.7rem; font-weight:800; line-height:1; }
+    .stat .lbl { font-size:.72rem; color:#6b756d; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
+    .stat.total .num    { color:#173F24; }
+    .stat.login .num    { color:#1E40AF; }
+    .stat.crear .num    { color:#28512B; }
+    .stat.editar .num   { color:#92400E; }
+    .stat.eliminar .num { color:#991B1B; }
+
+    .acc { padding:3px 9px; border-radius:10px; font-size:.72rem; font-weight:700; }
+    .acc-LOGIN    { background:#DBEAFE; color:#1E40AF; }
+    .acc-CREAR    { background:#DFEAD8; color:#28512B; }
+    .acc-EDITAR   { background:#FEF3C7; color:#92400E; }
+    .acc-ELIMINAR { background:#FEE2E2; color:#991B1B; }
+    .acc-LIMPIAR  { background:#E5E7EB; color:#374151; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Bitácora — Movimientos del Sistema</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+  <div class="card">
+    <p style="color:#6b756d; margin-bottom:16px;">
+      Registro de todas las acciones del sistema: quién inició sesión y quién creó, editó o eliminó información en cada módulo.
+      Solo visible para el rol Gerente.
+    </p>
+
+    <div id="stat-grid" class="stat-grid"></div>
+
+    <div id="cards-resumen" class="cards-resumen"></div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; align-items:flex-end; margin-bottom:14px; flex-wrap:wrap;">
+      <div class="form-group" style="min-width:170px;">
+        <label>Limpiar movimientos</label>
+        <select id="limpiar-rango">
+          <option value="0">Todos</option>
+          <option value="7">Anteriores a 7 días</option>
+          <option value="30">Anteriores a 30 días</option>
+          <option value="90">Anteriores a 90 días</option>
+        </select>
+      </div>
+      <button class="btn btn-red" style="padding:9px 16px;" onclick="limpiarBitacora()">Limpiar bitácora</button>
+    </div>
+
+    <div class="filtros">
+      <div class="form-group">
+        <label>Buscar (usuario o detalle)</label>
+        <input id="f-q" class="search" style="width:100%" placeholder="Nombre, usuario, texto..." oninput="cargarBitacora()">
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select id="f-rol" onchange="cargarBitacora()">
+          <option value="">Todos</option>
+          <option value="rol_gerente">Gerente</option>
+          <option value="rol_contador">Contador</option>
+          <option value="rol_jefe_obra">Jefe de obra</option>
+          <option value="rol_rrhh">RR.HH.</option>
+          <option value="rol_secretaria">Secretaria</option>
+          <option value="rol_logistica">Logística</option>
+          <option value="rol_consulta">Consulta</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Acción</label>
+        <select id="f-accion" onchange="cargarBitacora()">
+          <option value="">Todas</option>
+          <option value="LOGIN">Inicio de sesión</option>
+          <option value="CREAR">Crear</option>
+          <option value="EDITAR">Editar</option>
+          <option value="ELIMINAR">Eliminar</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Módulo</label>
+        <select id="f-modulo" onchange="cargarBitacora()">
+          <option value="">Todos</option>
+          <option value="login">Login</option>
+          <option value="proyectos">Proyectos</option>
+          <option value="materiales">Materiales</option>
+          <option value="pagos">Pagos</option>
+          <option value="compras">Compras</option>
+          <option value="contratos">Contratos</option>
+          <option value="proveedores">Proveedores</option>
+          <option value="clientes">Clientes</option>
+          <option value="empleados">Empleados</option>
+          <option value="cotizaciones">Cotizaciones</option>
+          <option value="cuotas">Cuotas</option>
+          <option value="empleadoproyecto">Empleado-Proyecto</option>
+          <option value="materialproyecto">Material-Proyecto</option>
+        </select>
+      </div>
+      <button class="btn btn-accent" style="padding:9px 16px;" onclick="cargarBitacora()">Actualizar</button>
+    </div>
+
+    <div id="cont-bitacora"><p>Cargando movimientos...</p></div>
+  </div>
+</div>
+
+<script src="../js/autocomplete.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

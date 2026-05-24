@@ -600,6 +600,53 @@ function mostrarUsos(datos) {
   });
 }
 
+// Ayuda en "Registrar uso": al elegir el material muestra su precio unitario
+// y el stock disponible, y sugiere el costo total (cantidad × precio).
+let _matUsoPrecio = 0;
+
+async function onSelMaterialUso(idMaterial) {
+  const info = document.getElementById("ru-mat-info");
+  _matUsoPrecio = 0;
+  if (!info) return;
+  if (!idMaterial) { info.textContent = ""; return; }
+  info.textContent = "Buscando precio y stock...";
+  try {
+    const [mat, inventario] = await Promise.all([
+      fetch(`${API}/materiales/${idMaterial}`).then(r => r.json()),
+      fetch(`${API}/inventario`).then(r => r.json()).catch(() => []),
+    ]);
+    _matUsoPrecio = Number(mat.precioUnitario || 0);
+    const inv = (Array.isArray(inventario) ? inventario : []).find(i => i.idMaterial === Number(idMaterial));
+    const stock = inv ? Number(inv.stockActual) : null;
+    info.style.color = "#276749";
+    info.textContent = `Precio unitario: Bs ${_matUsoPrecio.toFixed(2)}` +
+      (stock != null ? ` · Stock disponible: ${stock}` : ' · Sin registro de inventario');
+    sugerirCostoUso();
+  } catch (e) {
+    info.textContent = "";
+  }
+}
+
+function sugerirCostoUso() {
+  const cant = parseFloat(document.getElementById("ru-cantidad").value);
+  const costoEl = document.getElementById("ru-costo");
+  const aviso = document.getElementById("ru-stock-aviso");
+  if (!Number.isNaN(cant) && _matUsoPrecio > 0 && costoEl) {
+    costoEl.value = (cant * _matUsoPrecio).toFixed(2);
+  }
+  // Aviso de stock si la cantidad supera lo disponible.
+  if (aviso) {
+    const info = document.getElementById("ru-mat-info")?.textContent || "";
+    const m = /Stock disponible: ([\d.]+)/.exec(info);
+    if (m && !Number.isNaN(cant) && cant > Number(m[1])) {
+      aviso.style.color = "#b91c1c";
+      aviso.textContent = `Atención: la cantidad supera el stock disponible (${m[1]}).`;
+    } else {
+      aviso.textContent = "";
+    }
+  }
+}
+
 async function registrarUsoMaterial() {
   const idProyecto = parseInt(document.getElementById("ru-idproyecto").value);
   const idMaterial = parseInt(document.getElementById("ru-idmaterial").value);
@@ -650,6 +697,9 @@ async function registrarUsoMaterial() {
     document.getElementById("ru-cantidad").value = "";
     document.getElementById("ru-costo").value = "";
     document.getElementById("ru-fecha").value = new Date().toISOString().substring(0, 10);
+    _matUsoPrecio = 0;
+    const ruInfo = document.getElementById("ru-mat-info"); if (ruInfo) ruInfo.textContent = "";
+    const ruAviso = document.getElementById("ru-stock-aviso"); if (ruAviso) ruAviso.textContent = "";
 
     await cargarInventario();
     await cargarUsos();

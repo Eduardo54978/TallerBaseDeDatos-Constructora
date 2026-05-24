@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router  = express.Router();
 const { sql, config } = require('../config/db');
+const { registrarAccion } = require('../middleware/bitacora');
 
 // QuÃ© mÃ³dulos puede ver cada rol
 const permisosPorRol = {
@@ -41,6 +42,21 @@ router.post('/', async (req, res) => {
 
         const usuario = result.recordset[0];
         const modulos = permisosPorRol[usuario.rol] || ['dashboard'];
+
+        // Bitácora: dejar registrado el inicio de sesión.
+        pool.request()
+            .input('idUsuario',      sql.Int,           usuario.idUsuario)
+            .input('username',       sql.NVarChar(50),  usuario.username)
+            .input('rol',            sql.NVarChar(50),  usuario.rol)
+            .input('nombreCompleto', sql.NVarChar(150), usuario.nombreCompleto)
+            .query(`
+                INSERT INTO dbo.bitacora
+                    (idUsuario, username, rol, nombreCompleto, accion, modulo, descripcion, metodoHttp, ruta, exito, fechaHora)
+                VALUES
+                    (@idUsuario, @username, @rol, @nombreCompleto, 'LOGIN', 'login',
+                     'Inicio de sesión', 'POST', '/api/login', 1, GETDATE())
+            `)
+            .catch(e => console.error('[bitacora] login:', e.message));
 
         res.json({
             idUsuario:      usuario.idUsuario,

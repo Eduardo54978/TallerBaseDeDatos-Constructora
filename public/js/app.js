@@ -59,7 +59,7 @@ async function cargarDashboard() {
 
         const activos = proy.filter(p => p.nombreEstadoProyecto && p.nombreEstadoProyecto.includes('ejecuci'));
         document.getElementById('dash-proyectos').innerHTML = `
-        <table><thead><tr><th>Proyecto</th><th>Tipo</th><th>Cliente</th><th>Inicio</th><th>Estado</th></tr></thead>
+        <table><thead><tr><th>Proyecto</th><th>Tipo</th><th>Cliente</th><th>Inicio</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody>${activos.map(p=>`
             <tr>
                 <td>${p.nombreProyecto}</td>
@@ -67,9 +67,77 @@ async function cargarDashboard() {
                 <td>${p.cliente||''}</td>
                 <td>${p.fechaInicio?p.fechaInicio.substring(0,10):''}</td>
                 <td>${badge(p.nombreEstadoProyecto)}</td>
+                <td>${typeof inspeccionarProyecto === 'function'
+                    ? `<button onclick="inspeccionarProyecto(${p.idProyecto})" style="background:#2F5F2F;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.8rem;">Inspeccionar</button>`
+                    : ''}</td>
             </tr>`).join('')}
         </tbody></table>`;
+        cargarBalance();
     } catch(e) { console.error(e); }
+}
+
+function bs(n) { return 'Bs ' + Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+async function cargarBalance() {
+    const cont = document.getElementById('dash-balance');
+    if (!cont) return;
+    try {
+        const b = await fetch(`${API}/dashboard/balance`).then(r => r.json());
+        if (b.error) { cont.innerHTML = '<p style="color:red">No se pudo calcular el balance.</p>'; return; }
+
+        const positivo = b.balance >= 0;
+        const color = positivo ? '#1f7a3d' : '#b91c1c';
+
+        // Dónde ganamos/perdemos: proyectos ordenados por balance (peores primero).
+        const conMovimiento = b.porProyecto.filter(p => p.ingresos !== 0 || p.egresos !== 0);
+        const perdidas = conMovimiento.filter(p => p.balance < 0);
+        const ganancias = [...conMovimiento].filter(p => p.balance >= 0).sort((a, c) => c.balance - a.balance);
+
+        const filaProy = p => `<tr>
+            <td>${p.nombreProyecto}</td>
+            <td style="text-align:right;">${bs(p.ingresos)}</td>
+            <td style="text-align:right;">${bs(p.egresos)}</td>
+            <td style="text-align:right;font-weight:700;color:${p.balance >= 0 ? '#1f7a3d' : '#b91c1c'};">${bs(p.balance)}</td>
+        </tr>`;
+
+        cont.innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;margin-bottom:16px;">
+            <div style="flex:1;min-width:220px;background:${positivo ? '#EAF6EE' : '#FDECEC'};border-left:6px solid ${color};border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;letter-spacing:.5px;">Balance general</div>
+                <div style="font-size:1.9rem;font-weight:800;color:${color};">${bs(b.balance)}</div>
+                <div style="font-weight:700;color:${color};">${b.estado}</div>
+            </div>
+            <div style="flex:1;min-width:200px;background:#fff;border:1px solid #E1E6DD;border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;">Ingresos (pagos de clientes)</div>
+                <div style="font-size:1.4rem;font-weight:700;color:#1f7a3d;">${bs(b.ingresos)}</div>
+            </div>
+            <div style="flex:1;min-width:200px;background:#fff;border:1px solid #E1E6DD;border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;">Egresos</div>
+                <div style="font-size:1.4rem;font-weight:700;color:#b91c1c;">${bs(b.egresosTotal)}</div>
+                <div style="font-size:.78rem;color:#6b756d;">Proveedores ${bs(b.egresosProveedores)} · Planilla ${bs(b.egresosPlanilla)}</div>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:18px;">
+            <div style="flex:1;min-width:300px;">
+                <h4 style="color:#b91c1c;margin-bottom:6px;">Dónde estamos perdiendo (${perdidas.length})</h4>
+                ${perdidas.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+                    <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
+                    <tbody>${perdidas.map(filaProy).join('')}</tbody></table>`
+                    : '<p style="color:#6b756d;">Ningún proyecto en pérdida.</p>'}
+            </div>
+            <div style="flex:1;min-width:300px;">
+                <h4 style="color:#1f7a3d;margin-bottom:6px;">Dónde estamos ganando (${ganancias.length})</h4>
+                ${ganancias.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+                    <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
+                    <tbody>${ganancias.map(filaProy).join('')}</tbody></table>`
+                    : '<p style="color:#6b756d;">Sin proyectos con ganancia aún.</p>'}
+            </div>
+        </div>
+        <p style="font-size:.76rem;color:#9aa39b;margin-top:10px;">Por proyecto: ingresos = pagos de clientes; egresos = planilla + materiales del proyecto.</p>`;
+    } catch (e) {
+        cont.innerHTML = '<p style="color:red">Error al cargar el balance.</p>';
+    }
 }
 
 async function cargarEmpleados() {

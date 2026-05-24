@@ -286,6 +286,65 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// GET /:id/inspeccion — todo lo del proyecto en una sola respuesta:
+// datos generales + personal asignado + materiales usados. Para "Inspeccionar".
+router.get('/:id/inspeccion', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const cab = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT p.idProyecto, p.nombreProyecto, p.descripcion, p.ubicacion,
+                       p.fechaInicio, p.fechaFinEstimada, p.fechaFinReal,
+                       tp.nombreTipoProyecto, ep.nombreEstadoProyecto,
+                       cl.nombre AS nombreCliente
+                FROM dbo.proyecto p
+                JOIN dbo.tipoproyecto tp ON p.idTipoProyecto = tp.idTipoProyecto
+                JOIN dbo.estadoproyecto ep ON p.idEstadoProyecto = ep.idEstadoProyecto
+                LEFT JOIN dbo.cliente cl ON p.idCliente = cl.idCliente
+                WHERE p.idProyecto = @id
+            `);
+        if (cab.recordset.length === 0)
+            return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+        const personal = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT e.nombre + ' ' + e.apellido AS empleado, c.nombreCargo,
+                       rp.nombreRolProyecto, ep.fechaInicio, ep.fechaFin,
+                       CASE WHEN ep.fechaFin IS NULL OR ep.fechaFin > CAST(GETDATE() AS DATE)
+                            THEN 'Activo' ELSE 'Finalizado' END AS estadoAsignacion
+                FROM dbo.empleadoproyecto ep
+                JOIN dbo.empleado e ON ep.idEmpleado = e.idEmpleado
+                JOIN dbo.cargo c ON e.idCargo = c.idCargo
+                JOIN dbo.rolproyecto rp ON ep.idRolProyecto = rp.idRolProyecto
+                WHERE ep.idProyecto = @id
+                ORDER BY e.nombre, e.apellido
+            `);
+
+        const materiales = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT m.nombreMaterial, mp.cantidadUtilizada, mp.costoTotal, mp.fechaRegistro
+                FROM dbo.materialproyecto mp
+                JOIN dbo.material m ON mp.idMaterial = m.idMaterial
+                WHERE mp.idProyecto = @id
+                ORDER BY mp.fechaRegistro DESC
+            `);
+
+        const costoMateriales = materiales.recordset.reduce((s, m) => s + Number(m.costoTotal || 0), 0);
+        res.json({
+            ...cab.recordset[0],
+            personal: personal.recordset,
+            materiales: materiales.recordset,
+            totalPersonal: personal.recordset.length,
+            costoMateriales: Number(costoMateriales.toFixed(2)),
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.put('/:id', async (req, res) => {
     const { nombreProyecto, descripcion, idTipoProyecto, ubicacion, fechaInicio, fechaFinEstimada, idEstadoProyecto, idCliente } = req.body;
 
