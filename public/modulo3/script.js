@@ -118,6 +118,14 @@ async function cargarPagosClientes() {
     const data = await fetch(`${API}/pagos/clientes`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idPagoCliente');
 
+    const montoTotal = ordenados.reduce((s, p) => s + Number(p.monto || 0), 0);
+    const pagados = ordenados.filter(p => (p.estadoPago || '').toLowerCase().includes('pagado')).length;
+    if (typeof renderStatsCards === 'function') renderStatsCards('pago-stats', [
+      { n: ordenados.length, l: 'Pagos de clientes' },
+      { n: pagados, l: 'Completados' },
+      { n: 'Bs ' + montoTotal.toLocaleString('es-BO'), l: 'Total cobrado' },
+    ]);
+
     document.getElementById('cont-pagos-clientes').innerHTML = `
       <table id="tbl-pagos-cli">
         <thead>
@@ -389,6 +397,7 @@ async function editarPago(tipo, id) {
       document.getElementById('pl-idempleado').value = d.idEmpleado;
       document.getElementById('pl-proy-nom').value = d.proyecto || '';
       document.getElementById('pl-idproyecto').value = d.idProyecto;
+      await cargarBonosPlanilla(d.idBonoAntiguedadProyecto);
       document.getElementById('pl-fecha').value = d.fechaPago ? d.fechaPago.substring(0, 10) : '';
       document.getElementById('pl-monto').value = d.montoPagado;
       document.getElementById('pl-idmetodo').value = d.idMetodoPago;
@@ -418,6 +427,7 @@ function cancelarEdicionPago(tipo) {
     document.getElementById('btn-pago-plan').textContent = 'Registrar Pago';
     document.getElementById('btn-cancelar-edit-plan').style.display = 'none';
     ['pl-emp-nom', 'pl-idempleado', 'pl-proy-nom', 'pl-idproyecto', 'pl-fecha', 'pl-monto'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('pl-idbono').innerHTML = '<option value="">-- Elige primero empleado y proyecto --</option>';
   }
 }
 
@@ -494,9 +504,41 @@ async function cargarCuotasSelect(idContrato) {
     const data = await fetch(`${API}/cuotas/contrato/${idContrato}`).then(r => r.json());
     if (!data.length) { sel.innerHTML = '<option value="">Sin cuotas pendientes</option>'; return; }
     sel.innerHTML = '<option value="">-- Seleccionar cuota --</option>' +
-      data.map(c => `<option value="${c.idCuota}">Cuota ${c.numeroCuota} — Bs ${c.montoCuota} (${c.estadoPago})</option>`).join('');
+      data.map(c => `<option value="${c.idCuota}" data-monto="${c.montoCuota}" data-saldo="${c.saldoPendiente}">Cuota ${c.numeroCuota} — Bs ${c.montoCuota} (${c.estadoPago})</option>`).join('');
   } catch (e) {
     sel.innerHTML = '<option value="">Error al cargar cuotas</option>';
+  }
+}
+
+// Al elegir una cuota: muestra su saldo pendiente y autocompleta el monto.
+function onSelCuotaPago() {
+  const sel = document.getElementById('rp-idcuota');
+  const opt = sel.options[sel.selectedIndex];
+  const info = document.getElementById('rp-cuota-info');
+  if (!opt || !opt.value) { if (info) info.textContent = ''; return; }
+  const saldo = Number(opt.getAttribute('data-saldo'));
+  const montoCuota = Number(opt.getAttribute('data-monto'));
+  if (info) info.textContent = `Monto de la cuota: Bs ${montoCuota.toFixed(2)} · Saldo pendiente: Bs ${saldo.toFixed(2)}`;
+  const inputMonto = document.getElementById('rp-monto');
+  if (inputMonto && saldo > 0) { inputMonto.value = saldo.toFixed(2); onMontoPagoInput(); }
+}
+
+// Avisa cuánto quedaría pendiente tras el pago (o si el monto supera el saldo).
+function onMontoPagoInput() {
+  const sel = document.getElementById('rp-idcuota');
+  const opt = sel.options[sel.selectedIndex];
+  const out = document.getElementById('rp-monto-info');
+  if (!out) return;
+  const monto = parseFloat(document.getElementById('rp-monto').value);
+  if (!opt || !opt.value || Number.isNaN(monto)) { out.textContent = ''; return; }
+  const saldo = Number(opt.getAttribute('data-saldo'));
+  const restante = saldo - monto;
+  if (monto > saldo) {
+    out.style.color = '#b91c1c';
+    out.textContent = `El monto supera el saldo pendiente (Bs ${saldo.toFixed(2)}).`;
+  } else {
+    out.style.color = '#28512b';
+    out.textContent = restante > 0 ? `Quedará pendiente: Bs ${restante.toFixed(2)}` : 'Con este pago la cuota queda saldada.';
   }
 }
 
@@ -556,11 +598,100 @@ async function registrarPagoProveedor() {
   }
 }
 
+// -- Carga los bonos de antiguedad del empleado+proyecto elegidos -------------
+function onSelEmpleadoPlanilla() { cargarBonosPlanilla(); mostrarProyectosEmpleado(); mostrarHorasPlanilla(); }
+function onSelProyectoPlanilla() { cargarBonosPlanilla(); mostrarHorasPlanilla(); }
+
+// Conecta Registrar Horas con Pago de Planilla: al elegir empleado + proyecto,
+// muestra las horas que ya se le registraron en ese proyecto y cuánto suman,
+// para saber cuánto pagarle.
+async function mostrarHorasPlanilla() {
+  const box = document.getElementById('pl-horas-info');
+  if (!box) return;
+  const idEmpleado = document.getElementById('pl-idempleado').value;
+  const idProyecto = document.getElementById('pl-idproyecto').value;
+  if (!idEmpleado || !idProyecto) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.textContent = 'Buscando horas registradas...';
+  try {
+    const data = await fetch(`${API}/empleados/${idEmpleado}/horas`).then(r => r.json());
+    const regs = (data.registros || []).filter(r => String(r.idProyecto) === String(idProyecto));
+    if (!regs.length) {
+      box.innerHTML = 'Este empleado <b>no tiene horas registradas</b> en este proyecto. Regístralas en el módulo RR.HH. → Registrar Horas antes de pagarle.';
+      return;
+    }
+    const totalHoras = regs.reduce((s, r) => s + Number(r.horasTrabajadas || 0), 0);
+    const totalPago  = regs.reduce((s, r) => s + Number(r.totalPago || 0), 0);
+    box.innerHTML = `<b>${regs.length}</b> registro(s) de horas en este proyecto · ` +
+      `<b>${totalHoras}</b> horas · total trabajado <b>Bs ${totalPago.toFixed(2)}</b>. ` +
+      `<a href="#" onclick="document.getElementById('pl-monto').value=${totalPago.toFixed(2)};return false;" style="color:#2F5F2F;font-weight:700;">Usar este monto</a>`;
+  } catch (e) {
+    box.style.display = 'none';
+  }
+}
+
+// Ayuda: al elegir un empleado, muestra en qué proyectos está asignado
+// para que el usuario sepa qué proyecto elegir (y no combine al azar).
+async function mostrarProyectosEmpleado() {
+  const hint = document.getElementById('pl-emp-proyectos');
+  if (!hint) return;
+  const idEmpleado = document.getElementById('pl-idempleado').value;
+  if (!idEmpleado) { hint.textContent = ''; return; }
+  hint.textContent = 'Buscando proyectos del empleado...';
+  try {
+    const data = await fetch(`${API}/empleados/${idEmpleado}/asignaciones`).then(r => r.json());
+    const activos = (Array.isArray(data) ? data : []).filter(a => !a.fechaFin);
+    if (!activos.length) {
+      hint.textContent = 'Este empleado no tiene proyectos activos asignados.';
+      hint.style.color = '#b45309';
+      return;
+    }
+    hint.style.color = '#28512b';
+    hint.textContent = 'Asignado a: ' + activos.map(a => `${a.nombreProyecto} (${a.nombreRolProyecto})`).join(', ');
+  } catch (e) {
+    hint.textContent = '';
+  }
+}
+
+async function cargarBonosPlanilla(idBonoSeleccionado) {
+  const sel = document.getElementById('pl-idbono');
+  if (!sel) return;
+  const idEmpleado = document.getElementById('pl-idempleado').value;
+  const idProyecto = document.getElementById('pl-idproyecto').value;
+  if (!idEmpleado || !idProyecto) {
+    sel.innerHTML = '<option value="">-- Elige primero empleado y proyecto --</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Cargando bonos...</option>';
+  try {
+    const data = await fetch(`${API}/pagos/bonos?idEmpleado=${idEmpleado}&idProyecto=${idProyecto}`).then(r => r.json());
+    if (!Array.isArray(data) || !data.length) {
+      sel.innerHTML = '<option value="">Sin bono registrado para este empleado/proyecto</option>';
+      msg('msg-pago-plan', 'Este empleado no tiene un bono de antigüedad registrado en ese proyecto. Regístralo primero en RR.HH.', 'err');
+      return;
+    }
+    sel.innerHTML = '<option value="">-- Seleccionar bono --</option>' +
+      data.map(b => `<option value="${b.idBonoAntiguedadProyecto}" data-salario="${b.salarioFinalProyecto}">Gestión ${b.gestion} — ${b.aniosAntiguedad} años, bono ${b.porcentajeBono}% — Salario final Bs ${b.salarioFinalProyecto}</option>`).join('');
+    if (idBonoSeleccionado) sel.value = idBonoSeleccionado;
+  } catch (e) {
+    sel.innerHTML = '<option value="">Error al cargar bonos</option>';
+  }
+}
+
+// Autocompleta el monto con el salario final del bono elegido
+function onSelBonoPlanilla() {
+  const sel = document.getElementById('pl-idbono');
+  const opt = sel.options[sel.selectedIndex];
+  const salario = opt ? opt.getAttribute('data-salario') : null;
+  const inputMonto = document.getElementById('pl-monto');
+  if (salario && inputMonto && !inputMonto.value) inputMonto.value = salario;
+}
+
 async function registrarPagoPlanilla() {
   const body = {
     idEmpleado: parseInt(document.getElementById('pl-idempleado').value),
     idProyecto: parseInt(document.getElementById('pl-idproyecto').value),
-    idBonoAntiguedadProyecto: null,
+    idBonoAntiguedadProyecto: parseInt(document.getElementById('pl-idbono').value),
     fechaPago: document.getElementById('pl-fecha').value,
     montoPagado: parseFloat(document.getElementById('pl-monto').value),
     idMetodoPago: parseInt(document.getElementById('pl-idmetodo').value),
@@ -568,6 +699,7 @@ async function registrarPagoPlanilla() {
   };
   if (!body.idEmpleado) return msg('msg-pago-plan', 'Seleccione un empleado de la lista.', 'err');
   if (!body.idProyecto) return msg('msg-pago-plan', 'Seleccione un proyecto de la lista.', 'err');
+  if (!body.idBonoAntiguedadProyecto) return msg('msg-pago-plan', 'Seleccione el bono de antigüedad del empleado.', 'err');
   if (!body.fechaPago || Number.isNaN(body.montoPagado) || !body.idMetodoPago || !body.idEstadoPago) {
     return msg('msg-pago-plan', 'Complete fecha, monto, método y estado.', 'err');
   }
@@ -592,6 +724,7 @@ async function registrarPagoPlanilla() {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      document.getElementById('pl-idbono').innerHTML = '<option value="">-- Elige primero empleado y proyecto --</option>';
       document.getElementById('pl-idmetodo').value = '';
       document.getElementById('pl-idestado').value = '';
     }

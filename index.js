@@ -12,6 +12,10 @@ app.use(express.json());
 
 connectDB();
 
+// Bitácora: registra automáticamente toda acción de escritura sobre /api.
+const { bitacoraMiddleware } = require('./src/middleware/bitacora');
+app.use(bitacoraMiddleware);
+
 const empleadosRouter   = require('./src/routes/empleados');
 const proyectosRouter   = require('./src/routes/proyectos');
 const materialesRouter  = require('./src/routes/materiales');
@@ -28,7 +32,11 @@ const cuotasRouter  = require('./src/routes/cuotas');
 const empleadoproyectoRouter = require('./src/routes/empleadoproyecto');
 const materialproyectoRouter = require('./src/routes/materialproyecto');
 const proveedormaterialRouter = require('./src/routes/proveedormaterial');
+const bitacoraRouter = require('./src/routes/bitacora');
+const dashboardRouter = require('./src/routes/dashboard');
 
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/bitacora', bitacoraRouter);
 app.use('/api/empleadoproyecto', empleadoproyectoRouter);
 app.use('/api/materialproyecto', materialproyectoRouter);
 app.use('/api/pagos',   pagosRouter);

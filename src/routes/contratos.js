@@ -118,7 +118,7 @@ router.get('/cliente/:idCliente', async (req, res) => {
 
 // ÔöÇÔöÇ POST registrar contrato ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 router.post('/', async (req, res) => {
-    const { idProyecto, idTipoContrato, numeroContrato, fechaContrato, fechaInicio, fechaVencimiento, montoTotal } = req.body;
+    const { idProyecto, idTipoContrato, numeroContrato, fechaContrato, fechaInicio, fechaVencimiento, fechaFirma, montoTotal } = req.body;
 
     if (!numeroContrato || !montoTotal || !idProyecto)
         return res.status(400).json({ error: 'Faltan datos obligatorios para el contrato' });
@@ -130,7 +130,7 @@ router.post('/', async (req, res) => {
         const proyExiste = await pool.request().input('id', sql.Int, idProyecto).query(`SELECT 1 FROM dbo.proyecto WHERE idProyecto = @id`);
         if (proyExiste.recordset.length === 0) return res.status(400).json({ error: 'Proyecto no existe' });
 
-        // Buscar estado "Vigente" (Asumimos ID 1 para el ejemplo, o buscamos por nombre)
+        // Buscar estado "Vigente"
         const estadoVigente = await pool.request().query(`SELECT idEstadoContrato FROM dbo.estadocontrato WHERE nombreEstadoContrato = 'Vigente'`);
         const idEstado = estadoVigente.recordset.length > 0 ? estadoVigente.recordset[0].idEstadoContrato : 1;
 
@@ -142,12 +142,13 @@ router.post('/', async (req, res) => {
             .input('fechaC',   sql.Date,     fechaContrato)
             .input('fechaI',   sql.Date,     fechaInicio      || null)
             .input('fechaV',   sql.Date,     fechaVencimiento || null)
+            .input('fechaF',   sql.Date,     fechaFirma       || null)
             .input('monto',    sql.Decimal,  montoTotal)
             .query(`
-                INSERT INTO dbo.contrato 
-                    (idProyecto, idTipoContrato, idEstadoContrato, numeroContrato, fechaContrato, fechaInicio, fechaVencimiento, montoTotal)
-                OUTPUT INSERTED.idContrato
-                VALUES (@idProy, @idTipo, @idEstado, @num, @fechaC, @fechaI, @fechaV, @monto)
+                INSERT INTO dbo.contrato
+                    (idProyecto, idTipoContrato, idEstadoContrato, numeroContrato, fechaContrato, fechaInicio, fechaVencimiento, fechaFirma, montoTotal)
+                VALUES (@idProy, @idTipo, @idEstado, @num, @fechaC, @fechaI, @fechaV, @fechaF, @monto);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idContrato;
             `);
         res.status(201).json({ idContrato: result.recordset[0].idContrato, mensaje: 'Contrato creado con estado Vigente.' });
     } catch (err) {
@@ -332,8 +333,8 @@ router.post('/:id/rescindir-renovar', async (req, res) => {
             .input('monto', sql.Decimal(15, 2), montoTotal)
             .query(`
                 INSERT INTO dbo.contrato (idProyecto, idTipoContrato, idEstadoContrato, numeroContrato, fechaContrato, montoTotal)
-                OUTPUT INSERTED.idContrato
-                VALUES (@idProy, @idTipo, @idEstado, @num, @fechaC, @monto)
+                VALUES (@idProy, @idTipo, @idEstado, @num, @fechaC, @monto);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idContrato;
             `);
 
         res.status(201).json({

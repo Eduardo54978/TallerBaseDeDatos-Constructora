@@ -63,6 +63,14 @@ async function cargarClientes() {
     const data = await fetch(`${API}/clientes`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idCliente');
 
+    const tipos = new Set(ordenados.map(c => c.nombreTipoCliente).filter(Boolean));
+    const conEmail = ordenados.filter(c => c.email).length;
+    renderStatsCards('cli-stats', [
+      { n: ordenados.length, l: 'Clientes' },
+      { n: tipos.size, l: 'Tipos de cliente' },
+      { n: conEmail, l: 'Con email' },
+    ]);
+
     document.getElementById('cont-clientes').innerHTML = `
       <table id="tbl-cli">
         <thead>

@@ -28,6 +28,7 @@
   <!-- TAB: PAGOS CLIENTES -->
   <div class="tab-content active" id="tab-pagos-clientes">
     <div class="card">
+      <div id="pago-stats"></div>
       <div class="table-header">
         <h3>Pagos de Clientes</h3>
         <div style="display:flex; gap:8px; align-items:center;">
@@ -116,17 +117,22 @@
         </div>
         <div class="form-group">
           <label>Cuota *</label>
-          <select id="rp-idcuota">
+          <select id="rp-idcuota" onchange="onSelCuotaPago()">
             <option value="">-- Selecciona un contrato primero --</option>
           </select>
+          <small style="color:#6b756d;">Elige qué cuota se está pagando. El monto se autocompleta.</small>
+          <small id="rp-cuota-info" style="color:#28512b; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Fecha de Pago *</label>
           <input id="rp-fechapago" type="date">
+          <small style="color:#6b756d;">Fecha real en que se recibió el pago</small>
         </div>
         <div class="form-group">
           <label>Monto (Bs) *</label>
-          <input id="rp-monto" type="number" step="0.01" placeholder="0.00">
+          <input id="rp-monto" type="number" step="0.01" placeholder="0.00" oninput="onMontoPagoInput()">
+          <small style="color:#6b756d;">Puede ser diferente al de la cuota si es pago parcial</small>
+          <small id="rp-monto-info" style="display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Metodo de Pago *</label>
@@ -195,27 +201,42 @@
           <label>Empleado *</label>
           <div class="ac-wrap">
             <input id="pl-emp-nom" type="text" placeholder="Buscar empleado..." autocomplete="off"
-                   oninput="acSearch('pl-emp-nom','ac-pl-emp','pl-idempleado','empleados','idEmpleado','nombreCompleto')">
+                   oninput="acSearch('pl-emp-nom','ac-pl-emp','pl-idempleado','empleados','idEmpleado','nombreCompleto','onSelEmpleadoPlanilla')">
             <div class="ac-drop" id="ac-pl-emp"></div>
             <input type="hidden" id="pl-idempleado">
           </div>
+          <small style="color:#6b756d;">Busca y elige al empleado. Luego elige el proyecto.</small>
+          <small id="pl-emp-proyectos" style="color:#28512b; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Proyecto *</label>
           <div class="ac-wrap">
             <input id="pl-proy-nom" type="text" placeholder="Buscar proyecto..." autocomplete="off"
-                   oninput="acSearch('pl-proy-nom','ac-pl-proy','pl-idproyecto','proyectos','idProyecto','nombreProyecto')">
+                   oninput="acSearch('pl-proy-nom','ac-pl-proy','pl-idproyecto','proyectos','idProyecto','nombreProyecto','onSelProyectoPlanilla')">
             <div class="ac-drop" id="ac-pl-proy"></div>
             <input type="hidden" id="pl-idproyecto">
           </div>
+          <small style="color:#6b756d;">Al elegir empleado y proyecto se cargan sus bonos de antigüedad.</small>
+        </div>
+        <div class="form-group">
+          <label>Bono de Antigüedad *</label>
+          <select id="pl-idbono" onchange="onSelBonoPlanilla()">
+            <option value="">-- Elige primero empleado y proyecto --</option>
+          </select>
+          <small style="color:#6b756d;">Obligatorio: cada pago de planilla se asocia al bono del empleado en ese proyecto. El monto se autocompleta con el salario final.</small>
         </div>
         <div class="form-group">
           <label>Fecha de Pago *</label>
           <input id="pl-fecha" type="date">
+          <small style="color:#6b756d;">Fecha real en que se paga la planilla.</small>
         </div>
         <div class="form-group">
           <label>Monto Pagado (Bs) *</label>
           <input id="pl-monto" type="number" step="0.01" placeholder="0.00">
+          <small style="color:#6b756d;">Se autocompleta con el salario final del bono; puedes ajustarlo.</small>
+        </div>
+        <div class="form-group" style="grid-column:1 / -1;">
+          <div id="pl-horas-info" style="display:none; background:#EEF4EA; border-left:4px solid #2F5F2F; border-radius:6px; padding:10px 14px; font-size:.85rem; color:#1F2A24;"></div>
         </div>
         <div class="form-group">
           <label>Metodo de Pago *</label>

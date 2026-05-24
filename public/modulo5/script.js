@@ -69,6 +69,17 @@ async function cargarContratos() {
     const data = await fetch(`${API}/contratos`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idContrato');
 
+    const activos = ordenados.filter(c => {
+      const s = (c.nombreEstadoContrato || '').toLowerCase();
+      return s.includes('vigente') || s.includes('activo');
+    }).length;
+    const montoTotal = ordenados.reduce((s, c) => s + Number(c.montoTotal || 0), 0);
+    renderStatsCards('cont-stats', [
+      { n: ordenados.length, l: 'Contratos' },
+      { n: activos, l: 'Vigentes' },
+      { n: 'Bs ' + montoTotal.toLocaleString('es-BO'), l: 'Monto total' },
+    ]);
+
     document.getElementById('cont-contratos').innerHTML = `
       <table id="tbl-contratos">
         <thead>
@@ -109,7 +120,8 @@ async function registrarContrato() {
     montoTotal: parseFloat(document.getElementById('c-monto').value),
     fechaContrato: document.getElementById('c-fechac').value,
     fechaInicio: document.getElementById('c-fechai').value || null,
-    fechaVencimiento: document.getElementById('c-fechav').value || null
+    fechaVencimiento: document.getElementById('c-fechav').value || null,
+    fechaFirma: document.getElementById('c-fechaf').value || null
   };
 
   if (!body.idProyecto) return msg('msg-contrato', 'Seleccione un proyecto de la lista.', 'err');
@@ -170,9 +182,41 @@ async function generarCuotas() {
 
     document.getElementById('cu-idcontrato').value = '';
     document.getElementById('cu-cantidad').value = '';
+    document.getElementById('cu-cont-nom').value = '';
+    _montoContratoCuotas = 0;
+    const ci = document.getElementById('cu-cont-info'); if (ci) ci.textContent = '';
+    const cp = document.getElementById('cu-preview'); if (cp) cp.textContent = '';
   } catch (e) {
     msg('msg-cuotas', 'Error de conexión', 'err');
   }
+}
+
+// Al elegir el contrato, guarda su monto total para previsualizar las cuotas.
+let _montoContratoCuotas = 0;
+async function onSelContratoCuotas(idContrato) {
+  const info = document.getElementById('cu-cont-info');
+  _montoContratoCuotas = 0;
+  if (!info) return;
+  if (!idContrato) { info.textContent = ''; return; }
+  info.textContent = 'Buscando monto del contrato...';
+  try {
+    const c = await fetch(`${API}/contratos/${idContrato}`).then(r => r.json());
+    _montoContratoCuotas = Number(c.montoTotal || 0);
+    info.style.color = '#276749';
+    info.textContent = `Monto total del contrato: Bs ${_montoContratoCuotas.toFixed(2)}`;
+    calcCuotaPreview();
+  } catch (e) {
+    info.textContent = '';
+  }
+}
+
+// Muestra cuánto saldría cada cuota (monto total / número de cuotas).
+function calcCuotaPreview() {
+  const out = document.getElementById('cu-preview');
+  if (!out) return;
+  const n = parseInt(document.getElementById('cu-cantidad').value);
+  if (!_montoContratoCuotas || Number.isNaN(n) || n <= 0) { out.textContent = ''; return; }
+  out.textContent = `Cada cuota será de aprox. Bs ${(_montoContratoCuotas / n).toFixed(2)}`;
 }
 
 async function consultarPorCliente() {

@@ -32,6 +32,42 @@ router.get('/estados', async (req, res) => {
     }
 });
 
+// -- BONOS DE ANTIGUEDAD (para asociar al pago de planilla) -------------------
+// Lista los bonos de antiguedad. Se puede filtrar por empleado y proyecto para
+// que el formulario de Pago de Planilla muestre solo los bonos correspondientes.
+router.get('/bonos', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const result = await pool.request()
+            .input('idEmpleado', sql.Int, req.query.idEmpleado ? parseInt(req.query.idEmpleado) : null)
+            .input('idProyecto', sql.Int, req.query.idProyecto ? parseInt(req.query.idProyecto) : null)
+            .query(`
+                SELECT
+                    b.idBonoAntiguedadProyecto,
+                    b.idEmpleado,
+                    e.nombre + ' ' + e.apellido AS empleado,
+                    b.idProyecto,
+                    p.nombreProyecto             AS proyecto,
+                    b.gestion,
+                    b.aniosAntiguedad,
+                    b.porcentajeBono,
+                    b.salarioBaseProyecto,
+                    b.montoBono,
+                    b.salarioFinalProyecto,
+                    b.descripcion
+                FROM bonoantiguedadproyecto b
+                JOIN empleado e ON b.idEmpleado = e.idEmpleado
+                JOIN proyecto p ON b.idProyecto = p.idProyecto
+                WHERE (@idEmpleado IS NULL OR b.idEmpleado = @idEmpleado)
+                  AND (@idProyecto IS NULL OR b.idProyecto = @idProyecto)
+                ORDER BY b.gestion DESC, b.idBonoAntiguedadProyecto
+            `);
+        res.json(result.recordset);
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
 // ÔöÇÔöÇ PAGOS CLIENTES ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 router.get('/clientes/contrato/:idContrato', async (req, res) => {
@@ -138,8 +174,8 @@ router.post('/clientes', async (req, res) => {
             .input('idEstadoPago', sql.Int,           idEstadoPago)
             .query(`
                 INSERT INTO pagocliente (idContrato, idCuota, fechaPago, monto, idMetodoPago, idEstadoPago)
-                OUTPUT INSERTED.idPagoCliente
-                VALUES (@idContrato, @idCuota, @fechaPago, @monto, @idMetodoPago, @idEstadoPago)
+                VALUES (@idContrato, @idCuota, @fechaPago, @monto, @idMetodoPago, @idEstadoPago);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idPagoCliente;
             `);
         res.status(201).json({ idPagoCliente: result.recordset[0].idPagoCliente });
     } catch (err) {
@@ -382,8 +418,8 @@ router.post('/planilla', async (req, res) => {
             .query(`
                 INSERT INTO pagoplanillaproyecto
                     (idEmpleado, idProyecto, idBonoAntiguedadProyecto, fechaPago, montoPagado, idMetodoPago, idEstadoPago)
-                OUTPUT INSERTED.idPagoPlanillaProyecto
-                VALUES (@idEmpleado, @idProyecto, @idBonoAntiguedadProyecto, @fechaPago, @montoPagado, @idMetodoPago, @idEstadoPago)
+                VALUES (@idEmpleado, @idProyecto, @idBonoAntiguedadProyecto, @fechaPago, @montoPagado, @idMetodoPago, @idEstadoPago);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idPagoPlanillaProyecto;
             `);
         res.status(201).json({ idPagoPlanillaProyecto: result.recordset[0].idPagoPlanillaProyecto });
     } catch (err) {

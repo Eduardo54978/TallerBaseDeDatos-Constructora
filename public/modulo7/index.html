@@ -25,6 +25,7 @@
   <!-- TAB: LISTA -->
   <div class="tab-content active" id="tab-lista">
     <div class="card">
+      <div id="cli-stats"></div>
       <div class="table-header">
         <h3>Clientes Registrados</h3>
         <input class="search" placeholder="Buscar cliente..." oninput="filtrarTabla('tbl-cli', this.value)">
@@ -41,30 +42,37 @@
         <div class="form-group">
           <label>Nombre *</label>
           <input id="cli-nombre" placeholder="Nombre completo">
+          <small style="color:#6b756d;">Nombre de la persona o razón social de la empresa.</small>
         </div>
         <div class="form-group">
           <label>Documento ID *</label>
           <input id="cli-doc" placeholder="CI / NIT">
+          <small style="color:#6b756d;">No puede repetirse: cada cliente tiene un CI o NIT único.</small>
         </div>
         <div class="form-group">
           <label>Tipo de Cliente *</label>
           <select id="cli-tipo"><option value="">-- Seleccionar --</option></select>
+          <small style="color:#6b756d;">Si no aparece el tipo, créalo en la pestaña "Tipos de Cliente".</small>
         </div>
         <div class="form-group">
           <label>Celular</label>
           <input id="cli-cel" placeholder="Numero de celular">
+          <small style="color:#6b756d;">Opcional.</small>
         </div>
         <div class="form-group">
           <label>Email</label>
           <input id="cli-email" type="email" placeholder="correo@ejemplo.com">
+          <small style="color:#6b756d;">Opcional, pero no puede repetirse entre clientes.</small>
         </div>
         <div class="form-group">
           <label>Fecha de Registro</label>
           <input id="cli-fecha" type="date">
+          <small style="color:#6b756d;">Si la dejas vacía se usa la fecha de hoy.</small>
         </div>
         <div class="form-group full">
           <label>Direccion</label>
           <input id="cli-dir" placeholder="Direccion completa">
+          <small style="color:#6b756d;">Opcional.</small>
         </div>
       </div>
       <br>

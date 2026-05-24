@@ -146,7 +146,7 @@ router.post('/', async (req, res) => {
             .input('numCelular',    sql.NVarChar,  numCelular    || null)
             .input('email',         sql.NVarChar,  email         || null)
             .input('direccion',     sql.NVarChar,  direccion     || null)
-            .input('fechaRegistro', sql.Date,       fechaRegistro || null)
+            .input('fechaRegistro', sql.Date,       fechaRegistro || new Date().toISOString().slice(0, 10))
             .query(`
                 INSERT INTO dbo.cliente (nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro)
                 OUTPUT INSERTED.idCliente
@@ -160,7 +160,7 @@ router.post('/', async (req, res) => {
 
 // â”€â”€ PUT actualizar cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.put('/:id', async (req, res) => {
-    const { nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro } = req.body;
+    const { nombre, idTipoCliente, documentoID, numCelular, email, direccion } = req.body;
     const idCliente = req.params.id;
 
     try {
@@ -203,14 +203,13 @@ router.put('/:id', async (req, res) => {
         }
 
         await pool.request()
-            .input('id',            sql.Int,       idCliente)
-            .input('nombre',        sql.NVarChar,  nombre)
-            .input('idTipo',        sql.Int,        idTipoCliente)
-            .input('documentoID',   sql.NVarChar,  documentoID)
-            .input('numCelular',    sql.NVarChar,  numCelular    || null)
-            .input('email',         sql.NVarChar,  email         || null)
-            .input('direccion',     sql.NVarChar,  direccion     || null)
-            .input('fechaRegistro', sql.Date,       fechaRegistro || null)
+            .input('id',          sql.Int,      idCliente)
+            .input('nombre',      sql.NVarChar, nombre)
+            .input('idTipo',      sql.Int,      idTipoCliente)
+            .input('documentoID', sql.NVarChar, documentoID)
+            .input('numCelular',  sql.NVarChar, numCelular || null)
+            .input('email',       sql.NVarChar, email      || null)
+            .input('direccion',   sql.NVarChar, direccion  || null)
             .query(`
                 UPDATE dbo.cliente SET
                     nombre        = @nombre,
@@ -218,8 +217,7 @@ router.put('/:id', async (req, res) => {
                     documentoID   = @documentoID,
                     numCelular    = @numCelular,
                     email         = @email,
-                    direccion     = @direccion,
-                    fechaRegistro = @fechaRegistro
+                    direccion     = @direccion
                 WHERE idCliente = @id
             `);
         res.json({ mensaje: 'Cliente actualizado correctamente' });

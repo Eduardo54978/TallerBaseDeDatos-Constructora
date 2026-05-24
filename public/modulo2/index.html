@@ -82,22 +82,27 @@
       <div class="form-group">
         <label>Nombre del material *</label>
         <input id="nm-nombre" type="text" placeholder="Ej: Cemento Portland">
+        <small style="color:#6b756d;">No puede repetirse: el sistema rechaza materiales con el mismo nombre.</small>
       </div>
       <div class="form-group">
         <label>Tipo de material *</label>
         <select id="nm-tipo"><option value="">-- Cargando... --</option></select>
+        <small style="color:#6b756d;">Categoría del material (ej: cemento, acero, eléctrico).</small>
       </div>
       <div class="form-group">
         <label>Unidad de medida *</label>
         <select id="nm-unidad"><option value="">-- Cargando... --</option></select>
+        <small style="color:#6b756d;">Cómo se mide y compra (bolsa, m³, unidad, kg...).</small>
       </div>
       <div class="form-group">
         <label>Precio unitario (Bs) *</label>
         <input id="nm-precio" type="number" step="0.01" placeholder="0.00">
+        <small style="color:#6b756d;">Precio de referencia por unidad. Debe ser mayor a 0.</small>
       </div>
       <div class="form-group">
         <label>Descripcion</label>
         <input id="nm-desc" type="text" placeholder="Descripcion opcional">
+        <small style="color:#6b756d;">Opcional.</small>
       </div>
     </div>
     <br>
@@ -294,18 +299,21 @@
         <label>Material * (nombre o ID)</label>
         <div class="ac-wrap">
           <input id="ru-mat-nom" type="text" placeholder="Escribe el nombre del material o su ID..." autocomplete="off"
-                 oninput="acSearch('ru-mat-nom','ac-ru-mat','ru-idmaterial','materiales','idMaterial','nombreMaterial')">
+                 oninput="acSearch('ru-mat-nom','ac-ru-mat','ru-idmaterial','materiales','idMaterial','nombreMaterial','onSelMaterialUso')">
           <div class="ac-drop" id="ac-ru-mat"></div>
           <input type="hidden" id="ru-idmaterial">
         </div>
+        <small id="ru-mat-info" style="color:#276749; display:block; margin-top:4px;"></small>
       </div>
       <div class="form-group">
         <label>Cantidad utilizada</label>
-        <input id="ru-cantidad" type="number" step="0.01" placeholder="Ej: 5">
+        <input id="ru-cantidad" type="number" step="0.01" placeholder="Ej: 5" oninput="sugerirCostoUso()">
+        <small id="ru-stock-aviso" style="display:block; margin-top:4px;"></small>
       </div>
       <div class="form-group">
         <label>Costo total</label>
         <input id="ru-costo" type="number" step="0.01" placeholder="Ej: 375">
+        <small style="color:#6b756d;">Se sugiere cantidad × precio unitario; puedes ajustarlo.</small>
       </div>
       <div class="form-group">
         <label>Fecha</label>

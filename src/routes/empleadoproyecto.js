@@ -42,17 +42,26 @@ router.get('/', async (req, res) => {
 });
 
 // Empleados disponibles (sin asignación activa) para el autocompletado, por nombre o ID
+// Acepta ?q= para buscar y ?idCargo= para filtrar por cargo
 router.get('/disponibles/search', async (req, res) => {
-  const { q } = req.query;
+  const { q, idCargo } = req.query;
   if (!q) return res.json([]);
   try {
     const pool = await sql.connect(config);
-    const result = await pool.request()
-      .input('q', sql.NVarChar, `%${q}%`)
-      .query(`
-        SELECT TOP 10 e.idEmpleado, e.nombre + ' ' + e.apellido AS nombreCompleto
+    const req2 = pool.request().input('q', sql.NVarChar, `%${q}%`);
+    let cargoFiltro = '';
+    if (idCargo && !isNaN(parseInt(idCargo))) {
+      req2.input('idCargo', sql.Int, parseInt(idCargo));
+      cargoFiltro = 'AND e.idCargo = @idCargo';
+    }
+    const result = await req2.query(`
+        SELECT TOP 10 e.idEmpleado,
+               e.nombre + ' ' + e.apellido + ' (' + c.nombreCargo + ')' AS nombreCompleto,
+               c.nombreCargo
         FROM dbo.empleado e
+        JOIN dbo.cargo c ON e.idCargo = c.idCargo
         WHERE e.idEstadoEmpleado = 1
+          ${cargoFiltro}
           AND (e.nombre + ' ' + e.apellido LIKE @q OR CAST(e.idEmpleado AS NVARCHAR) LIKE @q)
           AND NOT EXISTS (
             SELECT 1 FROM dbo.empleadoproyecto ep

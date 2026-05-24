@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Modulo 8 - Empleados</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .emp-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:18px; }
+    .emp-stats .sb { background:#fff; border:1px solid #E1E6DD; border-top:4px solid #2F5F2F; border-radius:10px;
+                     padding:14px 16px; text-align:center; box-shadow:0 2px 8px rgba(23,63,36,.06); }
+    .emp-stats .sb .n { font-size:1.7rem; font-weight:800; color:#173F24; line-height:1; }
+    .emp-stats .sb .l { font-size:.72rem; color:#6b756d; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
+    .emp-filtros { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px; }
+    .emp-filtros .form-group { min-width:160px; }
+    .emp-filtros label { font-size:.78rem; font-weight:600; color:#173F24; display:block; margin-bottom:4px; }
+  </style>
 </head>
 <body>
 
@@ -28,10 +38,36 @@
   <!-- LISTA EMPLEADOS -->
   <div class="tab-content active" id="tab-lista">
     <div class="card">
+      <div id="emp-stats" class="emp-stats"></div>
+
       <div class="table-header">
         <h3>Empleados Registrados</h3>
-        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-emp', this.value)">
+        <input id="emp-buscar" class="search" placeholder="Buscar nombre, apellido o CI..." oninput="renderEmpleados()">
       </div>
+
+      <div class="emp-filtros">
+        <div class="form-group">
+          <label>Cargo</label>
+          <select id="emp-f-cargo" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Departamento</label>
+          <select id="emp-f-depto" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="emp-f-estado" onchange="renderEmpleados()">
+            <option value="">— Todos —</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">De baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Proyecto asignado</label>
+          <select id="emp-f-proyecto" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+      </div>
+
       <div id="cont-empleados"><p>Cargando...</p></div>
     </div>
   </div>
@@ -168,15 +204,18 @@
   <div class="tab-content" id="tab-horas">
     <div class="card">
       <h3>Registrar Horas Trabajadas</h3>
+      <p style="color:#718096; margin-bottom:12px;">Registra las horas que un empleado trabajó en un proyecto. El pago por hora se toma del cargo del empleado, pero puedes ajustarlo.</p>
       <div class="form-grid">
         <div class="form-group">
           <label>Empleado *</label>
           <div class="ac-wrap">
             <input id="h-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
-                   oninput="acSearch('h-emp-nom','ac-h-emp','h-empleado','empleados','idEmpleado','nombreCompleto')">
+                   oninput="acSearch('h-emp-nom','ac-h-emp','h-empleado','empleados','idEmpleado','nombreCompleto','onSelEmpleadoHoras')">
             <div class="ac-drop" id="ac-h-emp"></div>
             <input type="hidden" id="h-empleado">
           </div>
+          <small style="color:#6b756d;">Escribe el nombre o ID del empleado</small>
+          <small id="h-emp-proyectos" style="color:#276749; display:block; margin-top:4px;"></small>
         </div>
         <div class="form-group">
           <label>Proyecto *</label>
@@ -186,18 +225,22 @@
             <div class="ac-drop" id="ac-h-proy"></div>
             <input type="hidden" id="h-proyecto">
           </div>
+          <small style="color:#6b756d;">Proyecto donde se realizaron las horas</small>
         </div>
         <div class="form-group">
           <label>Fecha *</label>
           <input id="h-fecha" type="date">
+          <small style="color:#6b756d;">Día en que se trabajaron las horas</small>
         </div>
         <div class="form-group">
           <label>Horas Trabajadas *</label>
           <input id="h-horas" type="number" step="0.5" placeholder="Ej: 8">
+          <small style="color:#6b756d;">Cantidad de horas del día (ej: 8, 4.5)</small>
         </div>
         <div class="form-group">
           <label>Pago por Hora (Bs) *</label>
           <input id="h-pago" type="number" step="0.01" placeholder="Ej: 25.00">
+          <small style="color:#6b756d;">Tarifa acordada — el total se calcula automáticamente</small>
         </div>
         <div class="form-group" style="justify-content:flex-end; padding-top: 22px;">
           <div id="h-preview" style="font-size:0.9rem; color: #276749; font-weight:600;"></div>

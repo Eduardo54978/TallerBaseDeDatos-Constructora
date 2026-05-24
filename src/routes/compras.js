@@ -260,6 +260,22 @@ router.put('/:id', async (req, res) => {
 
     try {
         const pool = await sql.connect(config);
+
+        // Capturar estado anterior para detectar transición a "Entregada"
+        const anterior = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT oc.idEstadoOrden, eo.nombreEstadoOrden FROM ordencompra oc JOIN estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden WHERE oc.idOrdenCompra = @id`);
+        if (anterior.recordset.length === 0)
+            return res.status(404).json({ error: 'Orden no encontrada' });
+
+        const estadoAnterior = (anterior.recordset[0].nombreEstadoOrden || '').toLowerCase();
+
+        const nuevoEstadoRow = await pool.request()
+            .input('id', sql.Int, idEstadoOrden)
+            .query(`SELECT nombreEstadoOrden FROM estadoorden WHERE idEstadoOrden = @id`);
+        const nuevoEstado = nuevoEstadoRow.recordset.length > 0
+            ? (nuevoEstadoRow.recordset[0].nombreEstadoOrden || '').toLowerCase() : '';
+
         const result = await pool.request()
             .input('id', sql.Int, req.params.id)
             .input('fechaOrden', sql.Date, fechaOrden)
@@ -275,8 +291,33 @@ router.put('/:id', async (req, res) => {
                 WHERE idOrdenCompra = @id
             `);
 
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowsAffected[0] === 0)
             return res.status(404).json({ error: 'Orden no encontrada' });
+
+        // Transición a "Entregada": sumar cantidades al inventario
+        if (nuevoEstado.includes('entregad') && !estadoAnterior.includes('entregad')) {
+            const detalles = await pool.request()
+                .input('id', sql.Int, req.params.id)
+                .query(`SELECT idMaterial, cantidad FROM detallecompra WHERE idOrdenCompra = @id`);
+
+            for (const det of detalles.recordset) {
+                const invExiste = await pool.request()
+                    .input('idMat', sql.Int, det.idMaterial)
+                    .query(`SELECT idInventario FROM inventario WHERE idMaterial = @idMat`);
+
+                if (invExiste.recordset.length > 0) {
+                    await pool.request()
+                        .input('cant', sql.Decimal(18, 2), det.cantidad)
+                        .input('idMat', sql.Int, det.idMaterial)
+                        .query(`UPDATE inventario SET stockActual = stockActual + @cant, fechaActualizacion = CAST(GETDATE() AS DATE) WHERE idMaterial = @idMat`);
+                } else {
+                    await pool.request()
+                        .input('idMat', sql.Int, det.idMaterial)
+                        .input('cant', sql.Decimal(18, 2), det.cantidad)
+                        .query(`INSERT INTO inventario (idMaterial, stockInicial, stockActual, stockMinimo, fechaActualizacion) VALUES (@idMat, @cant, @cant, 0, CAST(GETDATE() AS DATE))`);
+                }
+            }
+            return res.json({ mensaje: 'Orden marcada como Entregada. Inventario actualizado automáticamente.' });
         }
 
         res.json({ mensaje: 'Orden actualizada' });

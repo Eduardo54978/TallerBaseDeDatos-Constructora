@@ -162,49 +162,116 @@ document.addEventListener('input', () => {
   }
 });
 
+let _empleados = [];
+let _empProyectos = {};   // idEmpleado -> [nombreProyecto activos]
+
 async function cargarEmpleados() {
   mostrarCarga('cont-empleados');
   try {
-    const data = await fetch(`${API}/empleados`).then(r => r.json());
-    const ordenados = ordenarPorNumero(data, 'idEmpleado');
+    const [empleados, asignaciones, proyectos] = await Promise.all([
+      fetch(`${API}/empleados`).then(r => r.json()),
+      fetch(`${API}/empleadoproyecto`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/proyectos`).then(r => r.json()).catch(() => []),
+    ]);
+    _empleados = ordenarPorNumero(empleados, 'idEmpleado');
 
-    document.getElementById('cont-empleados').innerHTML = `
-      <table id="tbl-emp">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Cargo</th>
-            <th>Departamento</th>
-            <th>Salario</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${ordenados.map(e => {
-            const esActivo = (e.nombreEstadoEmpleado || '').toLowerCase().includes('activo') && !(e.nombreEstadoEmpleado || '').toLowerCase().includes('inactivo');
-            const accion = esActivo
-              ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 2)">Dar de baja</button>`
-              : `<button class="btn btn-green" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 1)">Activar</button>`;
-            return `<tr>
+    // Mapa empleado -> proyectos activos (para el filtro por proyecto).
+    _empProyectos = {};
+    (Array.isArray(asignaciones) ? asignaciones : []).forEach(a => {
+      if (a.estadoAsignacion && a.estadoAsignacion !== 'Activo') return;
+      (_empProyectos[a.idEmpleado] = _empProyectos[a.idEmpleado] || []).push(a.nombreProyecto);
+    });
+
+    // Llenar filtros con valores únicos.
+    const cargos = [...new Set(_empleados.map(e => e.nombreCargo).filter(Boolean))].sort();
+    const deptos = [...new Set(_empleados.map(e => e.nombreDepartamento).filter(Boolean))].sort();
+    llenarFiltro('emp-f-cargo', cargos);
+    llenarFiltro('emp-f-depto', deptos);
+    const proyOrd = (Array.isArray(proyectos) ? proyectos : []).map(p => p.nombreProyecto).filter(Boolean).sort();
+    llenarFiltro('emp-f-proyecto', proyOrd);
+
+    renderEmpleados();
+  } catch (e) {
+    document.getElementById('cont-empleados').innerHTML = '<p style="color:red">Error al cargar empleados</p>';
+  }
+}
+
+function llenarFiltro(id, valores) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">— Todos —</option>' + valores.map(v => `<option value="${v}">${v}</option>`).join('');
+  sel.value = actual;
+}
+
+function esEmpleadoActivo(e) {
+  const s = (e.nombreEstadoEmpleado || '').toLowerCase();
+  return s.includes('activo') && !s.includes('inactivo');
+}
+
+function renderEmpleados() {
+  const cont = document.getElementById('cont-empleados');
+  if (!cont) return;
+  const texto = (document.getElementById('emp-buscar')?.value || '').toLowerCase();
+  const fCargo = document.getElementById('emp-f-cargo')?.value || '';
+  const fDepto = document.getElementById('emp-f-depto')?.value || '';
+  const fEstado = document.getElementById('emp-f-estado')?.value || '';
+  const fProy = document.getElementById('emp-f-proyecto')?.value || '';
+
+  const filtrados = _empleados.filter(e => {
+    if (texto && !(`${e.nombre} ${e.apellido} ${e.ci || ''}`.toLowerCase().includes(texto))) return false;
+    if (fCargo && e.nombreCargo !== fCargo) return false;
+    if (fDepto && e.nombreDepartamento !== fDepto) return false;
+    if (fEstado === 'activo' && !esEmpleadoActivo(e)) return false;
+    if (fEstado === 'inactivo' && esEmpleadoActivo(e)) return false;
+    if (fProy && !(_empProyectos[e.idEmpleado] || []).includes(fProy)) return false;
+    return true;
+  });
+
+  // Tarjetas de resumen.
+  const stats = document.getElementById('emp-stats');
+  if (stats) {
+    const activos = _empleados.filter(esEmpleadoActivo).length;
+    const enProyecto = Object.keys(_empProyectos).length;
+    stats.innerHTML = `
+      <div class="sb"><div class="n">${_empleados.length}</div><div class="l">Empleados</div></div>
+      <div class="sb"><div class="n">${activos}</div><div class="l">Activos</div></div>
+      <div class="sb"><div class="n">${_empleados.length - activos}</div><div class="l">De baja</div></div>
+      <div class="sb"><div class="n">${enProyecto}</div><div class="l">En proyecto</div></div>`;
+  }
+
+  if (!filtrados.length) {
+    cont.innerHTML = '<p style="color:#6b756d;">No hay empleados que coincidan con los filtros.</p>';
+    return;
+  }
+
+  cont.innerHTML = `
+    <p style="color:#6b756d;margin-bottom:8px;">${filtrados.length} de ${_empleados.length} empleado(s)</p>
+    <table id="tbl-emp">
+      <thead><tr>
+        <th>ID</th><th>Nombre</th><th>Apellido</th><th>Cargo</th>
+        <th>Departamento</th><th>Proyecto(s)</th><th>Salario</th><th>Estado</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${filtrados.map(e => {
+          const accion = esEmpleadoActivo(e)
+            ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 2)">Dar de baja</button>`
+            : `<button class="btn btn-green" style="padding:4px 10px;font-size:.78rem;" onclick="cambiarEstadoEmpleado(${e.idEmpleado}, 1)">Activar</button>`;
+          const proys = (_empProyectos[e.idEmpleado] || []).join(', ') || '<span style="color:#bbb;">—</span>';
+          return `<tr>
             <td>${e.idEmpleado}</td>
             <td>${e.nombre}</td>
             <td>${e.apellido}</td>
             <td>${e.nombreCargo || '-'}</td>
             <td>${e.nombreDepartamento || '-'}</td>
+            <td style="font-size:.82rem;">${proys}</td>
             <td>Bs ${Number(e.salario || 0).toLocaleString()}</td>
             <td>${badge(e.nombreEstadoEmpleado)}</td>
             <td>${accion}</td>
           </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-    aplicarPaginacion('tbl-emp');
-  } catch (e) {
-    document.getElementById('cont-empleados').innerHTML = '<p style="color:red">Error al cargar empleados</p>';
-  }
+        }).join('')}
+      </tbody>
+    </table>`;
 }
 
 async function cargarSelectCargos() {
@@ -293,6 +360,30 @@ async function registrarEmpleado() {
     cargarEmpleados();
   } catch (e) {
     msg('msg-emp', 'Error de conexión', 'err');
+  }
+}
+
+// Ayuda: al elegir un empleado, muestra a qué proyectos está asignado para
+// que el usuario registre horas en el proyecto correcto (el backend igual
+// rechaza horas en proyectos donde el empleado no está asignado).
+async function onSelEmpleadoHoras() {
+  const hint = document.getElementById('h-emp-proyectos');
+  if (!hint) return;
+  const id = document.getElementById('h-empleado').value;
+  if (!id) { hint.textContent = ''; return; }
+  hint.textContent = 'Buscando proyectos del empleado...';
+  try {
+    const data = await fetch(`${API}/empleados/${id}/asignaciones`).then(r => r.json());
+    const activos = (Array.isArray(data) ? data : []).filter(a => !a.fechaFin);
+    if (!activos.length) {
+      hint.style.color = '#b45309';
+      hint.textContent = 'Este empleado no tiene proyectos activos: no podrás registrarle horas hasta asignarlo a uno.';
+      return;
+    }
+    hint.style.color = '#276749';
+    hint.textContent = 'Asignado a: ' + activos.map(a => a.nombreProyecto).join(', ');
+  } catch (e) {
+    hint.textContent = '';
   }
 }
 

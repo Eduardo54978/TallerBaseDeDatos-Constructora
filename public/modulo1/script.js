@@ -98,30 +98,207 @@ function cambiarTab(nombre, boton) {
 
   if (nombre === "asignar") {
     cargarRolesAsignar();
+    cargarCargosAsignar();
     cargarDisponibilidad();
   }
 }
 
 async function cargarRolesAsignar() {
   const data = await fetch("/api/empleadoproyecto/roles/lista").then(r => r.json()).catch(() => []);
-  const sel = document.getElementById("as-rol");
-  if (!sel) return;
-  sel.innerHTML = `<option value="">Seleccione...</option>` +
+  const opciones = `<option value="">Seleccione...</option>` +
     data.map(r => `<option value="${r.idRolProyecto}">${r.nombreRolProyecto}</option>`).join("");
+  const sel = document.getElementById("as-rol");
+  if (sel) sel.innerHTML = opciones;
+  const selMs = document.getElementById("ms-rol");
+  if (selMs) selMs.innerHTML = opciones;
 }
 
+async function cargarCargosAsignar() {
+  const data = await fetch("/api/empleados/cargos/lista").then(r => r.json()).catch(() => []);
+  const sel = document.getElementById("as-filtro-cargo");
+  if (sel) sel.innerHTML = `<option value="">— Todos los cargos —</option>` +
+    data.map(c => `<option value="${c.idCargo}">${c.nombreCargo}</option>`).join("");
+  const selFiltro = document.getElementById("filtro-disp-cargo");
+  if (selFiltro) selFiltro.innerHTML = `<option value="">— Todos —</option>` +
+    data.map(c => `<option value="${c.nombreCargo}">${c.nombreCargo}</option>`).join("");
+}
+
+function limpiarSeleccionEmpleado() {
+  const nom = document.getElementById("as-emp-nom");
+  const hid = document.getElementById("as-idempleado");
+  const drop = document.getElementById("ac-as-emp");
+  if (nom) nom.value = "";
+  if (hid) hid.value = "";
+  if (drop) { drop.innerHTML = ""; drop.style.display = "none"; }
+}
+
+async function buscarEmpleadoDisponible() {
+  const inputEl = document.getElementById("as-emp-nom");
+  const drop = document.getElementById("ac-as-emp");
+  const hiddenEl = document.getElementById("as-idempleado");
+  if (!inputEl || !drop) return;
+  const q = inputEl.value.trim();
+  if (!q) { drop.innerHTML = ""; drop.style.display = "none"; return; }
+  const idCargo = document.getElementById("as-filtro-cargo")?.value || "";
+  const url = `/api/empleadoproyecto/disponibles/search?q=${encodeURIComponent(q)}${idCargo ? "&idCargo=" + idCargo : ""}`;
+  try {
+    const data = await fetch(url).then(r => r.json());
+    if (!Array.isArray(data) || !data.length) {
+      drop.innerHTML = '<div class="ac-empty">Sin resultados</div>';
+      drop.style.display = "block";
+      return;
+    }
+    drop.innerHTML = data.slice(0, 10).map(emp => {
+      const name = String(emp.nombreCompleto || "").replace(/'/g, "&#39;");
+      return `<div class="ac-item" onmousedown="acPick('as-emp-nom','ac-as-emp','as-idempleado',${emp.idEmpleado},'${name}')">${emp.nombreCompleto}</div>`;
+    }).join("");
+    drop.style.display = "block";
+  } catch (e) {
+    drop.style.display = "none";
+  }
+}
+
+let _disponibilidad = [];        // datos crudos del servidor
+let _seleccionados = new Set();   // ids de empleados marcados
+
 async function cargarDisponibilidad() {
-  const data = await fetch("/api/empleadoproyecto/empleados-estado").then(r => r.json()).catch(() => []);
+  _disponibilidad = await fetch("/api/empleadoproyecto/empleados-estado").then(r => r.json()).catch(() => []);
+  _seleccionados.clear();
+  renderDisponibilidad();
+}
+
+function renderDisponibilidad() {
   const tbody = document.getElementById("tablaDisponibilidad");
   if (!tbody) return;
-  if (!data.length) { tbody.innerHTML = `<tr><td colspan="4">Sin empleados activos.</td></tr>`; return; }
-  tbody.innerHTML = data.map(e => `
-    <tr>
+  const texto = (document.getElementById("filtro-disp-texto")?.value || "").toLowerCase();
+  const cargo = document.getElementById("filtro-disp-cargo")?.value || "";
+  const estado = document.getElementById("filtro-disp-estado")?.value || "";
+
+  const filtrados = _disponibilidad.filter(e => {
+    if (texto && !(`${e.nombreCompleto} ${e.idEmpleado}`.toLowerCase().includes(texto))) return false;
+    if (cargo && e.nombreCargo !== cargo) return false;
+    if (estado !== "" && String(e.disponible) !== estado) return false;
+    return true;
+  });
+
+  if (!filtrados.length) {
+    tbody.innerHTML = `<tr><td colspan="5">Sin empleados que coincidan con el filtro.</td></tr>`;
+    actualizarConteoSeleccion();
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(e => {
+    const marcado = _seleccionados.has(e.idEmpleado) ? "checked" : "";
+    const chk = e.disponible
+      ? `<input type="checkbox" ${marcado} onclick="toggleSeleccion(${e.idEmpleado}, this.checked)">`
+      : `<span title="Ocupado: no se puede asignar" style="color:#bbb;">—</span>`;
+    return `<tr style="${e.disponible ? '' : 'opacity:.6;'}">
+      <td>${chk}</td>
       <td>${e.idEmpleado}</td>
       <td>${e.nombreCompleto}</td>
       <td>${e.nombreCargo || '-'}</td>
       <td>${e.disponible ? '<span class="estado verde">Disponible</span>' : '<span class="estado amarillo">Ocupado</span>'}</td>
+    </tr>`;
+  }).join("");
+  actualizarConteoSeleccion();
+}
+
+function toggleSeleccion(id, marcado) {
+  if (marcado) _seleccionados.add(id); else _seleccionados.delete(id);
+  actualizarConteoSeleccion();
+}
+
+function marcarTodosDisponibles(marcar) {
+  const texto = (document.getElementById("filtro-disp-texto")?.value || "").toLowerCase();
+  const cargo = document.getElementById("filtro-disp-cargo")?.value || "";
+  _disponibilidad.forEach(e => {
+    if (!e.disponible) return;
+    if (texto && !(`${e.nombreCompleto} ${e.idEmpleado}`.toLowerCase().includes(texto))) return;
+    if (cargo && e.nombreCargo !== cargo) return;
+    if (marcar) _seleccionados.add(e.idEmpleado); else _seleccionados.delete(e.idEmpleado);
+  });
+  renderDisponibilidad();
+}
+
+function actualizarConteoSeleccion() {
+  const span = document.getElementById("ms-count");
+  if (span) span.textContent = _seleccionados.size;
+}
+
+function previsualizarAsignacion() {
+  const msg = document.getElementById("mensajeMultiAsignar");
+  const idProyecto = document.getElementById("ms-idproyecto").value;
+  const proyNom = document.getElementById("ms-proy-nom").value;
+  const rolSel = document.getElementById("ms-rol");
+  const idRol = rolSel.value;
+  const rolNom = rolSel.options[rolSel.selectedIndex]?.text || "";
+
+  if (!_seleccionados.size) { msg.textContent = "Marca al menos un empleado disponible."; msg.classList.add("error"); return; }
+  if (!idProyecto) { msg.textContent = "Selecciona el proyecto destino."; msg.classList.add("error"); return; }
+  if (!idRol) { msg.textContent = "Selecciona el rol en el proyecto."; msg.classList.add("error"); return; }
+  msg.textContent = ""; msg.classList.remove("error");
+
+  const seleccionados = _disponibilidad.filter(e => _seleccionados.has(e.idEmpleado));
+  const filas = seleccionados.map(e => `<tr>
+      <td>${e.idEmpleado}</td><td>${e.nombreCompleto}</td><td>${e.nombreCargo || '-'}</td>
+      <td>${proyNom}</td><td>${rolNom}</td>
     </tr>`).join("");
+
+  let modal = document.getElementById("modal-multiasignar");
+  if (modal) modal.remove();
+  modal = document.createElement("div");
+  modal.id = "modal-multiasignar";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:1000;padding:40px 16px;overflow:auto;";
+  modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+      <h2 style="margin-bottom:6px;">Confirmar asignación de ${seleccionados.length} empleado(s)</h2>
+      <p style="color:#6b756d;margin-bottom:12px;">Revisa la lista. Al aplicar, cada empleado quedará asignado al proyecto <b>${proyNom}</b> con el rol <b>${rolNom}</b>.</p>
+      <div class="tabla"><table>
+        <thead><tr><th>ID</th><th>Empleado</th><th>Cargo</th><th>Proyecto</th><th>Rol</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-limpiar" onclick="document.getElementById('modal-multiasignar').remove()">Cancelar</button>
+        <button class="btn-guardar" onclick="aplicarAsignacionesLote()">Aplicar asignaciones</button>
+      </div>
+      <div id="msg-modal-multi" class="mensaje" style="margin-top:10px;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function aplicarAsignacionesLote() {
+  const idProyecto = document.getElementById("ms-idproyecto").value;
+  const idRol = document.getElementById("ms-rol").value;
+  const fechaInicio = document.getElementById("ms-fechaInicio").value || null;
+  const msgModal = document.getElementById("msg-modal-multi");
+  const ids = [..._seleccionados];
+  let ok = 0; const errores = [];
+
+  for (const idEmpleado of ids) {
+    try {
+      const res = await fetch("/api/empleadoproyecto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idEmpleado, idProyecto, idRolProyecto: idRol, fechaInicio, fechaFin: null })
+      });
+      const data = await res.json();
+      if (res.ok) ok++; else errores.push(`#${idEmpleado}: ${data.error}`);
+    } catch (e) {
+      errores.push(`#${idEmpleado}: error de conexión`);
+    }
+  }
+
+  if (msgModal) {
+    msgModal.innerHTML = `Asignados: ${ok}. ${errores.length ? 'Con errores: ' + errores.length : ''}`;
+    if (errores.length) msgModal.innerHTML += `<br><small style="color:#b91c1c;">${errores.join('<br>')}</small>`;
+  }
+  _seleccionados.clear();
+  await cargarDisponibilidad();
+  cargarPersonal();
+  if (!errores.length) {
+    setTimeout(() => { const m = document.getElementById("modal-multiasignar"); if (m) m.remove(); }, 1200);
+  }
 }
 
 async function asignarEmpleado(e) {
@@ -402,7 +579,7 @@ function mostrarProyectos(datos) {
   tabla.innerHTML = "";
 
   if (!datos || datos.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="8">No se encontraron proyectos.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="9">No se encontraron proyectos.</td></tr>`;
     return;
   }
 
@@ -421,6 +598,7 @@ function mostrarProyectos(datos) {
       <td>${fecha(p.fechaInicio)}</td>
       <td>${fecha(p.fechaFinEstimada)}</td>
       <td>${estadoProyecto(p.nombreEstadoProyecto)}</td>
+      <td><button type="button" class="btn-guardar" style="padding:5px 12px;font-size:.8rem;" onclick="inspeccionarProyecto(${p.idProyecto})">Inspeccionar</button></td>
     `;
 
     tabla.appendChild(fila);

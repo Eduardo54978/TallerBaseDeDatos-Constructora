@@ -51,6 +51,14 @@ async function cargarProveedores() {
     const data = await fetch(`${API}/proveedores`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idProveedor');
 
+    const ciudades = new Set(ordenados.map(p => p.ciudad).filter(Boolean));
+    const conEmail = ordenados.filter(p => p.email).length;
+    renderStatsCards('prov-stats', [
+      { n: ordenados.length, l: 'Proveedores' },
+      { n: ciudades.size, l: 'Ciudades' },
+      { n: conEmail, l: 'Con email' },
+    ]);
+
     document.getElementById('cont-proveedores').innerHTML = `
       <table id="tbl-prov">
         <thead>
@@ -170,8 +178,29 @@ async function asignarMaterial() {
     if (matNom) matNom.value = '';
     document.getElementById('pm-precio').value = '';
     document.getElementById('pm-tiempo').value = '';
+    const ref = document.getElementById('pm-mat-ref');
+    if (ref) ref.textContent = '';
   } catch (e) {
     msg('msg-pm', 'Error de conexión', 'err');
+  }
+}
+
+// Al elegir el material, muestra su precio base de catálogo como referencia
+// para definir el precio ofertado por el proveedor.
+async function onSelMaterialProv(idMaterial) {
+  const ref = document.getElementById('pm-mat-ref');
+  if (!ref) return;
+  if (!idMaterial) { ref.textContent = ''; return; }
+  ref.textContent = 'Buscando precio de referencia...';
+  try {
+    const mat = await fetch(`${API}/materiales/${idMaterial}`).then(r => r.json());
+    const precio = Number(mat.precioUnitario || 0);
+    ref.style.color = '#276749';
+    ref.textContent = `Precio base de catálogo: Bs ${precio.toFixed(2)} (referencia).`;
+    const inp = document.getElementById('pm-precio');
+    if (inp && !inp.value) inp.value = precio.toFixed(2);
+  } catch (e) {
+    ref.textContent = '';
   }
 }
 
