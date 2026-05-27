@@ -604,20 +604,12 @@ GRANT INSERT, UPDATE ON ordencompra TO rol_logistica;
 GO
 
 
-CREATE OR ALTER TRIGGER trg_actualizar_inventario_compra
-ON detallecompra
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE inv
-    SET
-        inv.stockActual = inv.stockActual + i.cantidad,
-        inv.fechaActualizacion = CAST(GETDATE() AS DATE)
-    FROM inventario inv
-    INNER JOIN inserted i ON inv.idMaterial = i.idMaterial;
-    PRINT 'Inventario actualizado correctamente tras la compra.';
-END;
+-- NOTA: el inventario se actualiza UNICAMENTE cuando la orden pasa a "Entregada".
+-- Esa logica vive en el backend (src/routes/compras.js, PUT /:id). El trigger que
+-- sumaba al inventario al insertar el detalle (sin importar el estado de la orden)
+-- causaba que el stock subiera con ordenes Pendientes y un doble conteo al entregar,
+-- por eso se elimina.
+DROP TRIGGER IF EXISTS dbo.trg_actualizar_inventario_compra;
 GO
 
 
@@ -697,29 +689,8 @@ END;
 GO
 
 
-CREATE OR ALTER TRIGGER trg_revertir_inventario_orden_cancelada
-ON ordencompra
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-    IF EXISTS (
-        SELECT 1 FROM inserted i
-        INNER JOIN deleted d ON i.idOrdenCompra = d.idOrdenCompra
-        WHERE i.idEstadoOrden = 3 AND d.idEstadoOrden != 3
-    )
-    BEGIN
-        UPDATE inv
-        SET
-            inv.stockActual = inv.stockActual - dc.cantidad,
-            inv.fechaActualizacion = CAST(GETDATE() AS DATE)
-        FROM inventario inv
-        INNER JOIN detallecompra dc ON inv.idMaterial = dc.idMaterial
-        INNER JOIN inserted i ON dc.idOrdenCompra = i.idOrdenCompra
-        INNER JOIN deleted d ON i.idOrdenCompra = d.idOrdenCompra
-        WHERE i.idEstadoOrden = 3 AND d.idEstadoOrden != 3;
-
-        PRINT 'Inventario revertido correctamente por cancelacion de orden.';
-    END
-END;
+-- NOTA: solo se pueden cancelar ordenes en estado Pendiente (ver compras.js, PUT /:id/cancelar).
+-- Bajo el modelo "el stock solo sube al Entregar", una orden Pendiente nunca sumo stock,
+-- por lo que revertir al cancelar restaba stock fantasma (lo dejaba en negativo). Se elimina.
+DROP TRIGGER IF EXISTS dbo.trg_revertir_inventario_orden_cancelada;
 GO
