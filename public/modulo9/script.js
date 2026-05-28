@@ -197,6 +197,28 @@ function calcDetalleCliente() {
   }
 }
 
+async function onMatDmPicked(idMaterial) {
+  const hint = document.getElementById('dm-precio-hint');
+  if (!hint) return;
+  hint.textContent = 'Cargando referencias...';
+  try {
+    const res = await fetch(`${API}/materiales/${idMaterial}/precio-referencia`);
+    const data = await res.json();
+    if (!res.ok) { hint.textContent = ''; return; }
+
+    const partes = [`Catálogo: Bs ${parseFloat(data.precioCatalogo).toFixed(2)}`];
+    if (data.ultimaCompra) {
+      const fecha = new Date(data.ultimaCompra.fecha).toLocaleDateString('es-BO');
+      partes.push(`Última compra: Bs ${parseFloat(data.ultimaCompra.precio).toFixed(2)} (${fecha})`);
+    } else {
+      partes.push('Sin compras registradas');
+    }
+    hint.textContent = partes.join(' · ');
+  } catch (e) {
+    hint.textContent = '';
+  }
+}
+
 function calcMaterialInterno() {
   const c = parseFloat(document.getElementById('dm-cant').value) || 0;
   const p = parseFloat(document.getElementById('dm-costo').value) || 0;
@@ -371,6 +393,8 @@ async function agregarMateriales() {
     });
     const prevDm = document.getElementById('dm-preview');
     if (prevDm) prevDm.textContent = '';
+    const hintDm = document.getElementById('dm-precio-hint');
+    if (hintDm) hintDm.textContent = '';
   } catch (e) {
     msg('msg-dm', 'Error de conexión', 'err');
   }

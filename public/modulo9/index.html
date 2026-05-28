@@ -172,7 +172,7 @@
           <label>Material *</label>
           <div class="ac-wrap">
             <input id="dm-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
-                   oninput="acSearch('dm-mat-nom','ac-dm-mat','dm-mat','materiales','idMaterial','nombreMaterial')">
+                   oninput="acSearch('dm-mat-nom','ac-dm-mat','dm-mat','materiales','idMaterial','nombreMaterial','onMatDmPicked')">
             <div class="ac-drop" id="ac-dm-mat"></div>
             <input type="hidden" id="dm-mat">
           </div>
@@ -184,6 +184,7 @@
         <div class="form-group">
           <label>Costo Unitario Estimado (Bs) *</label>
           <input id="dm-costo" type="number" step="0.01" placeholder="0.00" oninput="calcMaterialInterno()">
+          <small id="dm-precio-hint" style="color:#276749;font-size:0.8rem;margin-top:4px;display:block;"></small>
         </div>
       </div>
       <div id="dm-preview" style="margin:8px 0; font-size:0.9rem; color:#276749; font-weight:600;"></div>
