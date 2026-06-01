@@ -12,27 +12,45 @@ function aplicarPaginacion(tablaId) {
   if (!tabla) return;
   const filas = Array.from(tabla.querySelectorAll('tbody tr'));
   if (filas.length <= PAG_SIZE) return;
+
   let pagina = 1;
   const totalPags = Math.ceil(filas.length / PAG_SIZE);
+
   function render() {
     const ini = (pagina - 1) * PAG_SIZE;
-    filas.forEach((f, i) => { f.style.display = (i >= ini && i < ini + PAG_SIZE) ? '' : 'none'; });
+
+    filas.forEach((f, i) => {
+      f.style.display = (i >= ini && i < ini + PAG_SIZE) ? '' : 'none';
+    });
+
     let nav = document.getElementById('nav-' + tablaId);
+
     if (!nav) {
       nav = document.createElement('div');
       nav.id = 'nav-' + tablaId;
       nav.className = 'pag-nav';
       tabla.parentNode.insertBefore(nav, tabla.nextSibling);
     }
+
     nav.innerHTML = `
       <button id="prev-${tablaId}">← Anterior</button>
       <span>Página ${pagina} / ${totalPags} &nbsp;·&nbsp; ${filas.length} registros</span>
       <button id="next-${tablaId}">Siguiente →</button>`;
+
     document.getElementById('prev-' + tablaId).disabled = pagina === 1;
     document.getElementById('next-' + tablaId).disabled = pagina === totalPags;
-    document.getElementById('prev-' + tablaId).onclick = () => { pagina--; render(); };
-    document.getElementById('next-' + tablaId).onclick = () => { pagina++; render(); };
+
+    document.getElementById('prev-' + tablaId).onclick = () => {
+      pagina--;
+      render();
+    };
+
+    document.getElementById('next-' + tablaId).onclick = () => {
+      pagina++;
+      render();
+    };
   }
+
   render();
 }
 
@@ -44,17 +62,48 @@ function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
 
+function normalizarEstado(valor) {
+  return String(valor || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function esPendiente(estado) {
+  return normalizarEstado(estado).includes('pendiente');
+}
+
+function esEntregada(estado) {
+  return normalizarEstado(estado).includes('entregad');
+}
+
+function esCancelada(estado) {
+  return normalizarEstado(estado).includes('cancel');
+}
+
 async function cargarEstadosOrden() {
   const data = await fetch(`${API}/compras/estados`).then(r => r.json()).catch(() => []);
   const sel = document.getElementById('no-idestado');
+
   if (!sel) return;
+
   sel.innerHTML = '<option value="">-- Estado de orden --</option>' +
     data.map(e => `<option value="${e.idEstadoOrden}">${e.nombreEstadoOrden}</option>`).join('');
+
+  const pendiente = data.find(e => esPendiente(e.nombreEstadoOrden));
+
+  if (pendiente) {
+    sel.value = pendiente.idEstadoOrden;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const fecha = document.getElementById('no-fecha');
-  if (fecha) fecha.value = new Date().toISOString().substring(0, 10);
+
+  if (fecha) {
+    fecha.value = new Date().toISOString().substring(0, 10);
+  }
+
   cargarEstadosOrden();
 });
 
@@ -88,7 +137,7 @@ function filtrarTabla(id, texto) {
 }
 
 function badge(texto) {
-  const t = (texto || '').toLowerCase();
+  const t = normalizarEstado(texto);
 
   if (t.includes('entregada') || t.includes('completado') || t.includes('aprobado')) {
     return `<span class="badge badge-green">${texto}</span>`;
@@ -118,14 +167,28 @@ function msg(id, texto, tipo) {
   }, 5000);
 }
 
+function renderStatsCards(id, cards) {
+  const cont = document.getElementById(id);
+  if (!cont) return;
+
+  cont.innerHTML = cards.map(c => `
+    <div class="stat-box">
+      <div class="num">${c.n}</div>
+      <div class="lbl">${c.l}</div>
+    </div>
+  `).join('');
+}
+
 async function cargarOrdenes() {
   mostrarCarga('cont-ordenes');
+
   try {
     const data = await fetch(`${API}/compras`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idOrdenCompra');
 
-    const pendientes = ordenados.filter(o => (o.estadoOrden || '').toLowerCase().includes('pendiente')).length;
+    const pendientes = ordenados.filter(o => esPendiente(o.estadoOrden)).length;
     const montoTotal = ordenados.reduce((s, o) => s + Number(o.montoTotal || 0), 0);
+
     renderStatsCards('ord-stats', [
       { n: ordenados.length, l: 'Órdenes' },
       { n: pendientes, l: 'Pendientes' },
@@ -145,20 +208,28 @@ async function cargarOrdenes() {
           </tr>
         </thead>
         <tbody>
-          ${ordenados.map(o => `<tr>
-            <td>${o.idOrdenCompra}</td>
-            <td>${o.fechaOrden ? o.fechaOrden.substring(0, 10) : '-'}</td>
-            <td>${o.nombreProveedor || '-'}</td>
-            <td>${moneda(o.montoTotal)}</td>
-            <td>${badge(o.estadoOrden)}</td>
-            <td>
-              ${(o.estadoOrden || '').toLowerCase().includes('pendiente') ? `<button class="btn" style="padding:4px 10px;font-size:.78rem;background:#b7791f;color:#fff;" onclick="cancelarOrden(${o.idOrdenCompra})">Cancelar compra</button>` : ''}
-              <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarOrden(${o.idOrdenCompra})">Eliminar</button>
-            </td>
-          </tr>`).join('')}
+          ${ordenados.map(o => {
+            const pendiente = esPendiente(o.estadoOrden);
+            const entregada = esEntregada(o.estadoOrden);
+
+            return `<tr>
+              <td>${o.idOrdenCompra}</td>
+              <td>${o.fechaOrden ? o.fechaOrden.substring(0, 10) : '-'}</td>
+              <td>${o.nombreProveedor || '-'}</td>
+              <td>${moneda(o.montoTotal)}</td>
+              <td>${badge(o.estadoOrden)}</td>
+              <td>
+                ${pendiente ? `<button class="btn" style="padding:4px 10px;font-size:.78rem;background:#b7791f;color:#fff;" onclick="cancelarOrden(${o.idOrdenCompra})">Cancelar compra</button>` : ''}
+                ${!entregada ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarOrden(${o.idOrdenCompra})">Eliminar</button>` : '<span style="color:#6B756D;">Bloqueada</span>'}
+              </td>
+            </tr>`;
+          }).join('')}
         </tbody>
-      </table>`;
+      </table>
+    `;
+
     aplicarPaginacion('tbl-ordenes');
+
   } catch (e) {
     document.getElementById('cont-ordenes').innerHTML = '<p style="color:red">Error al cargar órdenes de compra</p>';
   }
@@ -175,9 +246,13 @@ async function crearOrden() {
   if (!body.fechaOrden || !body.idEstadoOrden || Number.isNaN(body.montoTotal)) {
     return msg('msg-orden', 'Llene todos los campos obligatorios (*)', 'err');
   }
-  if (!body.idProveedor) return msg('msg-orden', 'Seleccione un proveedor de la lista.', 'err');
+
+  if (!body.idProveedor) {
+    return msg('msg-orden', 'Seleccione un proveedor de la lista.', 'err');
+  }
 
   const hoy = new Date().toISOString().substring(0, 10);
+
   if (body.fechaOrden > hoy) {
     return msg('msg-orden', 'La fecha de la orden no puede ser futura.', 'err');
   }
@@ -200,10 +275,19 @@ async function crearOrden() {
     document.querySelectorAll('#tab-nueva-orden input').forEach(i => {
       i.value = '';
     });
+
     const refPanel = document.getElementById('no-catalogo-ref');
-    if (refPanel) { refPanel.style.display = 'none'; refPanel.innerHTML = ''; }
+
+    if (refPanel) {
+      refPanel.style.display = 'none';
+      refPanel.innerHTML = '';
+    }
+
     const montoHint = document.getElementById('no-monto-hint');
-    if (montoHint) montoHint.textContent = '';
+
+    if (montoHint) {
+      montoHint.textContent = '';
+    }
 
     const fecha = document.getElementById('no-fecha');
 
@@ -211,46 +295,67 @@ async function crearOrden() {
       fecha.value = new Date().toISOString().substring(0, 10);
     }
 
+    cargarEstadosOrden();
     cargarOrdenes();
+
   } catch (e) {
     msg('msg-orden', 'Error de conexión', 'err');
   }
 }
 
-// Al elegir proveedor en "Nueva orden", muestra su catálogo como referencia
-// de precios para estimar el monto acordado.
 async function onSelProveedorOrden(idProveedor) {
   const panel = document.getElementById('no-catalogo-ref');
   const hint = document.getElementById('no-monto-hint');
+
   if (!panel) return;
-  if (!idProveedor) { panel.style.display = 'none'; if (hint) hint.textContent = ''; return; }
+
+  if (!idProveedor) {
+    panel.style.display = 'none';
+    if (hint) hint.textContent = '';
+    return;
+  }
+
   panel.style.display = 'block';
   panel.innerHTML = 'Cargando catálogo del proveedor...';
+
   try {
     const cat = await fetch(`${API}/proveedores/${idProveedor}/materiales`).then(r => r.json());
+
     if (!Array.isArray(cat) || !cat.length) {
       panel.innerHTML = '<b>Este proveedor no tiene materiales en su catálogo todavía.</b> Puedes registrar la orden igual y agregarlos luego.';
       if (hint) hint.textContent = '';
       return;
     }
+
     const precios = cat.map(m => Number(m.precioProveedor || 0));
-    const min = Math.min(...precios), max = Math.max(...precios);
-    if (hint) hint.textContent = `Precios del proveedor: entre Bs ${min.toFixed(2)} y Bs ${max.toFixed(2)} por material.`;
+    const min = Math.min(...precios);
+    const max = Math.max(...precios);
+
+    if (hint) {
+      hint.textContent = `Precios del proveedor: entre Bs ${min.toFixed(2)} y Bs ${max.toFixed(2)} por material.`;
+    }
+
     panel.innerHTML = `
       <b style="color:#173F24;">Catálogo de referencia (${cat.length} materiales)</b>
       <table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
-        <thead><tr style="background:#123823;color:#fff;">
-          <th style="text-align:left;padding:6px;">Material</th>
-          <th style="text-align:right;padding:6px;">Precio (Bs)</th>
-          <th style="text-align:left;padding:6px;">Entrega</th>
-        </tr></thead>
-        <tbody>${cat.map(m => `<tr>
-          <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
-          <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${Number(m.precioProveedor).toFixed(2)}</td>
-          <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.tiempoEntrega != null ? m.tiempoEntrega + ' días' : '-'}</td>
-        </tr>`).join('')}</tbody>
+        <thead>
+          <tr style="background:#123823;color:#fff;">
+            <th style="text-align:left;padding:6px;">Material</th>
+            <th style="text-align:right;padding:6px;">Precio (Bs)</th>
+            <th style="text-align:left;padding:6px;">Entrega</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cat.map(m => `<tr>
+            <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
+            <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${Number(m.precioProveedor).toFixed(2)}</td>
+            <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.tiempoEntrega != null ? m.tiempoEntrega + ' días' : '-'}</td>
+          </tr>`).join('')}
+        </tbody>
       </table>
-      <small style="color:#6b756d;">Usa estos precios para estimar el monto acordado de la orden.</small>`;
+      <small style="color:#6b756d;">Usa estos precios para estimar el monto acordado de la orden.</small>
+    `;
+
   } catch (e) {
     panel.innerHTML = 'No se pudo cargar el catálogo del proveedor.';
   }
@@ -258,12 +363,22 @@ async function onSelProveedorOrden(idProveedor) {
 
 async function buscarDetalle() {
   const idOrden = document.getElementById('do-idorden').value.trim() ||
-    (/^\d+$/.test((document.getElementById('do-orden-nom') || {}).value || '') ? (document.getElementById('do-orden-nom') || {}).value.trim() : '');
+    (/^\d+$/.test((document.getElementById('do-orden-nom') || {}).value || '')
+      ? (document.getElementById('do-orden-nom') || {}).value.trim()
+      : '');
 
   if (!idOrden) return;
 
   try {
-    const data = await fetch(`${API}/compras/${idOrden}/detalle`).then(r => r.json());
+    const [orden, data] = await Promise.all([
+      fetch(`${API}/compras/${idOrden}`).then(r => r.json()),
+      fetch(`${API}/compras/${idOrden}/detalle`).then(r => r.json())
+    ]);
+
+    if (orden.error) {
+      document.getElementById('cont-detalle-orden').innerHTML = `<p style="color:red">${orden.error}</p>`;
+      return;
+    }
 
     if (data.error) {
       document.getElementById('cont-detalle-orden').innerHTML = `<p style="color:red">${data.error}</p>`;
@@ -276,8 +391,14 @@ async function buscarDetalle() {
     }
 
     const ordenados = ordenarPorNumero(data, 'idDetalleCompra');
+    const puedeEliminar = esPendiente(orden.estadoOrden);
 
     document.getElementById('cont-detalle-orden').innerHTML = `
+      <p style="color:#6B756D;margin-bottom:8px;">
+        Estado de la orden: ${badge(orden.estadoOrden)}
+        ${!puedeEliminar ? '<br><b style="color:#991B1B;">Los detalles están bloqueados porque la orden ya no está Pendiente.</b>' : ''}
+      </p>
+
       <table id="tbl-detalle-orden">
         <thead>
           <tr>
@@ -296,49 +417,90 @@ async function buscarDetalle() {
             <td>${d.cantidad}</td>
             <td>${moneda(d.precioUnitario)}</td>
             <td>${moneda(d.total)}</td>
-            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarDetalle(${d.idDetalleCompra})">Eliminar</button></td>
+            <td>
+              ${puedeEliminar
+                ? `<button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarDetalle(${d.idDetalleCompra})">Eliminar</button>`
+                : '<span style="color:#6B756D;">Bloqueado</span>'}
+            </td>
           </tr>`).join('')}
         </tbody>
-      </table>`;
+      </table>
+    `;
+
     aplicarPaginacion('tbl-detalle-orden');
+
   } catch (e) {
     document.getElementById('cont-detalle-orden').innerHTML = '<p style="color:red">Error de conexión</p>';
   }
 }
 
 let catalogoOrden = [];
-let _montoOrdenActual = 0;   // monto acordado de la orden elegida en "Agregar detalle"
+let _montoOrdenActual = 0;
 
 async function cargarMaterialesDeOrden(idOrden) {
   const sel = document.getElementById('ad-idmaterial');
+
+  if (!sel) return;
+
   sel.innerHTML = '<option value="">Cargando catálogo...</option>';
   catalogoOrden = [];
+
   try {
     const orden = await fetch(`${API}/compras/${idOrden}`).then(r => r.json());
+
     if (!orden || !orden.idProveedor) {
       sel.innerHTML = '<option value="">No se pudo obtener el proveedor</option>';
       return;
     }
+
+    if (!esPendiente(orden.estadoOrden)) {
+      sel.innerHTML = '<option value="">Solo se pueden agregar materiales a órdenes Pendientes</option>';
+
+      const panel = document.getElementById('ad-presupuesto');
+
+      if (panel) {
+        panel.style.display = 'block';
+        panel.innerHTML = `
+          <div style="color:#991B1B;font-weight:700;">
+            Esta orden está en estado ${orden.estadoOrden}. No se pueden agregar nuevos materiales.
+          </div>
+        `;
+      }
+
+      const cont = document.getElementById('ad-items-actuales');
+
+      if (cont) {
+        cont.innerHTML = '';
+      }
+
+      return;
+    }
+
     _montoOrdenActual = Number(orden.montoTotal || 0);
+
     const catalogo = await fetch(`${API}/proveedores/${orden.idProveedor}/materiales`).then(r => r.json());
     catalogoOrden = Array.isArray(catalogo) ? catalogo : [];
+
     if (!catalogoOrden.length) {
       sel.innerHTML = '<option value="">El proveedor no tiene materiales en su catálogo</option>';
     } else {
       sel.innerHTML = '<option value="">-- Seleccionar material --</option>' +
         catalogoOrden.map(m => `<option value="${m.idMaterial}" data-precio="${m.precioProveedor}">${m.nombreMaterial} (Bs ${m.precioProveedor})</option>`).join('');
     }
+
     await renderPresupuestoOrden(idOrden);
+
   } catch (e) {
     sel.innerHTML = '<option value="">Error al cargar catálogo</option>';
   }
 }
 
-// Muestra presupuesto (acordado / gastado / disponible) y los ítems ya cargados.
 async function renderPresupuestoOrden(idOrden) {
   const panel = document.getElementById('ad-presupuesto');
   const cont = document.getElementById('ad-items-actuales');
+
   if (!panel) return;
+
   try {
     const detalle = await fetch(`${API}/compras/${idOrden}/detalle`).then(r => r.json());
     const items = Array.isArray(detalle) ? detalle : [];
@@ -349,19 +511,46 @@ async function renderPresupuestoOrden(idOrden) {
     panel.style.display = 'flex';
     panel.style.cssText += 'display:flex;flex-wrap:wrap;gap:16px;';
     panel.innerHTML = `
-      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Monto acordado</div><b style="font-size:1.2rem;color:#173F24;">${moneda(_montoOrdenActual)}</b></div>
-      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Gastado en detalle</div><b style="font-size:1.2rem;color:#173F24;">${moneda(gastado)}</b></div>
-      <div><div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Disponible</div><b style="font-size:1.2rem;color:${colorDisp};">${moneda(disponible)}</b></div>`;
+      <div>
+        <div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Monto acordado</div>
+        <b style="font-size:1.2rem;color:#173F24;">${moneda(_montoOrdenActual)}</b>
+      </div>
+
+      <div>
+        <div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Gastado en detalle</div>
+        <b style="font-size:1.2rem;color:#173F24;">${moneda(gastado)}</b>
+      </div>
+
+      <div>
+        <div style="font-size:.72rem;color:#6b756d;text-transform:uppercase;">Disponible</div>
+        <b style="font-size:1.2rem;color:${colorDisp};">${moneda(disponible)}</b>
+      </div>
+    `;
 
     if (cont) {
       cont.innerHTML = items.length
         ? `<b style="color:#173F24;">Materiales ya cargados en esta orden (${items.length})</b>
            <table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
-             <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Material</th><th style="text-align:right;padding:6px;">Cantidad</th><th style="text-align:right;padding:6px;">P. Unit</th><th style="text-align:right;padding:6px;">Total</th></tr></thead>
-             <tbody>${items.map(d => `<tr><td style="padding:6px;border-bottom:1px solid #e1e6dd;">${d.nombreMaterial || '-'}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${d.cantidad}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.precioUnitario)}</td><td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.total)}</td></tr>`).join('')}</tbody>
+             <thead>
+               <tr style="background:#123823;color:#fff;">
+                 <th style="text-align:left;padding:6px;">Material</th>
+                 <th style="text-align:right;padding:6px;">Cantidad</th>
+                 <th style="text-align:right;padding:6px;">P. Unit</th>
+                 <th style="text-align:right;padding:6px;">Total</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${items.map(d => `<tr>
+                 <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${d.nombreMaterial || '-'}</td>
+                 <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${d.cantidad}</td>
+                 <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.precioUnitario)}</td>
+                 <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${moneda(d.total)}</td>
+               </tr>`).join('')}
+             </tbody>
            </table>`
         : '<p style="color:#6b756d;">Esta orden aún no tiene materiales cargados.</p>';
     }
+
   } catch (e) {
     panel.style.display = 'none';
   }
@@ -371,17 +560,27 @@ function autoPrecioMaterial() {
   const sel = document.getElementById('ad-idmaterial');
   const opt = sel.options[sel.selectedIndex];
   const precio = opt ? opt.getAttribute('data-precio') : null;
-  if (precio) document.getElementById('ad-precio').value = precio;
+
+  if (precio) {
+    document.getElementById('ad-precio').value = precio;
+  }
+
   calcularSubtotalDetalle();
 }
 
-// Subtotal en vivo (cantidad × precio) con aviso si supera lo disponible.
 function calcularSubtotalDetalle() {
   const out = document.getElementById('ad-subtotal');
+
   if (!out) return;
+
   const cant = parseFloat(document.getElementById('ad-cantidad').value);
   const precio = parseFloat(document.getElementById('ad-precio').value);
-  if (Number.isNaN(cant) || Number.isNaN(precio)) { out.textContent = ''; return; }
+
+  if (Number.isNaN(cant) || Number.isNaN(precio)) {
+    out.textContent = '';
+    return;
+  }
+
   const subtotal = cant * precio;
   out.style.color = '#28512b';
   out.textContent = `Subtotal: ${moneda(subtotal)}`;
@@ -390,7 +589,19 @@ function calcularSubtotalDetalle() {
 async function agregarDetalleOrden() {
   const idOrden = document.getElementById('ad-idorden').value.trim();
 
-  if (!idOrden) return msg('msg-agregar-detalle', 'Seleccione una orden de la lista.', 'err');
+  if (!idOrden) {
+    return msg('msg-agregar-detalle', 'Seleccione una orden de la lista.', 'err');
+  }
+
+  const orden = await fetch(`${API}/compras/${idOrden}`).then(r => r.json()).catch(() => null);
+
+  if (!orden || orden.error) {
+    return msg('msg-agregar-detalle', 'No se pudo validar la orden seleccionada.', 'err');
+  }
+
+  if (!esPendiente(orden.estadoOrden)) {
+    return msg('msg-agregar-detalle', 'Solo se pueden agregar materiales a órdenes Pendientes.', 'err');
+  }
 
   const body = {
     idMaterial: parseInt(document.getElementById('ad-idmaterial').value),
@@ -420,17 +631,22 @@ async function agregarDetalleOrden() {
     document.getElementById('ad-idmaterial').value = '';
     document.getElementById('ad-cantidad').value = '';
     document.getElementById('ad-precio').value = '';
+
     const sub = document.getElementById('ad-subtotal');
-    if (sub) sub.textContent = '';
+
+    if (sub) {
+      sub.textContent = '';
+    }
 
     cargarOrdenes();
-    renderPresupuestoOrden(idOrden);   // refresca presupuesto e ítems
+    renderPresupuestoOrden(idOrden);
 
     const detalleInput = document.getElementById('do-idorden');
 
     if (detalleInput) {
       detalleInput.value = idOrden;
     }
+
   } catch (e) {
     msg('msg-agregar-detalle', 'Error de conexión', 'err');
   }
@@ -438,17 +654,25 @@ async function agregarDetalleOrden() {
 
 async function cancelarOrden(idOrden) {
   if (!idOrden) return;
+
   if (!confirmarAccion(`¿Seguro que quieres cancelar la compra (orden #${idOrden})? Solo se pueden cancelar órdenes pendientes.`)) {
     return;
   }
+
   try {
     const res = await fetch(`${API}/compras/${idOrden}/cancelar`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' }
     });
+
     const data = await res.json();
-    if (!res.ok) return alert('Error: ' + data.error);
+
+    if (!res.ok) {
+      return alert('Error: ' + data.error);
+    }
+
     cargarOrdenes();
+
   } catch (e) {
     alert('Error de conexión');
   }
@@ -494,8 +718,11 @@ async function buscarPorProveedor() {
             <td>${badge(o.estadoOrden)}</td>
           </tr>`).join('')}
         </tbody>
-      </table>`;
+      </table>
+    `;
+
     aplicarPaginacion('tbl-por-proveedor');
+
   } catch (e) {
     document.getElementById('cont-por-proveedor').innerHTML = '<p style="color:red">Error de conexión</p>';
   }
@@ -504,13 +731,36 @@ async function buscarPorProveedor() {
 async function cargarFormEditarOrden(idOrden) {
   try {
     const data = await fetch(`${API}/compras/${idOrden}`).then(r => r.json());
-    if (data.error) { alert('Orden no encontrada'); return; }
+
+    if (data.error) {
+      alert('Orden no encontrada');
+      return;
+    }
+
     document.getElementById('eo-fecha').value = data.fechaOrden ? data.fechaOrden.substring(0, 10) : '';
     document.getElementById('eo-monto').value = data.montoTotal || '';
     document.getElementById('eo-prov-nom').value = data.nombreProveedor || '';
     document.getElementById('eo-idproveedor').value = data.idProveedor || '';
+
     await cargarEstadosOrdenEditar(data.idEstadoOrden);
-    document.getElementById('form-editar-orden').style.display = 'block';
+
+    const form = document.getElementById('form-editar-orden');
+    const msgEditar = document.getElementById('msg-editar-orden');
+
+    if (form) {
+      form.style.display = 'block';
+    }
+
+    if (msgEditar) {
+      if (esEntregada(data.estadoOrden) || esCancelada(data.estadoOrden)) {
+        msgEditar.className = 'msg err';
+        msgEditar.textContent = `Esta orden está ${data.estadoOrden}. No se puede editar.`;
+      } else {
+        msgEditar.className = 'msg';
+        msgEditar.textContent = '';
+      }
+    }
+
   } catch (e) {
     alert('Error al cargar datos de la orden');
   }
@@ -519,57 +769,87 @@ async function cargarFormEditarOrden(idOrden) {
 async function cargarEstadosOrdenEditar(idSeleccionado) {
   const data = await fetch(`${API}/compras/estados`).then(r => r.json()).catch(() => []);
   const sel = document.getElementById('eo-idestado');
+
   if (!sel) return;
+
   sel.innerHTML = '<option value="">-- Estado --</option>' +
     data.map(e => `<option value="${e.idEstadoOrden}" ${e.idEstadoOrden === idSeleccionado ? 'selected' : ''}>${e.nombreEstadoOrden}</option>`).join('');
 }
 
 async function guardarEdicionOrden() {
   const id = document.getElementById('eo-idorden').value;
-  if (!id) return msg('msg-editar-orden', 'Seleccione una orden de la lista.', 'err');
+
+  if (!id) {
+    return msg('msg-editar-orden', 'Seleccione una orden de la lista.', 'err');
+  }
+
   const body = {
     fechaOrden: document.getElementById('eo-fecha').value,
     idEstadoOrden: parseInt(document.getElementById('eo-idestado').value) || null,
     idProveedor: parseInt(document.getElementById('eo-idproveedor').value) || null,
     montoTotal: parseFloat(document.getElementById('eo-monto').value) || null
   };
+
   if (!body.fechaOrden || !body.idEstadoOrden || !body.idProveedor || !body.montoTotal) {
     return msg('msg-editar-orden', 'Todos los campos son obligatorios.', 'err');
   }
+
   try {
     const res = await fetch(`${API}/compras/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
     const data = await res.json();
-    if (!res.ok) return msg('msg-editar-orden', 'Error: ' + data.error, 'err');
-    msg('msg-editar-orden', 'Orden actualizada correctamente', 'ok');
+
+    if (!res.ok) {
+      return msg('msg-editar-orden', 'Error: ' + data.error, 'err');
+    }
+
+    msg('msg-editar-orden', data.mensaje || 'Orden actualizada correctamente', 'ok');
     cargarOrdenes();
+
   } catch (e) {
     msg('msg-editar-orden', 'Error de conexión', 'err');
   }
 }
 
 async function eliminarOrden(id) {
-  if (!confirmarAccion(`¿Eliminar la orden de compra ID ${id}? Esta acción no se puede deshacer.`)) return;
+  if (!confirmarAccion(`¿Eliminar la orden de compra ID ${id}? Esta acción no se puede deshacer.`)) {
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/compras/${id}`, { method: 'DELETE' });
     const data = await res.json();
-    if (!res.ok) return alert('Error: ' + data.error);
+
+    if (!res.ok) {
+      return alert('Error: ' + data.error);
+    }
+
     cargarOrdenes();
+
   } catch (e) {
     alert('Error de conexión');
   }
 }
 
 async function eliminarDetalle(idDetalle) {
-  if (!confirmarAccion(`¿Eliminar el ítem de detalle ID ${idDetalle}?`)) return;
+  if (!confirmarAccion(`¿Eliminar el ítem de detalle ID ${idDetalle}?`)) {
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/compras/detalle/${idDetalle}`, { method: 'DELETE' });
     const data = await res.json();
-    if (!res.ok) return alert('Error: ' + data.error);
+
+    if (!res.ok) {
+      return alert('Error: ' + data.error);
+    }
+
     buscarDetalle();
+
   } catch (e) {
     alert('Error de conexión');
   }

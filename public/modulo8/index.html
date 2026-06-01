@@ -35,7 +35,6 @@
     <button class="tab-btn" onclick="switchTab('maestras', this)">Tablas Maestras</button>
   </div>
 
-  <!-- LISTA EMPLEADOS -->
   <div class="tab-content active" id="tab-lista">
     <div class="card">
       <div id="emp-stats" class="emp-stats"></div>
@@ -72,7 +71,6 @@
     </div>
   </div>
 
-  <!-- REGISTRAR EMPLEADO -->
   <div class="tab-content" id="tab-registrar">
     <div class="card">
       <h3>Registrar Nuevo Empleado</h3>
@@ -136,7 +134,6 @@
     </div>
   </div>
 
-  <!-- EDITAR EMPLEADO -->
   <div class="tab-content" id="tab-editar-emp">
     <div class="card">
       <h3>Editar Empleado</h3>
@@ -151,6 +148,7 @@
           </div>
         </div>
       </div>
+
       <div id="form-editar-emp" style="display:none;">
         <div class="form-grid">
           <div class="form-group">
@@ -200,7 +198,6 @@
     </div>
   </div>
 
-  <!-- REGISTRAR HORAS -->
   <div class="tab-content" id="tab-horas">
     <div class="card">
       <h3>Registrar Horas Trabajadas</h3>
@@ -252,7 +249,6 @@
     </div>
   </div>
 
-  <!-- CONSULTAR HORAS -->
   <div class="tab-content" id="tab-consultar-horas">
     <div class="card">
       <h3>Consultar Horas por Empleado</h3>
@@ -273,7 +269,6 @@
     </div>
   </div>
 
-  <!-- BONIFICACION -->
   <div class="tab-content" id="tab-bonificacion">
     <div class="card">
       <h3>Registrar Bonificacion</h3>
@@ -287,31 +282,48 @@
             <input type="hidden" id="b-emp">
           </div>
         </div>
+
+        <div class="form-group">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="b-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('b-proy-nom','ac-b-proy','b-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-b-proy"></div>
+            <input type="hidden" id="b-proyecto">
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Tipo de Bonificacion *</label>
           <input id="b-tipo" placeholder="Ej: Antiguedad">
         </div>
+
         <div class="form-group">
-          <label>Anos de Antiguedad *</label>
-          <input id="b-anios" type="number" placeholder="Anos trabajados" oninput="sugerirPorcentaje()">
+          <label>Años de Antiguedad *</label>
+          <input id="b-anios" type="number" placeholder="Años trabajados" oninput="sugerirPorcentaje()">
         </div>
+
         <div class="form-group">
           <label>Porcentaje Bono (%) *</label>
-          <input id="b-pct" type="number" placeholder="Se sugiere automaticamente">
+          <input id="b-pct" type="number" placeholder="Se sugiere automaticamente" oninput="calcularMonto()">
         </div>
+
         <div class="form-group">
-          <label>Salario Base (Bs) *</label>
-          <input id="b-salario" type="number" placeholder="Salario base" oninput="calcularMonto()">
+          <label>Salario Base del Proyecto (Bs) *</label>
+          <input id="b-salario" type="number" placeholder="Salario base del proyecto" oninput="calcularMonto()">
         </div>
+
         <div class="form-group">
-          <label>Gestion (Ano) *</label>
+          <label>Gestion (Año) *</label>
           <input id="b-gestion" type="number" placeholder="Ej: 2025">
         </div>
+
         <div class="form-group full">
           <label>Descripcion</label>
           <input id="b-desc" placeholder="Descripcion opcional">
         </div>
       </div>
+
       <div id="b-preview" class="resumen-box" style="display:none;"></div>
       <br>
       <button class="btn btn-green" onclick="registrarBonificacion()">Registrar Bonificacion</button>
@@ -321,21 +333,22 @@
     <div class="card">
       <h3>Tabla de Porcentajes por Antiguedad</h3>
       <table>
-        <thead><tr><th>Anos</th><th>Porcentaje</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Años</th>
+            <th>Porcentaje</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>2 - 4 anos</td><td>5%</td></tr>
-          <tr><td>5 - 7 anos</td><td>11%</td></tr>
-          <tr><td>8 - 10 anos</td><td>18%</td></tr>
-          <tr><td>11 - 14 anos</td><td>26%</td></tr>
-          <tr><td>15 - 19 anos</td><td>34%</td></tr>
-          <tr><td>20 - 24 anos</td><td>42%</td></tr>
-          <tr><td>25+ anos</td><td>50%</td></tr>
+          <tr><td>0 - 2 años</td><td>0%</td></tr>
+          <tr><td>3 - 5 años</td><td>10%</td></tr>
+          <tr><td>6 - 10 años</td><td>15%</td></tr>
+          <tr><td>11+ años</td><td>25%</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- TABLAS MAESTRAS -->
   <div class="tab-content" id="tab-maestras">
     <div class="maestras-grid">
 

@@ -349,3 +349,67 @@ small {
 .ac-item:hover { background: #eef4ea; }
 .ac-item small { color: #6b756d; font-size: .77rem; }
 .ac-empty { padding: 9px 12px; color: #6b756d; font-size: .875rem; }
+
+.btn-inspeccionar {
+  background: #28512B;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+.btn-inspeccionar:hover {
+  background: #173F24;
+}
+
+.btn-eliminar {
+  background: #B91C1C;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-eliminar:hover {
+  background: #991B1B;
+}
+.preview-asignacion {
+  margin-top: 16px;
+  padding: 16px;
+  background: #EEF4EA;
+  border: 1px solid #E1E6DD;
+  border-radius: 8px;
+}
+
+.preview-asignacion h4 {
+  margin-bottom: 10px;
+  color: #123823;
+}
+
+.preview-asignacion p {
+  margin: 5px 0;
+  color: #1F2A24;
+}
+
+.tabla-preview {
+  margin-top: 12px;
+  margin-bottom: 14px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-preview th {
+  background: #123823;
+  color: white;
+  padding: 8px;
+}
+
+.tabla-preview td {
+  padding: 8px;
+  border-bottom: 1px solid #E1E6DD;
+}

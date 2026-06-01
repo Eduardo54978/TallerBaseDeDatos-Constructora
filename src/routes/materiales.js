@@ -2,6 +2,35 @@ const express = require('express');
 const router  = express.Router();
 const { sql, config } = require('../config/db');
 
+router.get('/:id/precio-referencia', async (req, res) => {
+    try {
+        const pool = await sql.connect(config);
+        const base = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`SELECT precioUnitario, nombreMaterial FROM material WHERE idMaterial = @id`);
+        if (base.recordset.length === 0)
+            return res.status(404).json({ error: 'Material no encontrado' });
+
+        const ultima = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT TOP 1 dc.precioUnitario, oc.fechaOrden
+                FROM detallecompra dc
+                JOIN ordencompra oc ON dc.idOrdenCompra = oc.idOrdenCompra
+                WHERE dc.idMaterial = @id
+                ORDER BY oc.fechaOrden DESC, dc.idDetalleCompra DESC
+            `);
+
+        res.json({
+            precioCatalogo: base.recordset[0].precioUnitario,
+            ultimaCompra: ultima.recordset.length > 0 ? {
+                precio: ultima.recordset[0].precioUnitario,
+                fecha: ultima.recordset[0].fechaOrden
+            } : null
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/search', async (req, res) => {
     const { q } = req.query;
     if (!q) return res.json([]);
