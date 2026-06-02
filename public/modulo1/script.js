@@ -598,7 +598,10 @@ function mostrarProyectos(datos) {
       <td>${fecha(p.fechaInicio)}</td>
       <td>${fecha(p.fechaFinEstimada)}</td>
       <td>${estadoProyecto(p.nombreEstadoProyecto)}</td>
-      <td><button type="button" class="btn-guardar" style="padding:5px 12px;font-size:.8rem;" onclick="inspeccionarProyecto(${p.idProyecto})">Inspeccionar</button></td>
+      <td>
+        <button type="button" class="btn-inspeccionar" onclick="inspeccionarProyecto(${p.idProyecto})">Inspeccionar</button>
+        <button type="button" class="btn-eliminar" onclick="eliminarProyecto(${p.idProyecto})">Eliminar</button>
+      </td>
     `;
 
     tabla.appendChild(fila);
@@ -1019,4 +1022,43 @@ function estadoAsignacion(valor) {
   }
 
   return `<span class="estado verde">${texto}</span>`;
+}
+
+async function eliminarProyecto(idProyecto) {
+  const proyecto = listaProyectos.find(p => Number(p.idProyecto) === Number(idProyecto));
+  const nombreProyecto = proyecto ? proyecto.nombreProyecto : "";
+
+  const confirmar = confirm(
+    `¿Estás seguro de eliminar el proyecto ${nombreProyecto ? `"${nombreProyecto}"` : ""}? Esta acción no se puede deshacer.`
+  );
+
+  if (!confirmar) {
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${idProyecto}`, {
+      method: "DELETE"
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      alert(resultado.error || "No se pudo eliminar el proyecto.");
+      return;
+    }
+
+    alert(resultado.mensaje || "Proyecto eliminado correctamente.");
+
+    await cargarProyectos();
+    await cargarPersonal();
+
+    if (typeof cargarDisponibilidad === "function") {
+      await cargarDisponibilidad();
+    }
+
+  } catch (error) {
+    console.error("Error al eliminar proyecto:", error);
+    alert("Error de conexión con el servidor.");
+  }
 }

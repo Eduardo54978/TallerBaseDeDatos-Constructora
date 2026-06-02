@@ -120,13 +120,10 @@ function msg(id, texto, tipo) {
 }
 
 const tablaBonos = [
-  { min: 2, max: 4, pct: 5 },
-  { min: 5, max: 7, pct: 11 },
-  { min: 8, max: 10, pct: 18 },
-  { min: 11, max: 14, pct: 26 },
-  { min: 15, max: 19, pct: 34 },
-  { min: 20, max: 24, pct: 42 },
-  { min: 25, max: 999, pct: 50 }
+  { min: 0, max: 2, pct: 0 },
+  { min: 3, max: 5, pct: 10 },
+  { min: 6, max: 10, pct: 15 },
+  { min: 11, max: 999, pct: 25 }
 ];
 
 function sugerirPorcentaje() {
@@ -135,21 +132,35 @@ function sugerirPorcentaje() {
 
   if (fila) {
     document.getElementById('b-pct').value = fila.pct;
-    calcularMonto();
+  } else {
+    document.getElementById('b-pct').value = '';
   }
+
+  calcularMonto();
 }
 
 function calcularMonto() {
-  const salario = parseFloat(document.getElementById('b-salario').value) || 0;
-  const pct = parseFloat(document.getElementById('b-pct').value) || 0;
-  const monto = (salario * pct) / 100;
+  const salario = parseFloat(document.getElementById('b-salario').value);
+  const pct = parseFloat(document.getElementById('b-pct').value);
   const prev = document.getElementById('b-preview');
 
-  if (salario && pct && prev) {
-    prev.style.display = 'block';
-    prev.innerHTML = `<p>Monto calculado: <b>Bs ${monto.toFixed(2)}</b></p>
-                      <p>Salario base Bs ${salario.toFixed(2)} x ${pct}%</p>`;
+  if (!prev) return;
+
+  if (Number.isNaN(salario) || Number.isNaN(pct) || salario <= 0) {
+    prev.style.display = 'none';
+    prev.innerHTML = '';
+    return;
   }
+
+  const monto = (salario * pct) / 100;
+  const salarioFinal = salario + monto;
+
+  prev.style.display = 'block';
+  prev.innerHTML = `
+    <p>Monto bono: <b>Bs ${monto.toFixed(2)}</b></p>
+    <p>Salario base Bs ${salario.toFixed(2)} x ${pct}%</p>
+    <p>Salario final del proyecto: <b>Bs ${salarioFinal.toFixed(2)}</b></p>
+  `;
 }
 
 document.addEventListener('input', () => {
@@ -516,17 +527,22 @@ async function consultarHoras() {
 async function registrarBonificacion() {
   const body = {
     idEmpleado: parseInt(document.getElementById('b-emp').value),
+    idProyecto: parseInt(document.getElementById('b-proyecto').value),
     tipoBonificacion: document.getElementById('b-tipo').value.trim(),
     aniosAntiguedad: parseInt(document.getElementById('b-anios').value),
     porcentajeBono: parseFloat(document.getElementById('b-pct').value),
-    salarioBase: parseFloat(document.getElementById('b-salario').value),
+    salarioBaseProyecto: parseFloat(document.getElementById('b-salario').value),
     gestion: parseInt(document.getElementById('b-gestion').value),
     descripcion: document.getElementById('b-desc').value.trim()
   };
 
-  if (!body.idEmpleado || !body.tipoBonificacion || !body.salarioBase || !body.gestion) {
-    return msg('msg-bono', 'Completa todos los campos obligatorios', 'err');
-  }
+  if (!body.idEmpleado) return msg('msg-bono', 'Seleccione un empleado de la lista.', 'err');
+  if (!body.idProyecto) return msg('msg-bono', 'Seleccione un proyecto de la lista.', 'err');
+  if (!body.tipoBonificacion) return msg('msg-bono', 'Ingrese el tipo de bonificación.', 'err');
+  if (Number.isNaN(body.aniosAntiguedad)) return msg('msg-bono', 'Ingrese los años de antigüedad.', 'err');
+  if (Number.isNaN(body.porcentajeBono)) return msg('msg-bono', 'Ingrese el porcentaje del bono.', 'err');
+  if (Number.isNaN(body.salarioBaseProyecto) || body.salarioBaseProyecto <= 0) return msg('msg-bono', 'Ingrese un salario base válido.', 'err');
+  if (!body.gestion) return msg('msg-bono', 'Ingrese la gestión.', 'err');
 
   try {
     const res = await fetch(`${API}/empleados/bonificaciones`, {
@@ -541,9 +557,9 @@ async function registrarBonificacion() {
       return msg('msg-bono', 'Error: ' + data.error, 'err');
     }
 
-    msg('msg-bono', `Bonificación registrada. Monto: Bs ${data.montoCalculado}`, 'ok');
+    msg('msg-bono', `Bono registrado. Monto bono: Bs ${Number(data.montoBono).toFixed(2)} | Salario final: Bs ${Number(data.salarioFinalProyecto).toFixed(2)}`, 'ok');
 
-    ['b-emp-nom', 'b-emp', 'b-tipo', 'b-anios', 'b-pct', 'b-salario', 'b-gestion', 'b-desc'].forEach(id => {
+    ['b-emp-nom', 'b-emp', 'b-proy-nom', 'b-proyecto', 'b-tipo', 'b-anios', 'b-pct', 'b-salario', 'b-gestion', 'b-desc'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });

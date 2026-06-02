@@ -1,10 +1,8 @@
 -- ENTREGA: CONSTRAINTS + ROLES + DEMOSTRACIONES
 -- Sistema Empresa Constructora
 -- Versión corregida y actualizada
-
 USE constructora;
 GO
-
 -- PARTE 1: CHECK CONSTRAINTS
 -- Se eliminan primero para evitar errores si el script se ejecuta más de una vez
 

@@ -1,14 +1,14 @@
 ﻿const sql = require('mssql');
 
 const config = {
+  user: 'sa',
+  password: '1704',
   server: '127.0.0.1',
   port: 1433,
   database: 'constructora',
-  user: 'sa',
-  password: 'Constructora2026!',
   options: {
-    trustServerCertificate: true,
-    encrypt: false
+    encrypt: false,
+    trustServerCertificate: true
   },
   connectionTimeout: 30000,
   requestTimeout: 30000

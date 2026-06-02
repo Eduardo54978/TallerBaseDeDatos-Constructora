@@ -152,8 +152,19 @@ router.post('/', async (req, res) => {
             `);
         res.status(201).json({ idContrato: result.recordset[0].idContrato, mensaje: 'Contrato creado con estado Vigente.' });
     } catch (err) {
-        res.status(400).json({ error: errorAmigable(err) });
-    }
+    const detalle =
+        err.originalError?.info?.message ||
+        err.message ||
+        'Error desconocido';
+
+    console.error('BODY RECIBIDO EN /api/contratos:', req.body);
+    console.error('ERROR REAL SQL:', detalle);
+
+    res.status(400).json({
+        error: errorAmigable(err),
+        detalle: detalle
+    });
+}
 });
 
 // ÔöÇÔöÇ PUT actualizar estado de contrato ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ

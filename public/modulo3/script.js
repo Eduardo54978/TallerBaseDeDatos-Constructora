@@ -655,26 +655,37 @@ async function mostrarProyectosEmpleado() {
 
 async function cargarBonosPlanilla(idBonoSeleccionado) {
   const sel = document.getElementById('pl-idbono');
+
   if (!sel) return;
+
   const idEmpleado = document.getElementById('pl-idempleado').value;
   const idProyecto = document.getElementById('pl-idproyecto').value;
+
   if (!idEmpleado || !idProyecto) {
     sel.innerHTML = '<option value="">-- Elige primero empleado y proyecto --</option>';
     return;
   }
+
   sel.innerHTML = '<option value="">Cargando bonos...</option>';
+
   try {
     const data = await fetch(`${API}/pagos/bonos?idEmpleado=${idEmpleado}&idProyecto=${idProyecto}`).then(r => r.json());
+
     if (!Array.isArray(data) || !data.length) {
-      sel.innerHTML = '<option value="">Sin bono registrado para este empleado/proyecto</option>';
-      msg('msg-pago-plan', 'Este empleado no tiene un bono de antigüedad registrado en ese proyecto. Regístralo primero en RR.HH.', 'err');
+      sel.innerHTML = '<option value="">Sin bono registrado - pagar sin bono</option>';
+      msg('msg-pago-plan', 'Este empleado no tiene bono registrado. Puedes continuar escribiendo el monto manualmente.', 'ok');
       return;
     }
-    sel.innerHTML = '<option value="">-- Seleccionar bono --</option>' +
+
+    sel.innerHTML = '<option value="">Sin bono / monto manual</option>' +
       data.map(b => `<option value="${b.idBonoAntiguedadProyecto}" data-salario="${b.salarioFinalProyecto}">Gestión ${b.gestion} — ${b.aniosAntiguedad} años, bono ${b.porcentajeBono}% — Salario final Bs ${b.salarioFinalProyecto}</option>`).join('');
-    if (idBonoSeleccionado) sel.value = idBonoSeleccionado;
+
+    if (idBonoSeleccionado) {
+      sel.value = idBonoSeleccionado;
+    }
+
   } catch (e) {
-    sel.innerHTML = '<option value="">Error al cargar bonos</option>';
+    sel.innerHTML = '<option value="">Sin bono / monto manual</option>';
   }
 }
 
@@ -688,52 +699,86 @@ function onSelBonoPlanilla() {
 }
 
 async function registrarPagoPlanilla() {
+  const bonoValue = document.getElementById('pl-idbono').value;
+
   const body = {
     idEmpleado: parseInt(document.getElementById('pl-idempleado').value),
     idProyecto: parseInt(document.getElementById('pl-idproyecto').value),
-    idBonoAntiguedadProyecto: parseInt(document.getElementById('pl-idbono').value),
+    idBonoAntiguedadProyecto: bonoValue ? parseInt(bonoValue) : null,
     fechaPago: document.getElementById('pl-fecha').value,
     montoPagado: parseFloat(document.getElementById('pl-monto').value),
     idMetodoPago: parseInt(document.getElementById('pl-idmetodo').value),
     idEstadoPago: parseInt(document.getElementById('pl-idestado').value)
   };
-  if (!body.idEmpleado) return msg('msg-pago-plan', 'Seleccione un empleado de la lista.', 'err');
-  if (!body.idProyecto) return msg('msg-pago-plan', 'Seleccione un proyecto de la lista.', 'err');
-  if (!body.idBonoAntiguedadProyecto) return msg('msg-pago-plan', 'Seleccione el bono de antigüedad del empleado.', 'err');
+
+  if (!body.idEmpleado) {
+    return msg('msg-pago-plan', 'Seleccione un empleado de la lista.', 'err');
+  }
+
+  if (!body.idProyecto) {
+    return msg('msg-pago-plan', 'Seleccione un proyecto de la lista.', 'err');
+  }
+
   if (!body.fechaPago || Number.isNaN(body.montoPagado) || !body.idMetodoPago || !body.idEstadoPago) {
     return msg('msg-pago-plan', 'Complete fecha, monto, método y estado.', 'err');
   }
+
+  if (body.montoPagado <= 0) {
+    return msg('msg-pago-plan', 'El monto pagado debe ser mayor a 0.', 'err');
+  }
+
   try {
     const url = editPagoPlan ? `${API}/pagos/planilla/${editPagoPlan}` : `${API}/pagos/planilla`;
     const method = editPagoPlan ? 'PUT' : 'POST';
+
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
     const data = await res.json();
-    if (!res.ok) return msg('msg-pago-plan', 'Error: ' + data.error, 'err');
+
+    if (!res.ok) {
+      return msg('msg-pago-plan', 'Error: ' + data.error, 'err');
+    }
+
     if (editPagoPlan) {
       msg('msg-pago-plan', 'Pago actualizado correctamente', 'ok');
       cancelarEdicionPago('planilla');
     } else {
       const nombreEmp = document.getElementById('pl-emp-nom').value;
       const nombreProy = document.getElementById('pl-proy-nom').value;
+
       msg('msg-pago-plan', `Pago exitoso (Nº ${data.idPagoPlanillaProyecto}): se pagó Bs ${body.montoPagado.toFixed(2)} al empleado ${nombreEmp} por el proyecto ${nombreProy}.`, 'ok');
+
       ['pl-emp-nom', 'pl-idempleado', 'pl-proy-nom', 'pl-idproyecto', 'pl-fecha', 'pl-monto'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+
       document.getElementById('pl-idbono').innerHTML = '<option value="">-- Elige primero empleado y proyecto --</option>';
       document.getElementById('pl-idmetodo').value = '';
       document.getElementById('pl-idestado').value = '';
+
+      const horasInfo = document.getElementById('pl-horas-info');
+      if (horasInfo) {
+        horasInfo.style.display = 'none';
+        horasInfo.innerHTML = '';
+      }
+
+      const proyectosInfo = document.getElementById('pl-emp-proyectos');
+      if (proyectosInfo) {
+        proyectosInfo.textContent = '';
+      }
     }
+
     cargarPagosPlanilla();
+
   } catch (e) {
     msg('msg-pago-plan', 'Error de conexión', 'err');
   }
 }
-
 function imprimirPagosClientes() {
   const tabla = document.getElementById('tbl-pagos-cli');
   if (!tabla) return alert('No hay pagos para imprimir.');
