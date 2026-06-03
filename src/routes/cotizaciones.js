@@ -41,7 +41,7 @@ router.get('/interna', async (req, res) => {
                 p.nombreProyecto,
                 ec.nombreEstadoCotizacion,
                 ISNULL((SELECT SUM(dci.cantidadEstimada * dci.costoUnitarioEstimado) FROM dbo.detallecotizacioninterna dci WHERE dci.idCotizacionInterna = ci.idCotizacionInterna), 0)
-                + ISNULL((SELECT SUM(dmo.cantidadPersonas * dmo.horasEstimadas * c.pagoPorHora) FROM dbo.detallecotizacionmanoobra dmo JOIN dbo.cargo c ON dmo.idCargo = c.idCargo WHERE dmo.idCotizacionInterna = ci.idCotizacionInterna), 0)
+                + ISNULL((SELECT SUM(dmo.cantidadPersonas * dmo.horasEstimadas * ISNULL(dmo.pagoPorHora, c.pagoPorHora)) FROM dbo.detallecotizacionmanoobra dmo JOIN dbo.cargo c ON dmo.idCargo = c.idCargo WHERE dmo.idCotizacionInterna = ci.idCotizacionInterna), 0)
                 AS totalEstimado
             FROM dbo.cotizacioninterna ci
             JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
@@ -316,25 +316,142 @@ router.post('/interna/:id/manodeobra', async (req, res) => {
 
         const cargoExiste = await pool.request()
             .input('id', sql.Int, idCargo)
-            .query(`SELECT 1 FROM dbo.cargo WHERE idCargo = @id`);
+            .query(`SELECT pagoPorHora FROM dbo.cargo WHERE idCargo = @id`);
         if (cargoExiste.recordset.length === 0)
             return res.status(400).json({ error: 'Cargo no existe' });
 
-        // totalEstimado se calcula solo para informar al usuario; la tabla no lo almacena
-        const totalEstimado = cantidadPersonas * horasEstimadas * (pagoPorHora || 0);
+        // El pago por hora lo decide el usuario; el del cargo es solo una sugerencia/fallback
+        const pagoUsuario = Number(pagoPorHora);
+        const pago = (Number.isFinite(pagoUsuario) && pagoUsuario > 0)
+            ? pagoUsuario
+            : Number(cargoExiste.recordset[0].pagoPorHora);
+
+        // totalEstimado se calcula solo para informar al usuario
+        const totalEstimado = cantidadPersonas * horasEstimadas * pago;
 
         const result = await pool.request()
-            .input('idCot',             sql.Int,     idCotizacionInterna)
-            .input('idCargo',           sql.Int,     idCargo)
-            .input('cantidadPersonas',  sql.Int,     cantidadPersonas)
-            .input('horasEstimadas',    sql.Decimal, horasEstimadas)
+            .input('idCot',             sql.Int,            idCotizacionInterna)
+            .input('idCargo',           sql.Int,            idCargo)
+            .input('cantidadPersonas',  sql.Int,            cantidadPersonas)
+            .input('horasEstimadas',    sql.Decimal,        horasEstimadas)
+            .input('pagoPorHora',       sql.Decimal(10, 2), pago)
             .query(`
                 INSERT INTO dbo.detallecotizacionmanoobra
-                    (idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas)
-                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas);
+                    (idCotizacionInterna, idCargo, cantidadPersonas, horasEstimadas, pagoPorHora)
+                VALUES (@idCot, @idCargo, @cantidadPersonas, @horasEstimadas, @pagoPorHora);
                 SELECT CAST(SCOPE_IDENTITY() AS INT) AS idDetalleManoObra;
             `);
         res.status(201).json({ idDetalleManoObra: result.recordset[0].idDetalleManoObra, totalEstimado });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
+// ── POST generar cotización CLIENTE a partir de una INTERNA aprobada ──────────
+// Hereda los totales de la interna (materiales + mano de obra) y les aplica un
+// porcentaje de utilidad editable. Crea dos líneas: "Materiales" y "Mano de obra".
+// Es una foto fija: copia los precios calculados al momento de generar.
+router.post('/interna/:id/generar-cliente', async (req, res) => {
+    const idInterna = parseInt(req.params.id);
+    const { porcentaje, numeroCotizacion, fechaCotizacion, fechaValidez, observaciones } = req.body;
+
+    const pct = Number(porcentaje);
+    if (!Number.isFinite(pct) || pct < 0)
+        return res.status(400).json({ error: 'El porcentaje debe ser un número mayor o igual a 0' });
+    if (!numeroCotizacion || !fechaCotizacion)
+        return res.status(400).json({ error: 'Número y fecha de la cotización cliente son obligatorios' });
+
+    try {
+        const pool = await sql.connect(config);
+
+        // La interna debe existir y estar Aprobada
+        const interna = await pool.request()
+            .input('id', sql.Int, idInterna)
+            .query(`
+                SELECT ci.idProyecto, ec.nombreEstadoCotizacion AS estado
+                FROM dbo.cotizacioninterna ci
+                JOIN dbo.estadocotizacion ec ON ci.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE ci.idCotizacionInterna = @id
+            `);
+        if (interna.recordset.length === 0)
+            return res.status(404).json({ error: 'Cotización interna no encontrada' });
+        if ((interna.recordset[0].estado || '').toLowerCase() !== 'aprobada')
+            return res.status(400).json({ error: 'La cotización interna debe estar Aprobada para generar la cotización cliente' });
+
+        const idProyecto = interna.recordset[0].idProyecto;
+
+        // Número único de cotización cliente
+        const dupNum = await pool.request()
+            .input('num', sql.NVarChar, numeroCotizacion)
+            .query(`SELECT 1 FROM dbo.cotizacioncliente WHERE numeroCotizacionCliente = @num`);
+        if (dupNum.recordset.length > 0)
+            return res.status(400).json({ error: 'El número de cotización ya existe' });
+
+        // Totales de costo de la interna
+        const tot = await pool.request()
+            .input('id', sql.Int, idInterna)
+            .query(`
+                SELECT
+                    ISNULL((SELECT SUM(dci.cantidadEstimada * dci.costoUnitarioEstimado)
+                            FROM dbo.detallecotizacioninterna dci
+                            WHERE dci.idCotizacionInterna = @id), 0) AS totalMateriales,
+                    ISNULL((SELECT SUM(dmo.cantidadPersonas * dmo.horasEstimadas * ISNULL(dmo.pagoPorHora, c.pagoPorHora))
+                            FROM dbo.detallecotizacionmanoobra dmo
+                            JOIN dbo.cargo c ON dmo.idCargo = c.idCargo
+                            WHERE dmo.idCotizacionInterna = @id), 0) AS totalManoObra
+            `);
+        const mult = 1 + pct / 100;
+        const precioMat = Math.round(Number(tot.recordset[0].totalMateriales) * mult * 100) / 100;
+        const precioMO  = Math.round(Number(tot.recordset[0].totalManoObra)  * mult * 100) / 100;
+
+        if (precioMat <= 0 && precioMO <= 0)
+            return res.status(400).json({ error: 'La cotización interna no tiene materiales ni mano de obra para cotizar' });
+
+        const estado = await pool.request()
+            .query(`SELECT idEstadoCotizacion FROM dbo.estadocotizacion WHERE nombreEstadoCotizacion = 'Pendiente'`);
+        if (estado.recordset.length === 0)
+            return res.status(500).json({ error: 'Estado Pendiente no configurado en BD' });
+
+        // Cabecera de la cotización cliente, vinculada a la interna
+        const nueva = await pool.request()
+            .input('num',        sql.NVarChar,     numeroCotizacion)
+            .input('fecha',      sql.Date,         fechaCotizacion)
+            .input('validez',    sql.Date,         fechaValidez || null)
+            .input('obs',        sql.NVarChar,     observaciones || null)
+            .input('idProyecto', sql.Int,          idProyecto)
+            .input('idInterna',  sql.Int,          idInterna)
+            .input('pct',        sql.Decimal(6,2), pct)
+            .input('idEstado',   sql.Int,          estado.recordset[0].idEstadoCotizacion)
+            .query(`
+                INSERT INTO dbo.cotizacioncliente
+                    (numeroCotizacionCliente, fechaCotizacion, fechaValidez, observaciones,
+                     idProyecto, idCotizacionInterna, porcentajeUtilidad, idEstadoCotizacion)
+                VALUES (@num, @fecha, @validez, @obs, @idProyecto, @idInterna, @pct, @idEstado);
+                SELECT CAST(SCOPE_IDENTITY() AS INT) AS idCotizacionCliente;
+            `);
+        const idCliente = nueva.recordset[0].idCotizacionCliente;
+
+        // Dos líneas resumen (sólo las que tengan monto > 0; CHECK exige precio > 0)
+        const insertarLinea = (concepto, precio) => pool.request()
+            .input('idCot',    sql.Int,          idCliente)
+            .input('concepto', sql.NVarChar,     concepto)
+            .input('desc',     sql.NVarChar,     `Generado de cotización interna con +${pct}% de utilidad`)
+            .input('cant',     sql.Decimal(12,3), 1)
+            .input('precio',   sql.Decimal(12,2), precio)
+            .query(`
+                INSERT INTO dbo.detallecotizacioncliente
+                    (idCotizacionCliente, concepto, descripcion, cantidad, precioUnitario)
+                VALUES (@idCot, @concepto, @desc, @cant, @precio);
+            `);
+        if (precioMat > 0) await insertarLinea('Materiales', precioMat);
+        if (precioMO  > 0) await insertarLinea('Mano de obra', precioMO);
+
+        res.status(201).json({
+            idCotizacionCliente: idCliente,
+            totalMateriales: precioMat,
+            totalManoObra:   precioMO,
+            montoTotal:      Math.round((precioMat + precioMO) * 100) / 100
+        });
     } catch (err) {
         res.status(400).json({ error: errorAmigable(err) });
     }
@@ -416,11 +533,14 @@ router.get('/cliente/:id/detalle', async (req, res) => {
             .query(`
                 SELECT cc.idCotizacionCliente, cc.numeroCotizacionCliente, cc.fechaCotizacion,
                        cc.fechaValidez, cc.observaciones, cc.idProyecto, p.nombreProyecto,
-                       cl.nombre AS nombreCliente, ec.nombreEstadoCotizacion AS estado
+                       cl.nombre AS nombreCliente, ec.nombreEstadoCotizacion AS estado,
+                       cc.porcentajeUtilidad, cc.idCotizacionInterna,
+                       ci.numeroCotizacionInterna AS numeroInterna
                 FROM dbo.cotizacioncliente cc
                 JOIN dbo.proyecto p ON cc.idProyecto = p.idProyecto
                 LEFT JOIN dbo.cliente cl ON p.idCliente = cl.idCliente
                 LEFT JOIN dbo.estadocotizacion ec ON cc.idEstadoCotizacion = ec.idEstadoCotizacion
+                LEFT JOIN dbo.cotizacioninterna ci ON cc.idCotizacionInterna = ci.idCotizacionInterna
                 WHERE cc.idCotizacionCliente = @id
             `);
         if (cab.recordset.length === 0)
@@ -472,8 +592,9 @@ router.get('/interna/:id/detalle', async (req, res) => {
         const personal = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
-                SELECT c.nombreCargo, d.cantidadPersonas, d.horasEstimadas, c.pagoPorHora,
-                       CAST(d.cantidadPersonas * d.horasEstimadas * c.pagoPorHora AS DECIMAL(14,2)) AS subtotal
+                SELECT c.nombreCargo, d.cantidadPersonas, d.horasEstimadas,
+                       ISNULL(d.pagoPorHora, c.pagoPorHora) AS pagoPorHora,
+                       CAST(d.cantidadPersonas * d.horasEstimadas * ISNULL(d.pagoPorHora, c.pagoPorHora) AS DECIMAL(14,2)) AS subtotal
                 FROM dbo.detallecotizacionmanoobra d
                 JOIN dbo.cargo c ON d.idCargo = c.idCargo
                 WHERE d.idCotizacionInterna = @id

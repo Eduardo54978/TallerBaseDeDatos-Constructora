@@ -4,43 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bitácora - Movimientos del Sistema</title>
-  <link rel="stylesheet" href="../modulo3/styles.css">
-  <style>
-    .filtros { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px; }
-    .filtros .form-group { min-width:160px; }
-
-    .cards-resumen { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:22px; }
-    .mini-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:0; overflow:hidden;
-                 box-shadow:0 2px 10px rgba(23,63,36,.06); transition:transform .15s, box-shadow .15s; }
-    .mini-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(23,63,36,.12); }
-    .mini-card .mc-head { display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#173F24,#2F5F2F);
-                          color:#fff; padding:12px 18px; }
-    .mini-card .mc-head .ico { font-size:1.2rem; line-height:1; }
-    .mini-card .mc-head h4 { color:#fff; font-size:.78rem; margin:0; text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
-    .mini-card .mc-body { padding:10px 18px 14px; }
-    .mini-card .linea { font-size:.88rem; color:var(--text); display:flex; justify-content:space-between; align-items:center;
-                        padding:6px 0; border-bottom:1px dashed #eef0ec; }
-    .mini-card .linea:last-child { border-bottom:none; }
-    .mini-card .linea .pill { background:#EEF4EA; color:#28512B; font-weight:700; border-radius:20px; padding:2px 12px; font-size:.82rem; min-width:34px; text-align:center; }
-
-    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:12px; margin-bottom:22px; }
-    .stat { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center;
-            box-shadow:0 2px 10px rgba(23,63,36,.06); }
-    .stat .num { font-size:1.7rem; font-weight:800; line-height:1; }
-    .stat .lbl { font-size:.72rem; color:#6b756d; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
-    .stat.total .num    { color:#173F24; }
-    .stat.login .num    { color:#1E40AF; }
-    .stat.crear .num    { color:#28512B; }
-    .stat.editar .num   { color:#92400E; }
-    .stat.eliminar .num { color:#991B1B; }
-
-    .acc { padding:3px 9px; border-radius:10px; font-size:.72rem; font-weight:700; }
-    .acc-LOGIN    { background:#DBEAFE; color:#1E40AF; }
-    .acc-CREAR    { background:#DFEAD8; color:#28512B; }
-    .acc-EDITAR   { background:#FEF3C7; color:#92400E; }
-    .acc-ELIMINAR { background:#FEE2E2; color:#991B1B; }
-    .acc-LIMPIAR  { background:#E5E7EB; color:#374151; }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 

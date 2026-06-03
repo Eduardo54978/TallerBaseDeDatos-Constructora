@@ -292,12 +292,15 @@ CREATE TABLE dbo.cotizacioncliente (
     observaciones               NVARCHAR(MAX)   NULL,
     idProyecto                  INT             NOT NULL,
     idEstadoCotizacion          INT             NOT NULL,
+    idCotizacionInterna         INT             NULL,           -- ← NUEVO: interna de origen (NULL si fue manual)
+    porcentajeUtilidad          DECIMAL(6,2)    NULL,           -- ← NUEVO: % de utilidad aplicado al generar
     CONSTRAINT PK_cotizacioncliente         PRIMARY KEY (idCotizacionCliente),
     CONSTRAINT UQ_numeroCotizacionCliente   UNIQUE (numeroCotizacionCliente),
     CONSTRAINT FK_cotcli_proyecto           FOREIGN KEY (idProyecto)
         REFERENCES dbo.proyecto (idProyecto),
     CONSTRAINT FK_cotcli_estadocotizacion   FOREIGN KEY (idEstadoCotizacion)
         REFERENCES dbo.estadocotizacion (idEstadoCotizacion)
+    -- FK a cotizacioninterna se agrega más abajo (esa tabla se crea después)
 );
 GO
 
@@ -317,6 +320,13 @@ CREATE TABLE dbo.cotizacioninterna (
     CONSTRAINT FK_cotint_estadocotizacion   FOREIGN KEY (idEstadoCotizacion)
         REFERENCES dbo.estadocotizacion (idEstadoCotizacion)
 );
+GO
+
+-- FK de cotizacioncliente hacia la interna de origen (ambas tablas ya existen)
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_cotcli_cotinterna')
+    ALTER TABLE dbo.cotizacioncliente
+        ADD CONSTRAINT FK_cotcli_cotinterna FOREIGN KEY (idCotizacionInterna)
+            REFERENCES dbo.cotizacioninterna (idCotizacionInterna);
 GO
 -- TABLA: cuota
 IF OBJECT_ID('dbo.cuota', 'U') IS NULL
@@ -459,7 +469,7 @@ CREATE TABLE dbo.detallecotizacioninterna (
 GO
 
 -- TABLA: detallecotizacionmanoobra
--- NUEVO: ya no tiene pagoPorHora ni totalEstimado
+-- pagoPorHora lo define el usuario por línea; el de cargo es solo sugerencia/fallback
 
 IF OBJECT_ID('dbo.detallecotizacionmanoobra', 'U') IS NULL
 CREATE TABLE dbo.detallecotizacionmanoobra (
@@ -468,6 +478,7 @@ CREATE TABLE dbo.detallecotizacionmanoobra (
     idCargo             INT             NOT NULL,
     cantidadPersonas    INT             NOT NULL,
     horasEstimadas      DECIMAL(10,2)   NOT NULL,
+    pagoPorHora         DECIMAL(10,2)   NULL,
     CONSTRAINT PK_detallecotizacionmanoobra     PRIMARY KEY (idDetalleManoObra),
     CONSTRAINT CHK_manoobra_horas               CHECK (horasEstimadas > 0),
     CONSTRAINT CHK_manoobra_personas            CHECK (cantidadPersonas > 0),
