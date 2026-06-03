@@ -80,26 +80,6 @@ async function cargarListaCotizaciones() {
   }
 }
 
-function adaptarFormDetalle() {
-  const tipo = document.getElementById('dm-tipo-concepto')?.value || '';
-  const labelCant = document.getElementById('dm-label-cantidad');
-  const labelPrecio = document.getElementById('dm-label-precio');
-  const hint = document.getElementById('dm-concepto-hint');
-  if (tipo === 'Mano de obra') {
-    if (labelCant) labelCant.textContent = 'Cantidad (personas × horas) *';
-    if (labelPrecio) labelPrecio.textContent = 'Pago por hora (Bs) *';
-    if (hint) hint.textContent = 'Ej: Albañil, Electricista, Plomero...';
-  } else if (tipo === 'Materiales') {
-    if (labelCant) labelCant.textContent = 'Cantidad *';
-    if (labelPrecio) labelPrecio.textContent = 'Precio Unitario (Bs) *';
-    if (hint) hint.textContent = 'Ej: Cemento Portland, Arena fina, Varilla de acero...';
-  } else {
-    if (labelCant) labelCant.textContent = 'Cantidad *';
-    if (labelPrecio) labelPrecio.textContent = 'Precio Unitario (Bs) *';
-    if (hint) hint.textContent = 'Detalle específico del ítem';
-  }
-}
-
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
@@ -187,16 +167,6 @@ function msg(id, texto, tipo) {
   }, 4000);
 }
 
-function calcDetalleCliente() {
-  const c = parseFloat(document.getElementById('dc-cantidad').value) || 0;
-  const p = parseFloat(document.getElementById('dc-precio').value) || 0;
-  const prev = document.getElementById('dc-preview');
-
-  if (c && p && prev) {
-    prev.textContent = `Subtotal: Bs ${(c * p).toFixed(2)}`;
-  }
-}
-
 async function onMatDmPicked(idMaterial) {
   const hint = document.getElementById('dm-precio-hint');
   if (!hint) return;
@@ -239,88 +209,6 @@ function calcManoObra() {
 
 function cargarCotizaciones() {
   cargarListaCotizaciones();
-}
-
-async function crearCotizacionCliente() {
-  const body = {
-    idProyecto: parseInt(document.getElementById('cc-proyecto').value),
-    numeroCotizacion: document.getElementById('cc-num').value.trim(),
-    fechaCotizacion: document.getElementById('cc-fecha').value,
-    fechaValidez: document.getElementById('cc-validez').value || null,
-    observaciones: document.getElementById('cc-obs').value.trim()
-  };
-
-  if (!body.idProyecto || !body.numeroCotizacion || !body.fechaCotizacion) {
-    return msg('msg-cc', 'Proyecto, número y fecha son obligatorios', 'err');
-  }
-
-  try {
-    const res = await fetch(`${API}/cotizaciones/cliente`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return msg('msg-cc', 'Error: ' + data.error, 'err');
-    }
-
-    msg('msg-cc', `Cotización creada con ID: ${data.idCotizacionCliente}. Úsalo para agregar detalles.`, 'ok');
-
-    ['cc-proy-nom', 'cc-proyecto', 'cc-num', 'cc-fecha', 'cc-validez', 'cc-obs'].forEach(id => {
-      const input = document.getElementById(id);
-      if (input) input.value = '';
-    });
-
-    cargarCotizaciones();
-  } catch (e) {
-    msg('msg-cc', 'Error de conexión', 'err');
-  }
-}
-
-async function agregarDetalleCliente() {
-  const id = document.getElementById('dc-idcot').value;
-
-  const body = {
-    concepto: (document.getElementById('dm-tipo-concepto')?.value || '') + ': ' + document.getElementById('dc-concepto').value.trim(),
-    descripcion: document.getElementById('dc-desc').value.trim(),
-    cantidad: parseFloat(document.getElementById('dc-cantidad').value),
-    precioUnitario: parseFloat(document.getElementById('dc-precio').value)
-  };
-
-  if (!id || !body.concepto || !body.cantidad || !body.precioUnitario) {
-    return msg('msg-dc', 'Todos los campos marcados son obligatorios', 'err');
-  }
-
-  try {
-    const res = await fetch(`${API}/cotizaciones/cliente/${id}/detalle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return msg('msg-dc', 'Error: ' + data.error, 'err');
-    }
-
-    msg('msg-dc', 'Detalle agregado correctamente', 'ok');
-
-    ['dc-concepto', 'dc-desc', 'dc-cantidad', 'dc-precio'].forEach(i => {
-      document.getElementById(i).value = '';
-    });
-
-    const prev = document.getElementById('dc-preview');
-
-    if (prev) {
-      prev.textContent = '';
-    }
-  } catch (e) {
-    msg('msg-dc', 'Error de conexión', 'err');
-  }
 }
 
 async function crearCotizacionInterna() {
@@ -732,6 +620,7 @@ async function verDetalleCotizacion(tipo, id) {
         ${d.nombreCliente ? `<div><b>Cliente:</b> ${d.nombreCliente}</div>` : ''}
         <div><b>Estado:</b> ${d.estado || '-'}</div>
         <div><b>Fecha:</b> ${(d.fechaCotizacion || '').substring(0, 10) || '-'}</div>
+        ${d.numeroInterna ? `<div><b>Generada de interna:</b> ${d.numeroInterna} (+${Number(d.porcentajeUtilidad || 0).toFixed(0)}% utilidad)</div>` : ''}
       </div>`;
 
     if (tipo === 'cliente') {
@@ -769,9 +658,107 @@ async function verDetalleCotizacion(tipo, id) {
   }
 }
 
+// ── Generar cotización cliente a partir de una interna aprobada ──────────────
+let gcInternaData = null;
+
+async function onInternaGcPicked(idInterna) {
+  try {
+    const d = await fetch(`${API}/cotizaciones/interna/${idInterna}/detalle`).then(r => r.json());
+    if (d.error) { gcInternaData = null; document.getElementById('gc-resumen').innerHTML = ''; return msg('msg-gc', d.error, 'err'); }
+    gcInternaData = d;
+    calcPreviewGenerar();
+  } catch (e) {
+    gcInternaData = null;
+    document.getElementById('gc-resumen').innerHTML = '';
+    msg('msg-gc', 'Error al cargar la cotización interna', 'err');
+  }
+}
+
+function calcPreviewGenerar() {
+  const cont = document.getElementById('gc-resumen');
+  if (!cont) return;
+  if (!gcInternaData) { cont.innerHTML = ''; return; }
+
+  const pct = parseFloat(document.getElementById('gc-pct').value) || 0;
+  const mult = 1 + pct / 100;
+  const mat = Number(gcInternaData.totalMateriales || 0);
+  const mo  = Number(gcInternaData.totalManoObra || 0);
+  const matCli = mat * mult, moCli = mo * mult;
+  const estado = gcInternaData.estado || '-';
+  const aprobada = estado.toLowerCase() === 'aprobada';
+
+  const fila = (concepto, costo, cliente) => `<tr>
+      <td style="padding:5px;">${concepto}</td>
+      <td style="text-align:right;padding:5px;">Bs ${costo.toFixed(2)}</td>
+      <td style="text-align:right;padding:5px;"><b>Bs ${cliente.toFixed(2)}</b></td>
+    </tr>`;
+
+  cont.innerHTML = `
+    <div style="background:#f7f8f6;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.88rem;">
+      <div style="margin-bottom:8px;">
+        <b>Interna:</b> ${gcInternaData.numeroCotizacionInterna || ''} · ${gcInternaData.nombreProyecto || ''} · Estado: ${badge(estado)}
+      </div>
+      ${aprobada ? '' : '<div style="color:#991B1B;font-weight:600;margin-bottom:8px;">⚠ La interna no está Aprobada; no se podrá generar hasta que lo esté.</div>'}
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid #123823;">
+          <th style="text-align:left;padding:5px;">Concepto</th>
+          <th style="text-align:right;padding:5px;">Costo interno</th>
+          <th style="text-align:right;padding:5px;">+${pct}% → Cliente</th>
+        </tr></thead>
+        <tbody>
+          ${fila('Materiales', mat, matCli)}
+          ${fila('Mano de obra', mo, moCli)}
+        </tbody>
+        <tfoot><tr style="border-top:2px solid #123823;">
+          <td style="padding:5px;"><b>Total</b></td>
+          <td style="text-align:right;padding:5px;">Bs ${(mat + mo).toFixed(2)}</td>
+          <td style="text-align:right;padding:5px;"><b>Bs ${(matCli + moCli).toFixed(2)}</b></td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+}
+
+async function generarCotizacionCliente() {
+  const idInterna = document.getElementById('gc-int').value;
+  const body = {
+    porcentaje: parseFloat(document.getElementById('gc-pct').value),
+    numeroCotizacion: document.getElementById('gc-num').value.trim(),
+    fechaCotizacion: document.getElementById('gc-fecha').value,
+    fechaValidez: document.getElementById('gc-validez').value || null,
+    observaciones: document.getElementById('gc-obs').value.trim()
+  };
+
+  if (!idInterna) return msg('msg-gc', 'Selecciona una cotización interna', 'err');
+  if (isNaN(body.porcentaje) || body.porcentaje < 0) return msg('msg-gc', 'Indica un porcentaje válido (≥ 0)', 'err');
+  if (!body.numeroCotizacion || !body.fechaCotizacion) return msg('msg-gc', 'Número y fecha son obligatorios', 'err');
+
+  try {
+    const res = await fetch(`${API}/cotizaciones/interna/${idInterna}/generar-cliente`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return msg('msg-gc', 'Error: ' + data.error, 'err');
+
+    msg('msg-gc', `Cotización cliente generada (ID ${data.idCotizacionCliente}). Total: Bs ${Number(data.montoTotal).toFixed(2)}`, 'ok');
+    ['gc-int-nom', 'gc-int', 'gc-num', 'gc-validez', 'gc-obs'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    gcInternaData = null;
+    document.getElementById('gc-resumen').innerHTML = '';
+    cargarCotizaciones();
+  } catch (e) {
+    msg('msg-gc', 'Error de conexión', 'err');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   cargarSelectCargos9();
-  adaptarFormDetalle();
+  const hoy = new Date().toISOString().substring(0, 10);
+  const gcFecha = document.getElementById('gc-fecha');
+  if (gcFecha && !gcFecha.value) gcFecha.value = hoy;
 });
 
 cargarListaCotizaciones();

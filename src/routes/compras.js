@@ -3,6 +3,42 @@ const router = express.Router();
 const { sql, config } = require('../config/db');
 const { errorAmigable } = require('../config/sqlError');
 
+function normalizarEstado(valor) {
+    return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function esPendiente(estado) {
+    return normalizarEstado(estado).includes('pendiente');
+}
+
+function esEntregada(estado) {
+    return normalizarEstado(estado).includes('entregad');
+}
+
+function esCancelada(estado) {
+    return normalizarEstado(estado).includes('cancel');
+}
+
+async function obtenerOrdenConEstado(pool, idOrdenCompra) {
+    const result = await pool.request()
+        .input('idOrdenCompra', sql.Int, idOrdenCompra)
+        .query(`
+            SELECT 
+                oc.idOrdenCompra,
+                oc.idEstadoOrden,
+                eo.nombreEstadoOrden
+            FROM dbo.ordencompra oc
+            JOIN dbo.estadoorden eo 
+                ON oc.idEstadoOrden = eo.idEstadoOrden
+            WHERE oc.idOrdenCompra = @idOrdenCompra
+        `);
+
+    return result.recordset[0] || null;
+}
+
 router.get('/estados', async (req, res) => {
     try {
         const pool = await sql.connect(config);
@@ -70,6 +106,27 @@ router.post('/', async (req, res) => {
 
     try {
         const pool = await sql.connect(config);
+
+        const estado = await pool.request()
+            .input('idEstadoOrden', sql.Int, idEstadoOrden)
+            .query(`
+                SELECT nombreEstadoOrden
+                FROM dbo.estadoorden
+                WHERE idEstadoOrden = @idEstadoOrden
+            `);
+
+        if (estado.recordset.length === 0) {
+            return res.status(400).json({ error: 'Estado de orden no válido.' });
+        }
+
+        const nombreEstado = estado.recordset[0].nombreEstadoOrden;
+
+        if (!esPendiente(nombreEstado)) {
+            return res.status(400).json({
+                error: 'La orden de compra debe crearse inicialmente en estado Pendiente.'
+            });
+        }
+
         const result = await pool.request()
             .input('fechaOrden', sql.Date, fechaOrden)
             .input('idEstadoOrden', sql.Int, idEstadoOrden)
@@ -91,13 +148,17 @@ router.put('/:id/cancelar', async (req, res) => {
     try {
         const pool = await sql.connect(config);
 
-        const ordenActual = await pool.request()
-            .input('id', sql.Int, req.params.id)
-            .query(`SELECT eo.nombreEstadoOrden FROM ordencompra oc JOIN estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden WHERE oc.idOrdenCompra = @id`);
-        if (ordenActual.recordset.length === 0)
+        const ordenActual = await obtenerOrdenConEstado(pool, Number(req.params.id));
+
+        if (!ordenActual) {
             return res.status(404).json({ error: 'Orden no encontrada' });
-        if (!ordenActual.recordset[0].nombreEstadoOrden.toLowerCase().includes('pendiente'))
-            return res.status(400).json({ error: 'Solo se pueden cancelar órdenes en estado Pendiente.' });
+        }
+
+        if (!esPendiente(ordenActual.nombreEstadoOrden)) {
+            return res.status(400).json({
+                error: 'Solo se pueden cancelar órdenes en estado Pendiente.'
+            });
+        }
 
         const estado = await pool.request().query(`
             SELECT TOP 1 idEstadoOrden
@@ -158,11 +219,45 @@ router.get('/:id/detalle', async (req, res) => {
 router.delete('/detalle/:idDetalle', async (req, res) => {
     try {
         const pool = await sql.connect(config);
+
+        const detalle = await pool.request()
+            .input('idDetalle', sql.Int, req.params.idDetalle)
+            .query(`
+                SELECT 
+                    dc.idDetalleCompra,
+                    dc.idOrdenCompra,
+                    eo.nombreEstadoOrden
+                FROM dbo.detallecompra dc
+                JOIN dbo.ordencompra oc 
+                    ON dc.idOrdenCompra = oc.idOrdenCompra
+                JOIN dbo.estadoorden eo 
+                    ON oc.idEstadoOrden = eo.idEstadoOrden
+                WHERE dc.idDetalleCompra = @idDetalle
+            `);
+
+        if (detalle.recordset.length === 0) {
+            return res.status(404).json({ error: 'Detalle no encontrado' });
+        }
+
+        const estadoOrden = detalle.recordset[0].nombreEstadoOrden;
+
+        if (!esPendiente(estadoOrden)) {
+            return res.status(400).json({
+                error: 'Solo se pueden eliminar detalles de órdenes en estado Pendiente.'
+            });
+        }
+
         const result = await pool.request()
             .input('id', sql.Int, req.params.idDetalle)
-            .query(`DELETE FROM detallecompra WHERE idDetalleCompra = @id`);
-        if (result.rowsAffected[0] === 0)
+            .query(`
+                DELETE FROM dbo.detallecompra 
+                WHERE idDetalleCompra = @id
+            `);
+
+        if (result.rowsAffected[0] === 0) {
             return res.status(404).json({ error: 'Detalle no encontrado' });
+        }
+
         res.json({ mensaje: 'Detalle eliminado' });
     } catch (err) {
         res.status(400).json({ error: errorAmigable(err) });
@@ -174,14 +269,33 @@ router.post('/:id/detalle', async (req, res) => {
 
     try {
         const pool = await sql.connect(config);
+        const idOrdenCompra = Number(req.params.id);
+
+        const orden = await obtenerOrdenConEstado(pool, idOrdenCompra);
+
+        if (!orden) {
+            return res.status(404).json({ error: 'Orden no encontrada' });
+        }
+
+        if (!esPendiente(orden.nombreEstadoOrden)) {
+            return res.status(400).json({
+                error: 'Solo se pueden agregar materiales a órdenes en estado Pendiente.'
+            });
+        }
+
+        if (!idMaterial || Number(cantidad) <= 0 || Number(precioUnitario) <= 0) {
+            return res.status(400).json({
+                error: 'Material, cantidad y precio unitario son obligatorios y deben ser mayores a 0.'
+            });
+        }
 
         const result = await pool.request()
-            .input('idOrdenCompra', sql.Int, req.params.id)
+            .input('idOrdenCompra', sql.Int, idOrdenCompra)
             .input('idMaterial', sql.Int, idMaterial)
             .input('cantidad', sql.Decimal(18, 2), cantidad)
             .input('precioUnitario', sql.Decimal(18, 2), precioUnitario)
             .query(`
-                INSERT INTO detallecompra (idOrdenCompra, idMaterial, cantidad, precioUnitario)
+                INSERT INTO dbo.detallecompra (idOrdenCompra, idMaterial, cantidad, precioUnitario)
                 VALUES (@idOrdenCompra, @idMaterial, @cantidad, @precioUnitario);
 
                 SELECT CAST(SCOPE_IDENTITY() AS INT) AS idDetalleCompra;
@@ -196,13 +310,30 @@ router.post('/:id/detalle', async (req, res) => {
 router.get('/search', async (req, res) => {
     const { q } = req.query;
     if (!q) return res.json([]);
+
     try {
         const pool = await sql.connect(config);
         const result = await pool.request()
             .input('q', sql.NVarChar, `%${q}%`)
-            .query(`SELECT TOP 10 oc.idOrdenCompra, p.nombreProveedor, oc.fechaOrden, 'Orden #' + CAST(oc.idOrdenCompra AS NVARCHAR) + ' — ' + p.nombreProveedor + ' (' + CONVERT(VARCHAR,oc.fechaOrden,23) + ')' AS display FROM ordencompra oc JOIN proveedor p ON oc.idProveedor = p.idProveedor WHERE p.nombreProveedor LIKE @q OR CAST(oc.idOrdenCompra AS NVARCHAR) LIKE @q ORDER BY oc.idOrdenCompra DESC`);
+            .query(`
+                SELECT TOP 10 
+                    oc.idOrdenCompra, 
+                    p.nombreProveedor, 
+                    oc.fechaOrden, 
+                    'Orden #' + CAST(oc.idOrdenCompra AS NVARCHAR) + 
+                    ' — ' + p.nombreProveedor + 
+                    ' (' + CONVERT(VARCHAR, oc.fechaOrden, 23) + ')' AS display
+                FROM ordencompra oc 
+                JOIN proveedor p ON oc.idProveedor = p.idProveedor 
+                WHERE p.nombreProveedor LIKE @q 
+                   OR CAST(oc.idOrdenCompra AS NVARCHAR) LIKE @q 
+                ORDER BY oc.idOrdenCompra DESC
+            `);
+
         res.json(result.recordset);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 router.get('/:id', async (req, res) => {
@@ -260,67 +391,122 @@ router.put('/:id', async (req, res) => {
 
     try {
         const pool = await sql.connect(config);
+        const idOrdenCompra = Number(req.params.id);
 
-        // Capturar estado anterior para detectar transición a "Entregada"
-        const anterior = await pool.request()
-            .input('id', sql.Int, req.params.id)
-            .query(`SELECT oc.idEstadoOrden, eo.nombreEstadoOrden FROM ordencompra oc JOIN estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden WHERE oc.idOrdenCompra = @id`);
-        if (anterior.recordset.length === 0)
+        const anterior = await obtenerOrdenConEstado(pool, idOrdenCompra);
+
+        if (!anterior) {
             return res.status(404).json({ error: 'Orden no encontrada' });
+        }
 
-        const estadoAnterior = (anterior.recordset[0].nombreEstadoOrden || '').toLowerCase();
+        const estadoAnterior = anterior.nombreEstadoOrden;
+
+        if (esEntregada(estadoAnterior)) {
+            return res.status(400).json({
+                error: 'No se puede editar una orden Entregada porque ya afectó el inventario.'
+            });
+        }
+
+        if (esCancelada(estadoAnterior)) {
+            return res.status(400).json({
+                error: 'No se puede editar una orden Cancelada.'
+            });
+        }
 
         const nuevoEstadoRow = await pool.request()
             .input('id', sql.Int, idEstadoOrden)
-            .query(`SELECT nombreEstadoOrden FROM estadoorden WHERE idEstadoOrden = @id`);
-        const nuevoEstado = nuevoEstadoRow.recordset.length > 0
-            ? (nuevoEstadoRow.recordset[0].nombreEstadoOrden || '').toLowerCase() : '';
-
-        const result = await pool.request()
-            .input('id', sql.Int, req.params.id)
-            .input('fechaOrden', sql.Date, fechaOrden)
-            .input('idEstadoOrden', sql.Int, idEstadoOrden)
-            .input('idProveedor', sql.Int, idProveedor)
-            .input('montoTotal', sql.Decimal(18, 2), montoTotal)
             .query(`
-                UPDATE ordencompra
-                SET fechaOrden = @fechaOrden,
-                    idEstadoOrden = @idEstadoOrden,
-                    idProveedor = @idProveedor,
-                    montoTotal = @montoTotal
+                SELECT idEstadoOrden, nombreEstadoOrden 
+                FROM dbo.estadoorden 
+                WHERE idEstadoOrden = @id
+            `);
+
+        if (nuevoEstadoRow.recordset.length === 0) {
+            return res.status(400).json({ error: 'Estado de orden no válido.' });
+        }
+
+        const nuevoEstado = nuevoEstadoRow.recordset[0].nombreEstadoOrden;
+
+        if (esCancelada(nuevoEstado)) {
+            return res.status(400).json({
+                error: 'Para cancelar una orden use el botón Cancelar compra.'
+            });
+        }
+
+        const detalles = await pool.request()
+            .input('id', sql.Int, idOrdenCompra)
+            .query(`
+                SELECT idMaterial, cantidad 
+                FROM dbo.detallecompra 
                 WHERE idOrdenCompra = @id
             `);
 
-        if (result.rowsAffected[0] === 0)
-            return res.status(404).json({ error: 'Orden no encontrada' });
-
-        // Transición a "Entregada": sumar cantidades al inventario
-        if (nuevoEstado.includes('entregad') && !estadoAnterior.includes('entregad')) {
-            const detalles = await pool.request()
-                .input('id', sql.Int, req.params.id)
-                .query(`SELECT idMaterial, cantidad FROM detallecompra WHERE idOrdenCompra = @id`);
-
-            for (const det of detalles.recordset) {
-                const invExiste = await pool.request()
-                    .input('idMat', sql.Int, det.idMaterial)
-                    .query(`SELECT idInventario FROM inventario WHERE idMaterial = @idMat`);
-
-                if (invExiste.recordset.length > 0) {
-                    await pool.request()
-                        .input('cant', sql.Decimal(18, 2), det.cantidad)
-                        .input('idMat', sql.Int, det.idMaterial)
-                        .query(`UPDATE inventario SET stockActual = stockActual + @cant, fechaActualizacion = CAST(GETDATE() AS DATE) WHERE idMaterial = @idMat`);
-                } else {
-                    await pool.request()
-                        .input('idMat', sql.Int, det.idMaterial)
-                        .input('cant', sql.Decimal(18, 2), det.cantidad)
-                        .query(`INSERT INTO inventario (idMaterial, stockInicial, stockActual, stockMinimo, fechaActualizacion) VALUES (@idMat, @cant, @cant, 0, CAST(GETDATE() AS DATE))`);
-                }
-            }
-            return res.json({ mensaje: 'Orden marcada como Entregada. Inventario actualizado automáticamente.' });
+        if (esEntregada(nuevoEstado) && detalles.recordset.length === 0) {
+            return res.status(400).json({
+                error: 'No se puede marcar como Entregada una orden sin materiales en el detalle.'
+            });
         }
 
-        res.json({ mensaje: 'Orden actualizada' });
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        try {
+            await new sql.Request(transaction)
+                .input('id', sql.Int, idOrdenCompra)
+                .input('fechaOrden', sql.Date, fechaOrden)
+                .input('idEstadoOrden', sql.Int, idEstadoOrden)
+                .input('idProveedor', sql.Int, idProveedor)
+                .input('montoTotal', sql.Decimal(18, 2), montoTotal)
+                .query(`
+                    UPDATE dbo.ordencompra
+                    SET fechaOrden = @fechaOrden,
+                        idEstadoOrden = @idEstadoOrden,
+                        idProveedor = @idProveedor,
+                        montoTotal = @montoTotal
+                    WHERE idOrdenCompra = @id
+                `);
+
+            if (esEntregada(nuevoEstado) && !esEntregada(estadoAnterior)) {
+                await new sql.Request(transaction)
+                    .input('idOrdenCompra', sql.Int, idOrdenCompra)
+                    .query(`
+                        MERGE dbo.inventario AS target
+                        USING (
+                            SELECT 
+                                idMaterial, 
+                                SUM(cantidad) AS cantidadTotal
+                            FROM dbo.detallecompra
+                            WHERE idOrdenCompra = @idOrdenCompra
+                            GROUP BY idMaterial
+                        ) AS source
+                        ON target.idMaterial = source.idMaterial
+
+                        WHEN MATCHED THEN
+                            UPDATE SET 
+                                stockActual = target.stockActual + source.cantidadTotal,
+                                fechaActualizacion = CAST(GETDATE() AS DATE)
+
+                        WHEN NOT MATCHED THEN
+                            INSERT (idMaterial, stockInicial, stockActual, stockMinimo, fechaActualizacion)
+                            VALUES (source.idMaterial, source.cantidadTotal, source.cantidadTotal, 0, CAST(GETDATE() AS DATE));
+                    `);
+            }
+
+            await transaction.commit();
+
+            if (esEntregada(nuevoEstado) && !esEntregada(estadoAnterior)) {
+                return res.json({
+                    mensaje: 'Orden marcada como Entregada. Inventario actualizado automáticamente.'
+                });
+            }
+
+            res.json({ mensaje: 'Orden actualizada' });
+
+        } catch (trxErr) {
+            await transaction.rollback();
+            throw trxErr;
+        }
+
     } catch (err) {
         res.status(400).json({ error: errorAmigable(err) });
     }
@@ -329,15 +515,52 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request()
-            .input('id', sql.Int, req.params.id)
-            .query(`DELETE FROM ordencompra WHERE idOrdenCompra = @id`);
+        const idOrdenCompra = Number(req.params.id);
 
-        if (result.rowsAffected[0] === 0) {
+        const orden = await obtenerOrdenConEstado(pool, idOrdenCompra);
+
+        if (!orden) {
             return res.status(404).json({ error: 'Orden no encontrada' });
         }
 
-        res.json({ mensaje: 'Orden eliminada' });
+        if (esEntregada(orden.nombreEstadoOrden)) {
+            return res.status(400).json({
+                error: 'No se puede eliminar una orden Entregada porque ya afectó el inventario.'
+            });
+        }
+
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        try {
+            await new sql.Request(transaction)
+                .input('id', sql.Int, idOrdenCompra)
+                .query(`
+                    DELETE FROM dbo.detallecompra
+                    WHERE idOrdenCompra = @id
+                `);
+
+            const result = await new sql.Request(transaction)
+                .input('id', sql.Int, idOrdenCompra)
+                .query(`
+                    DELETE FROM dbo.ordencompra 
+                    WHERE idOrdenCompra = @id
+                `);
+
+            if (result.rowsAffected[0] === 0) {
+                await transaction.rollback();
+                return res.status(404).json({ error: 'Orden no encontrada' });
+            }
+
+            await transaction.commit();
+
+            res.json({ mensaje: 'Orden eliminada' });
+
+        } catch (trxErr) {
+            await transaction.rollback();
+            throw trxErr;
+        }
+
     } catch (err) {
         res.status(400).json({ error: errorAmigable(err) });
     }

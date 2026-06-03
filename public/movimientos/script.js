@@ -50,11 +50,11 @@ async function cargarResumen() {
       || '<div class="linea">Sin datos</div>';
     cont.innerHTML = `
       <div class="mini-card">
-        <div class="mc-head"><span class="ico">&#128100;</span><h4>Acciones por usuario</h4></div>
+        <div class="mc-head"><span class="ico"></span><h4>Acciones por usuario</h4></div>
         <div class="mc-body">${usuarios}</div>
       </div>
       <div class="mini-card">
-        <div class="mc-head"><span class="ico">&#128202;</span><h4>Acciones por módulo</h4></div>
+        <div class="mc-head"><span class="ico"></span><h4>Acciones por módulo</h4></div>
         <div class="mc-body">${modulos}</div>
       </div>`;
   } catch (e) {

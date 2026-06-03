@@ -407,6 +407,47 @@ router.put('/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+router.delete('/:id', async (req, res) => {
+    try {
+        const idProyecto = Number(req.params.id);
 
+        if (!idProyecto) {
+            return res.status(400).json({ error: 'ID de proyecto inválido' });
+        }
+
+        const pool = await sql.connect(config);
+
+        const existe = await pool.request()
+            .input('idProyecto', sql.Int, idProyecto)
+            .query(`
+                SELECT idProyecto
+                FROM dbo.proyecto
+                WHERE idProyecto = @idProyecto
+            `);
+
+        if (existe.recordset.length === 0) {
+            return res.status(404).json({ error: 'Proyecto no encontrado' });
+        }
+
+        const result = await pool.request()
+            .input('idProyecto', sql.Int, idProyecto)
+            .query(`
+                DELETE FROM dbo.proyecto
+                WHERE idProyecto = @idProyecto
+            `);
+
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: 'No se pudo eliminar el proyecto' });
+        }
+
+        res.json({ mensaje: 'Proyecto eliminado correctamente' });
+
+    } catch (err) {
+        console.error('ERROR AL ELIMINAR PROYECTO:', err.message);
+
+        res.status(400).json({
+            error: 'No se puede eliminar este proyecto porque tiene datos relacionados.'
+        });
+    }
+});
 module.exports = router;
-
