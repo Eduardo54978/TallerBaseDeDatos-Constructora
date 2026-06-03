@@ -33,8 +33,8 @@ La conexión se define en [`src/config/db.js`](src/config/db.js):
 
 ```js
 const config = {
-  user: 'sa',
-  password: 'Constructora2026!',
+  user: 'TU_USUARIO',          // p. ej. sa
+  password: 'TU_CONTRASEÑA',   // la de tu instancia de SQL Server
   server: '127.0.0.1',
   port: 1433,
   database: 'constructora',
@@ -42,7 +42,7 @@ const config = {
 };
 ```
 
-Ajusta usuario/contraseña/servidor según tu entorno.
+Ajusta usuario/contraseña/servidor según tu entorno. **No subas tus credenciales reales al repositorio.**
 
 ### Crear el esquema
 
