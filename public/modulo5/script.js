@@ -103,12 +103,50 @@ async function cargarContratos() {
             <td>${c.montoTotal} Bs</td>
             <td>${c.fechaContrato ? c.fechaContrato.substring(0, 10) : '-'}</td>
             <td>${badge(c.nombreEstadoContrato)}</td>
-            <td><button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarContrato(${c.idContrato})">Eliminar</button></td>
+            <td>
+              <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="imprimirContratoPDF(${c.idContrato})">Imprimir / PDF</button>
+              <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarContrato(${c.idContrato})">Eliminar</button>
+            </td>
           </tr>`).join('')}
         </tbody>
       </table>`;
   } catch (e) {
     document.getElementById('cont-contratos').innerHTML = '<p style="color:red">Error al cargar contratos</p>';
+  }
+}
+
+// ── Imprimir un contrato en PDF ──────────────────────────────────────────────
+async function imprimirContratoPDF(id) {
+  const win = nuevaVentanaPDF();
+  try {
+    const c = await fetch(`${API}/contratos/${id}`).then(r => r.json());
+    if (c.error) { if (win) win.close(); return alert('Error: ' + c.error); }
+
+    let cuerpo = `<h1>Contrato — ${c.numeroContrato}</h1>`;
+    cuerpo += pdfDatos([
+      ['Tipo', c.nombreTipoContrato],
+      ['Estado', c.nombreEstadoContrato],
+      ['Proyecto', c.nombreProyecto],
+      ['Cliente', c.nombreCliente],
+      ['Fecha contrato', (c.fechaContrato || '').substring(0, 10)],
+      ['Firma', (c.fechaFirma || '').substring(0, 10)],
+      ['Inicio', (c.fechaInicio || '').substring(0, 10)],
+      ['Vencimiento', (c.fechaVencimiento || '').substring(0, 10)],
+    ]);
+    cuerpo += pdfTabla('Cuotas', ['#', 'Monto (Bs)', 'Saldo pend. (Bs)', 'Vencimiento', 'Estado'],
+      (c.cuotas || []).map(q => [
+        q.numeroCuota,
+        Number(q.montoCuota).toFixed(2),
+        Number(q.saldoPendiente).toFixed(2),
+        (q.fechaVencimiento || '').substring(0, 10),
+        q.nombreEstadoPago,
+      ]));
+    cuerpo += `<div class="total">Monto total del contrato: Bs ${Number(c.montoTotal).toFixed(2)}</div>`;
+
+    escribirImpresionPDF(win, `Contrato ${c.numeroContrato}`, cuerpo);
+  } catch (e) {
+    if (win) win.close();
+    alert('Error al generar el PDF del contrato');
   }
 }
 

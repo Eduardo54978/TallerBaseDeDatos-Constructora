@@ -51,6 +51,7 @@ async function cargarListaCotizaciones() {
           <td>${badge(c.nombreEstadoCotizacion)}</td>
           <td>
             <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('cliente', ${c.idCotizacionCliente})">Ver detalles</button>
+            <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="imprimirCotizacionPDF('cliente', ${c.idCotizacionCliente})">Imprimir / PDF</button>
             <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('cliente', ${c.idCotizacionCliente})">Eliminar</button>
           </td>
         </tr>`).join('')}
@@ -70,6 +71,7 @@ async function cargarListaCotizaciones() {
           <td>${badge(c.nombreEstadoCotizacion)}</td>
           <td>
             <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="verDetalleCotizacion('interna', ${c.idCotizacionInterna})">Ver detalles</button>
+            <button class="btn btn-accent" style="padding:4px 10px;font-size:.78rem;margin-right:4px;" onclick="imprimirCotizacionPDF('interna', ${c.idCotizacionInterna})">Imprimir / PDF</button>
             <button class="btn btn-red" style="padding:4px 10px;font-size:.78rem;" onclick="eliminarCotizacion('interna', ${c.idCotizacionInterna})">Eliminar</button>
           </td>
         </tr>`).join('')}
@@ -648,13 +650,61 @@ async function verDetalleCotizacion(tipo, id) {
       <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2F5F2F;padding-bottom:10px;margin-bottom:14px;">
           <h3 style="color:#173F24;">Detalle de cotización ${tipo === 'cliente' ? 'cliente' : 'interna'} — ${numero}</h3>
-          <button onclick="cerrarModalCot()" style="background:#B91C1C;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Cerrar</button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="imprimirCotizacionPDF('${tipo}', ${id})" style="background:#2F5F2F;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Imprimir / PDF</button>
+            <button onclick="cerrarModalCot()" style="background:#B91C1C;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Cerrar</button>
+          </div>
         </div>
         ${cuerpo}
       </div>`;
     document.body.appendChild(modal);
   } catch (e) {
     alert('Error al cargar el detalle de la cotización');
+  }
+}
+
+// ── Imprimir una cotización (interna o cliente) en PDF ───────────────────────
+async function imprimirCotizacionPDF(tipo, id) {
+  const win = nuevaVentanaPDF();
+  try {
+    const d = await fetch(`${API}/cotizaciones/${tipo}/${id}/detalle`).then(r => r.json());
+    if (d.error) { if (win) win.close(); return alert('Error: ' + d.error); }
+
+    const numero = d.numeroCotizacionCliente || d.numeroCotizacionInterna || ('#' + id);
+    const esCliente = tipo === 'cliente';
+
+    let cuerpo = `<h1>Cotización ${esCliente ? 'Cliente' : 'Interna'} — ${numero}</h1>`;
+    cuerpo += pdfDatos([
+      ['Proyecto', d.nombreProyecto],
+      ['Cliente', d.nombreCliente],
+      ['Estado', d.estado],
+      ['Fecha', (d.fechaCotizacion || '').substring(0, 10)],
+      ['Validez', (d.fechaValidez || '').substring(0, 10)],
+      esCliente && d.numeroInterna
+        ? ['Generada de interna', `${d.numeroInterna} (+${Number(d.porcentajeUtilidad || 0).toFixed(0)}% utilidad)`]
+        : null,
+      ['Observaciones', d.observaciones],
+    ]);
+
+    if (esCliente) {
+      cuerpo += pdfTabla('Ítems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
+        (d.items || []).map(i => [i.concepto, i.cantidad, Number(i.precioUnitario).toFixed(2), Number(i.subtotal).toFixed(2)]));
+    } else {
+      cuerpo += pdfTabla('Materiales', ['Material', 'Cantidad', 'Costo Unit (Bs)', 'Subtotal (Bs)'],
+        (d.materiales || []).map(i => [i.nombreMaterial, i.cantidadEstimada, Number(i.costoUnitarioEstimado).toFixed(2), Number(i.subtotal).toFixed(2)]));
+      cuerpo += pdfTabla('Personal asignado (mano de obra)', ['Cargo', 'Personas', 'Horas', 'Pago/Hora (Bs)', 'Subtotal (Bs)'],
+        (d.personal || []).map(i => [i.nombreCargo, i.cantidadPersonas, i.horasEstimadas, Number(i.pagoPorHora).toFixed(2), Number(i.subtotal).toFixed(2)]));
+      cuerpo += pdfDatos([
+        ['Materiales', `Bs ${Number(d.totalMateriales).toFixed(2)}`],
+        ['Mano de obra', `Bs ${Number(d.totalManoObra).toFixed(2)}`],
+      ]);
+    }
+    cuerpo += `<div class="total">Monto total: Bs ${Number(d.montoTotal).toFixed(2)}</div>`;
+
+    escribirImpresionPDF(win, `Cotización ${numero}`, cuerpo);
+  } catch (e) {
+    if (win) win.close();
+    alert('Error al generar el PDF de la cotización');
   }
 }
 
