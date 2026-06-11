@@ -32,10 +32,14 @@ router.get('/estados/lista', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool   = await sql.connect(config);
-        const result = await pool.request().query(`
-            SELECT 
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
+            SELECT
                 c.idContrato, c.numeroContrato, c.fechaContrato, c.fechaInicio,
                 c.fechaVencimiento, c.montoTotal, tc.nombreTipoContrato,
                 ec.nombreEstadoContrato, p.nombreProyecto, cl.nombre AS nombreCliente
@@ -44,6 +48,8 @@ router.get('/', async (req, res) => {
             JOIN dbo.estadocontrato ec ON c.idEstadoContrato = ec.idEstadoContrato
             JOIN dbo.proyecto       p  ON c.idProyecto       = p.idProyecto
             JOIN dbo.cliente        cl ON p.idCliente        = cl.idCliente
+            WHERE (@desde IS NULL OR c.fechaContrato >= @desde)
+              AND (@hasta IS NULL OR c.fechaContrato <= @hasta)
             ORDER BY c.fechaContrato DESC
         `);
         res.json(result.recordset);

@@ -58,10 +58,12 @@ function msg(id, texto, tipo) {
   }, 4000);
 }
 
+let _dataClientes = [];
 async function cargarClientes() {
   try {
     const data = await fetch(`${API}/clientes`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idCliente');
+    _dataClientes = ordenados;
 
     const tipos = new Set(ordenados.map(c => c.nombreTipoCliente).filter(Boolean));
     const conEmail = ordenados.filter(c => c.email).length;
@@ -283,3 +285,16 @@ async function eliminarCliente(id) {
 }
 
 cargarClientes();
+// Imprime el listado de clientes.
+function imprimirClientes() {
+  if (!_dataClientes.length) return alert('No hay clientes para imprimir.');
+  const win = nuevaVentanaPDF();
+  const f = v => v ? String(v).substring(0, 10) : '-';
+  const filas = _dataClientes.map(c => [
+    c.nombre, c.nombreTipoCliente || '-', c.documentoID || '-',
+    c.numCelular || '-', c.email || '-', f(c.fechaRegistro),
+  ]);
+  const cuerpo = pdfTabla('Clientes', ['Nombre', 'Tipo', 'Documento', 'Celular', 'Email', 'Registro'], filas) +
+    `<div class="total">Total: ${_dataClientes.length} clientes</div>`;
+  imprimirReporte(win, 'Reporte de Clientes', '', [cuerpo]);
+}

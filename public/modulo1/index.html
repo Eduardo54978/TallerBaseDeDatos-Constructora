@@ -55,6 +55,13 @@
       <input type="text" id="buscarProyecto" placeholder="Buscar proyecto...">
     </div>
 
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; font-size:.85rem; color:#555;">
+      <span>Rango de fechas para el reporte de proyecto:</span>
+      <label>Desde <input type="date" id="f-proy-desde"></label>
+      <label>Hasta <input type="date" id="f-proy-hasta"></label>
+      <small>(opcional — filtra materiales, planilla, pagos y horas del reporte)</small>
+    </div>
+
     <div id="mensajeProyectos" class="mensaje">Cargando proyectos...</div>
 
     <div class="tabla">
@@ -434,6 +441,8 @@
 
 <script src="../js/autocomplete.js"></script>
 <script src="../js/inspeccion.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

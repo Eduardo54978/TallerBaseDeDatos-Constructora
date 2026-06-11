@@ -5,9 +5,13 @@ const { errorAmigable } = require('../config/sqlError');
 
 // ── GET todas las cotizaciones cliente ──────────────────────────────────────
 router.get('/', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool   = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
             SELECT
                 cc.idCotizacionCliente,
                 cc.numeroCotizacionCliente,
@@ -20,6 +24,8 @@ router.get('/', async (req, res) => {
             FROM dbo.cotizacioncliente cc
             JOIN dbo.proyecto          p  ON cc.idProyecto         = p.idProyecto
             JOIN dbo.estadocotizacion  ec ON cc.idEstadoCotizacion  = ec.idEstadoCotizacion
+            WHERE (@desde IS NULL OR cc.fechaCotizacion >= @desde)
+              AND (@hasta IS NULL OR cc.fechaCotizacion <= @hasta)
             ORDER BY cc.fechaCotizacion DESC
         `);
         res.json(result.recordset);
@@ -30,9 +36,13 @@ router.get('/', async (req, res) => {
 
 // ── GET todas las cotizaciones internas con total estimado ───────────────────
 router.get('/interna', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
             SELECT
                 ci.idCotizacionInterna,
                 ci.numeroCotizacionInterna,
@@ -46,6 +56,8 @@ router.get('/interna', async (req, res) => {
             FROM dbo.cotizacioninterna ci
             JOIN dbo.proyecto p ON ci.idProyecto = p.idProyecto
             JOIN dbo.estadocotizacion ec ON ci.idEstadoCotizacion = ec.idEstadoCotizacion
+            WHERE (@desde IS NULL OR ci.fechaCotizacion >= @desde)
+              AND (@hasta IS NULL OR ci.fechaCotizacion <= @hasta)
             ORDER BY ci.fechaCotizacion DESC
         `);
         res.json(result.recordset);

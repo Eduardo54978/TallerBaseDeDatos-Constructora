@@ -80,9 +80,13 @@ router.get('/proveedor/:idProveedor', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
             SELECT
                 oc.idOrdenCompra,
                 oc.fechaOrden,
@@ -92,6 +96,8 @@ router.get('/', async (req, res) => {
             FROM ordencompra oc
             JOIN proveedor p ON oc.idProveedor = p.idProveedor
             JOIN estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden
+            WHERE (@desde IS NULL OR oc.fechaOrden >= @desde)
+              AND (@hasta IS NULL OR oc.fechaOrden <= @hasta)
             ORDER BY oc.idOrdenCompra ASC
         `);
 

@@ -112,11 +112,19 @@ function msg(id, texto, tipo) {
   }, 4000);
 }
 
+let _rangoPagosCli = { desde: '', hasta: '' };
+let _rangoPagosProv = { desde: '', hasta: '' };
+let _rangoPagosPlan = { desde: '', hasta: '' };
+let _dataPagosCli = [], _dataPagosProv = [], _dataPagosPlan = [];
 async function cargarPagosClientes() {
+  const r = leerRango('f-cli-desde', 'f-cli-hasta');
+  if (!r) return;
+  _rangoPagosCli = r;
   mostrarCarga('cont-pagos-clientes');
   try {
-    const data = await fetch(`${API}/pagos/clientes`).then(r => r.json());
+    const data = await fetch(`${API}/pagos/clientes${rangoQuery(r.desde, r.hasta)}`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idPagoCliente');
+    _dataPagosCli = ordenados;
 
     const montoTotal = ordenados.reduce((s, p) => s + Number(p.monto || 0), 0);
     const pagados = ordenados.filter(p => (p.estadoPago || '').toLowerCase().includes('pagado')).length;
@@ -167,10 +175,14 @@ async function cargarPagosClientes() {
 }
 
 async function cargarPagosProveedores() {
+  const r = leerRango('f-prov-desde', 'f-prov-hasta');
+  if (!r) return;
+  _rangoPagosProv = r;
   mostrarCarga('cont-pagos-proveedores');
   try {
-    const data = await fetch(`${API}/pagos/proveedores`).then(r => r.json());
+    const data = await fetch(`${API}/pagos/proveedores${rangoQuery(r.desde, r.hasta)}`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idPagoProveedor');
+    _dataPagosProv = ordenados;
 
     document.getElementById('cont-pagos-proveedores').innerHTML = `
       <table id="tbl-pagos-prov">
@@ -209,10 +221,14 @@ async function cargarPagosProveedores() {
 }
 
 async function cargarPagosPlanilla() {
+  const r = leerRango('f-plan-desde', 'f-plan-hasta');
+  if (!r) return;
+  _rangoPagosPlan = r;
   mostrarCarga('cont-pagos-planilla');
   try {
-    const data = await fetch(`${API}/pagos/planilla`).then(r => r.json());
+    const data = await fetch(`${API}/pagos/planilla${rangoQuery(r.desde, r.hasta)}`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idPagoPlanillaProyecto');
+    _dataPagosPlan = ordenados;
 
     document.getElementById('cont-pagos-planilla').innerHTML = `
       <table id="tbl-pagos-plan">
@@ -780,29 +796,51 @@ async function registrarPagoPlanilla() {
   }
 }
 function imprimirPagosClientes() {
-  const tabla = document.getElementById('tbl-pagos-cli');
-  if (!tabla) return alert('No hay pagos para imprimir.');
-  const fecha = new Date().toLocaleString();
-  const win = window.open('', '_blank');
-  win.document.write(`
-    <html><head><title>Comprobante de Pagos de Clientes</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 24px; color:#222; }
-      h1 { font-size: 18px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
-      th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
-      th { background: #eef4ea; }
-      .pie { margin-top: 16px; font-size: 11px; color:#666; }
-      button { display:none; }
-    </style></head><body>
-    <h1>Constructora — Comprobante de Pagos de Clientes</h1>
-    <p>Generado: ${fecha}</p>
-    ${tabla.outerHTML}
-    <p class="pie">Documento generado por el sistema. Use la opción "Guardar como PDF" del diálogo de impresión.</p>
-    </body></html>`);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 300);
+  if (!_dataPagosCli.length) return alert('No hay pagos para imprimir.');
+  const win = nuevaVentanaPDF();
+  const total = _dataPagosCli.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const filas = _dataPagosCli.map(p => [
+    p.nombreCliente || '-', p.nombreProyecto || '-', p.numeroContrato || '-',
+    p.fechaPago ? p.fechaPago.substring(0, 10) : '-',
+    Number(p.monto || 0).toFixed(2), p.metodoPago || '-', p.estadoPago || '-',
+  ]);
+  const cuerpo =
+    pdfTabla('Pagos de Clientes', ['Cliente', 'Proyecto', 'Contrato', 'Fecha', 'Monto (Bs)', 'Método', 'Estado'], filas) +
+    `<div class="total">Total cobrado: Bs ${total.toFixed(2)}</div>`;
+  imprimirReporte(win, 'Reporte de Pagos de Clientes',
+    etiquetaRango(_rangoPagosCli.desde, _rangoPagosCli.hasta), [cuerpo]);
+}
+
+function imprimirPagosProveedores() {
+  if (!_dataPagosProv.length) return alert('No hay pagos para imprimir.');
+  const win = nuevaVentanaPDF();
+  const total = _dataPagosProv.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const filas = _dataPagosProv.map(p => [
+    p.nombreProveedor || '-', p.idOrdenCompra || '-',
+    p.fechaPago ? p.fechaPago.substring(0, 10) : '-',
+    Number(p.monto || 0).toFixed(2), p.metodoPago || '-', p.factura || '-',
+  ]);
+  const cuerpo =
+    pdfTabla('Pagos a Proveedores', ['Proveedor', 'Orden Compra', 'Fecha', 'Monto (Bs)', 'Método', 'Factura'], filas) +
+    `<div class="total">Total pagado: Bs ${total.toFixed(2)}</div>`;
+  imprimirReporte(win, 'Reporte de Pagos a Proveedores',
+    etiquetaRango(_rangoPagosProv.desde, _rangoPagosProv.hasta), [cuerpo]);
+}
+
+function imprimirPagosPlanilla() {
+  if (!_dataPagosPlan.length) return alert('No hay pagos para imprimir.');
+  const win = nuevaVentanaPDF();
+  const total = _dataPagosPlan.reduce((s, p) => s + Number(p.montoPagado || 0), 0);
+  const filas = _dataPagosPlan.map(p => [
+    p.empleado || '-', p.proyecto || '-',
+    p.fechaPago ? p.fechaPago.substring(0, 10) : '-',
+    Number(p.montoPagado || 0).toFixed(2), p.metodoPago || '-', p.estadoPago || '-',
+  ]);
+  const cuerpo =
+    pdfTabla('Pagos de Planilla (Empleados)', ['Empleado', 'Proyecto', 'Fecha', 'Monto (Bs)', 'Método', 'Estado'], filas) +
+    `<div class="total">Total pagado: Bs ${total.toFixed(2)}</div>`;
+  imprimirReporte(win, 'Reporte de Pagos de Planilla',
+    etiquetaRango(_rangoPagosPlan.desde, _rangoPagosPlan.hasta), [cuerpo]);
 }
 
 async function eliminarPago(tipo, id) {

@@ -41,7 +41,10 @@
 
       <div class="table-header">
         <h3>Empleados Registrados</h3>
-        <input id="emp-buscar" class="search" placeholder="Buscar nombre, apellido o CI..." oninput="renderEmpleados()">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="emp-buscar" class="search" placeholder="Buscar nombre, apellido o CI..." oninput="renderEmpleados()">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirEmpleados()">Imprimir / PDF</button>
+        </div>
       </div>
 
       <div class="emp-filtros">
@@ -390,6 +393,8 @@
 </div>
 
 <script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

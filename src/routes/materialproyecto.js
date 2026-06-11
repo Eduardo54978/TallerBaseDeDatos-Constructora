@@ -28,10 +28,15 @@ router.get('/alertas', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+  const { desde, hasta, idProyecto } = req.query;
   try {
     const pool = await sql.connect(config);
 
-    const result = await pool.request().query(`
+    const result = await pool.request()
+      .input('desde', sql.Date, desde || null)
+      .input('hasta', sql.Date, hasta || null)
+      .input('idProyecto', sql.Int, idProyecto || null)
+      .query(`
       SELECT
         mp.idMaterialProyecto,
         p.idProyecto,
@@ -48,6 +53,9 @@ router.get('/', async (req, res) => {
       JOIN dbo.material m ON mp.idMaterial = m.idMaterial
       JOIN dbo.tipomaterial tm ON m.idTipoMaterial = tm.idTipoMaterial
       JOIN dbo.unidadmedida um ON m.idUnidadMedida = um.idUnidadMedida
+      WHERE (@desde IS NULL OR mp.fechaRegistro >= @desde)
+        AND (@hasta IS NULL OR mp.fechaRegistro <= @hasta)
+        AND (@idProyecto IS NULL OR mp.idProyecto = @idProyecto)
       ORDER BY mp.idMaterialProyecto ASC
     `);
 

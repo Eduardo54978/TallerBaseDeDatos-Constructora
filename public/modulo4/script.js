@@ -179,12 +179,18 @@ function renderStatsCards(id, cards) {
   `).join('');
 }
 
+let _rangoOrdenes = { desde: '', hasta: '' };
+let _dataOrdenes = [];
 async function cargarOrdenes() {
+  const r = (typeof leerRango === 'function') ? leerRango('f-ord-desde', 'f-ord-hasta') : { desde: '', hasta: '' };
+  if (!r) return;
+  _rangoOrdenes = r;
   mostrarCarga('cont-ordenes');
 
   try {
-    const data = await fetch(`${API}/compras`).then(r => r.json());
+    const data = await fetch(`${API}/compras${typeof rangoQuery === 'function' ? rangoQuery(r.desde, r.hasta) : ''}`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idOrdenCompra');
+    _dataOrdenes = ordenados;
 
     const pendientes = ordenados.filter(o => esPendiente(o.estadoOrden)).length;
     const montoTotal = ordenados.reduce((s, o) => s + Number(o.montoTotal || 0), 0);
@@ -861,3 +867,19 @@ function moneda(valor) {
 }
 
 cargarOrdenes();
+// Imprime el listado de órdenes de compra (respeta el rango de fechas).
+function imprimirOrdenes() {
+  if (!_dataOrdenes.length) return alert('No hay órdenes para imprimir.');
+  const win = nuevaVentanaPDF();
+  const f = v => v ? String(v).substring(0, 10) : '-';
+  const n = v => Number(v || 0).toFixed(2);
+  const total = _dataOrdenes.reduce((s, o) => s + Number(o.montoTotal || 0), 0);
+  const filas = _dataOrdenes.map(o => [
+    o.idOrdenCompra, f(o.fechaOrden), o.nombreProveedor || '-', n(o.montoTotal), o.estadoOrden || '-',
+  ]);
+  const cuerpo =
+    pdfTabla('Órdenes de Compra', ['ID', 'Fecha', 'Proveedor', 'Monto (Bs)', 'Estado'], filas) +
+    `<div class="total">Monto total: Bs ${n(total)}</div>`;
+  imprimirReporte(win, 'Reporte de Órdenes de Compra',
+    etiquetaRango(_rangoOrdenes.desde, _rangoOrdenes.hasta), [cuerpo]);
+}

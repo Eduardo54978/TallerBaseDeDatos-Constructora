@@ -105,9 +105,13 @@ router.get('/clientes/contrato/:idContrato', async (req, res) => {
 });
 
 router.get('/clientes', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
             SELECT
                 pc.idPagoCliente,
                 pc.idContrato,
@@ -127,6 +131,8 @@ router.get('/clientes', async (req, res) => {
             LEFT JOIN cuota cu ON pc.idCuota = cu.idCuota
             JOIN metodopago mp ON pc.idMetodoPago = mp.idMetodoPago
             JOIN estadopago ep ON pc.idEstadoPago = ep.idEstadoPago
+            WHERE (@desde IS NULL OR pc.fechaPago >= @desde)
+              AND (@hasta IS NULL OR pc.fechaPago <= @hasta)
             ORDER BY pc.fechaPago
         `);
 
@@ -277,9 +283,13 @@ router.delete('/clientes/:id', async (req, res) => {
 });
 
 router.get('/proveedores', async (req, res) => {
+    const { desde, hasta } = req.query;
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .query(`
             SELECT
                 pp.idPagoProveedor,
                 pp.idProveedor,
@@ -294,6 +304,8 @@ router.get('/proveedores', async (req, res) => {
             JOIN proveedor p ON pp.idProveedor = p.idProveedor
             LEFT JOIN ordencompra oc ON pp.idOrdenCompra = oc.idOrdenCompra
             JOIN metodopago mp ON pp.idMetodoPago = mp.idMetodoPago
+            WHERE (@desde IS NULL OR pp.fechaPago >= @desde)
+              AND (@hasta IS NULL OR pp.fechaPago <= @hasta)
             ORDER BY pp.fechaPago
         `);
 
@@ -483,9 +495,14 @@ router.delete('/proveedores/:id', async (req, res) => {
 });
 
 router.get('/planilla', async (req, res) => {
+    const { desde, hasta, idProyecto } = req.query;
     try {
         const pool = await sql.connect(config);
-        const result = await pool.request().query(`
+        const result = await pool.request()
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null)
+            .input('idProyecto', sql.Int, idProyecto || null)
+            .query(`
             SELECT
                 ppp.idPagoPlanillaProyecto,
                 ppp.idEmpleado,
@@ -502,6 +519,9 @@ router.get('/planilla', async (req, res) => {
             JOIN proyecto p ON ppp.idProyecto = p.idProyecto
             JOIN metodopago mp ON ppp.idMetodoPago = mp.idMetodoPago
             JOIN estadopago ep ON ppp.idEstadoPago = ep.idEstadoPago
+            WHERE (@desde IS NULL OR ppp.fechaPago >= @desde)
+              AND (@hasta IS NULL OR ppp.fechaPago <= @hasta)
+              AND (@idProyecto IS NULL OR ppp.idProyecto = @idProyecto)
             ORDER BY ppp.fechaPago
         `);
 

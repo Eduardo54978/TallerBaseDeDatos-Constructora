@@ -257,6 +257,12 @@
       </div>
       <input type="text" id="buscarUso" placeholder="Buscar proyecto o material...">
     </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; font-size:.85rem; color:#555;">
+      <label>Desde <input type="date" id="f-uso-desde"></label>
+      <label>Hasta <input type="date" id="f-uso-hasta"></label>
+      <button class="btn" type="button" onclick="cargarUsos()">Buscar</button>
+      <button class="btn" type="button" onclick="imprimirUsos()">Imprimir / PDF</button>
+    </div>
     <div id="mensajeUsos" class="mensaje">Cargando registros...</div>
     <div class="tabla">
       <table>
@@ -360,6 +366,8 @@
 </div>
 
 <script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
