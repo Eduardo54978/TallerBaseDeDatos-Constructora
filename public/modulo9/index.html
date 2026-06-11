@@ -33,7 +33,11 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button id="btn-tipo-cliente" class="btn btn-primary" onclick="switchTipoCot('cliente',this)">Cotización Cliente</button>
           <button id="btn-tipo-interna" class="btn" style="background:#e2e8f0;color:#2d3748;" onclick="switchTipoCot('interna',this)">Cotización Interna</button>
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-cot-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-cot-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" onclick="cargarListaCotizaciones()">Buscar</button>
           <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-cot', this.value)">
+          <button class="btn btn-accent" onclick="imprimirListaCotizaciones()">Imprimir lista / PDF</button>
         </div>
       </div>
       <div id="cont-cot"><p>Cargando...</p></div>
@@ -305,6 +309,7 @@
 
 <script src="../js/autocomplete.js"></script>
 <script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

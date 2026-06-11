@@ -174,6 +174,7 @@ document.addEventListener('input', () => {
 });
 
 let _empleados = [];
+let _empleadosFiltrados = [];
 let _empProyectos = {};   // idEmpleado -> [nombreProyecto activos]
 
 async function cargarEmpleados() {
@@ -238,6 +239,7 @@ function renderEmpleados() {
     if (fProy && !(_empProyectos[e.idEmpleado] || []).includes(fProy)) return false;
     return true;
   });
+  _empleadosFiltrados = filtrados;
 
   // Tarjetas de resumen.
   const stats = document.getElementById('emp-stats');
@@ -774,3 +776,18 @@ async function eliminarRegistroHoras(idReg) {
 }
 
 cargarEmpleados();
+// Imprime la lista de empleados (respeta los filtros aplicados en pantalla).
+function imprimirEmpleados() {
+  const lista = _empleadosFiltrados.length ? _empleadosFiltrados : _empleados;
+  if (!lista.length) return alert('No hay empleados para imprimir.');
+  const win = nuevaVentanaPDF();
+  const filas = lista.map(e => [
+    `${e.nombre} ${e.apellido}`, e.ci || '-', e.nombreCargo || '-',
+    e.nombreDepartamento || '-', e.nombreEstadoEmpleado || '-',
+    e.email || '-', e.numCelular || '-',
+  ]);
+  const cuerpo = pdfTabla('Empleados',
+    ['Empleado', 'CI', 'Cargo', 'Departamento', 'Estado', 'Email', 'Celular'], filas) +
+    `<div class="total">Total: ${lista.length} empleados</div>`;
+  imprimirReporte(win, 'Reporte de Empleados', '', [cuerpo]);
+}

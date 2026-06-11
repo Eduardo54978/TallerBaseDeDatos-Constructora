@@ -31,7 +31,10 @@
       <div id="pago-stats"></div>
       <div class="table-header">
         <h3>Pagos de Clientes</h3>
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-cli-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-cli-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosClientes()">Buscar</button>
           <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-cli', this.value)">
           <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosClientes()">Imprimir / PDF</button>
         </div>
@@ -45,7 +48,13 @@
     <div class="card">
       <div class="table-header">
         <h3>Pagos a Proveedores</h3>
-        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-prov', this.value)">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-prov-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-prov-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosProveedores()">Buscar</button>
+          <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-prov', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosProveedores()">Imprimir / PDF</button>
+        </div>
       </div>
       <div id="cont-pagos-proveedores"><p>Cargando...</p></div>
     </div>
@@ -56,7 +65,13 @@
     <div class="card">
       <div class="table-header">
         <h3>Pagos de Planilla</h3>
-        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-plan', this.value)">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-plan-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-plan-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosPlanilla()">Buscar</button>
+          <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-plan', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosPlanilla()">Imprimir / PDF</button>
+        </div>
       </div>
       <div id="cont-pagos-planilla"><p>Cargando...</p></div>
     </div>
@@ -257,6 +272,8 @@
 </div>
 
 <script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

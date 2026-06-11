@@ -30,14 +30,21 @@ async function cargarStatsCotizaciones() {
   } catch (e) { /* sin stats */ }
 }
 
+let _rangoCot = { desde: '', hasta: '' };
+let _dataCot = [];
 async function cargarListaCotizaciones() {
   const cont = document.getElementById('cont-cot');
   if (!cont) return;
+  const r = (typeof leerRango === 'function') ? leerRango('f-cot-desde', 'f-cot-hasta') : { desde: '', hasta: '' };
+  if (!r) return;
+  _rangoCot = r;
+  const qs = (typeof rangoQuery === 'function') ? rangoQuery(r.desde, r.hasta) : '';
   cargarStatsCotizaciones();
   cont.innerHTML = '<p>Cargando...</p>';
   try {
     if (tipoCotActual === 'cliente') {
-      const data = await fetch(`${API}/cotizaciones`).then(r => r.json());
+      const data = await fetch(`${API}/cotizaciones${qs}`).then(r => r.json());
+      _dataCot = data;
       if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones de cliente registradas.</p>'; return; }
       cont.innerHTML = `<table id="tbl-cot"><thead><tr>
         <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
@@ -57,7 +64,8 @@ async function cargarListaCotizaciones() {
         </tr>`).join('')}
       </tbody></table>`;
     } else {
-      const data = await fetch(`${API}/cotizaciones/interna`).then(r => r.json());
+      const data = await fetch(`${API}/cotizaciones/interna${qs}`).then(r => r.json());
+      _dataCot = data;
       if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones internas registradas.</p>'; return; }
       cont.innerHTML = `<table id="tbl-cot"><thead><tr>
         <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
@@ -84,6 +92,26 @@ async function cargarListaCotizaciones() {
 
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
+}
+
+// Imprime la lista completa de cotizaciones (del tipo y rango actuales).
+function imprimirListaCotizaciones() {
+  if (!Array.isArray(_dataCot) || !_dataCot.length) return alert('No hay cotizaciones para imprimir.');
+  const win = nuevaVentanaPDF();
+  const f = v => v ? String(v).substring(0, 10) : '-';
+  const n = v => Number(v || 0).toFixed(2);
+  const esCliente = tipoCotActual === 'cliente';
+  const total = _dataCot.reduce((s, c) => s + Number(c.totalEstimado || 0), 0);
+  const filas = _dataCot.map(c => [
+    esCliente ? c.numeroCotizacionCliente : c.numeroCotizacionInterna,
+    c.nombreProyecto || '-', f(c.fechaCotizacion), n(c.totalEstimado), c.nombreEstadoCotizacion || '-',
+  ]);
+  const titulo = esCliente ? 'Cotizaciones de Cliente' : 'Cotizaciones Internas';
+  const cuerpo =
+    pdfTabla(titulo, ['Número', 'Proyecto', 'Fecha', 'Total Est. (Bs)', 'Estado'], filas) +
+    `<div class="total">Total estimado: Bs ${n(total)}</div>`;
+  imprimirReporte(win, `Reporte de ${titulo}`,
+    etiquetaRango(_rangoCot.desde, _rangoCot.hasta), [cuerpo]);
 }
 
 function ordenarCotizacionesCliente(datos) {

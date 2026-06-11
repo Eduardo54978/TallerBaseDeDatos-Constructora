@@ -345,6 +345,146 @@ router.get('/:id/inspeccion', async (req, res) => {
     }
 });
 
+// GET /:id/reporte?desde=&hasta= — reporte consolidado del proyecto cruzando
+// todos los módulos. Las secciones con fecha se filtran por el rango; los datos
+// del proyecto, contratos y cotizaciones se incluyen completos.
+// (Las compras/órdenes no se incluyen porque el esquema no las liga a un proyecto.)
+router.get('/:id/reporte', async (req, res) => {
+    const { desde, hasta } = req.query;
+    try {
+        const pool = await sql.connect(config);
+        const req4 = () => pool.request()
+            .input('id', sql.Int, req.params.id)
+            .input('desde', sql.Date, desde || null)
+            .input('hasta', sql.Date, hasta || null);
+
+        const cab = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT p.idProyecto, p.nombreProyecto, p.descripcion, p.ubicacion,
+                       p.fechaInicio, p.fechaFinEstimada, p.fechaFinReal,
+                       tp.nombreTipoProyecto, ep.nombreEstadoProyecto,
+                       cl.nombre AS nombreCliente
+                FROM dbo.proyecto p
+                JOIN dbo.tipoproyecto tp ON p.idTipoProyecto = tp.idTipoProyecto
+                JOIN dbo.estadoproyecto ep ON p.idEstadoProyecto = ep.idEstadoProyecto
+                LEFT JOIN dbo.cliente cl ON p.idCliente = cl.idCliente
+                WHERE p.idProyecto = @id
+            `);
+        if (cab.recordset.length === 0)
+            return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+        const personal = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT e.nombre + ' ' + e.apellido AS empleado, c.nombreCargo,
+                       rp.nombreRolProyecto, ep.fechaInicio, ep.fechaFin
+                FROM dbo.empleadoproyecto ep
+                JOIN dbo.empleado e ON ep.idEmpleado = e.idEmpleado
+                JOIN dbo.cargo c ON e.idCargo = c.idCargo
+                JOIN dbo.rolproyecto rp ON ep.idRolProyecto = rp.idRolProyecto
+                WHERE ep.idProyecto = @id
+                ORDER BY e.nombre, e.apellido
+            `);
+
+        const materiales = await req4().query(`
+            SELECT m.nombreMaterial, mp.cantidadUtilizada, mp.costoTotal, mp.fechaRegistro
+            FROM dbo.materialproyecto mp
+            JOIN dbo.material m ON mp.idMaterial = m.idMaterial
+            WHERE mp.idProyecto = @id
+              AND (@desde IS NULL OR mp.fechaRegistro >= @desde)
+              AND (@hasta IS NULL OR mp.fechaRegistro <= @hasta)
+            ORDER BY mp.fechaRegistro DESC
+        `);
+
+        const horas = await req4().query(`
+            SELECT e.nombre + ' ' + e.apellido AS empleado, rh.fecha, rh.horasTrabajadas
+            FROM dbo.registrohoras rh
+            JOIN dbo.empleado e ON rh.idEmpleado = e.idEmpleado
+            WHERE rh.idProyecto = @id
+              AND (@desde IS NULL OR rh.fecha >= @desde)
+              AND (@hasta IS NULL OR rh.fecha <= @hasta)
+            ORDER BY rh.fecha DESC
+        `);
+
+        const planilla = await req4().query(`
+            SELECT e.nombre + ' ' + e.apellido AS empleado, pp.fechaPago, pp.montoPagado,
+                   est.nombreEstadoPago, mp.nombreMetodoPago
+            FROM dbo.pagoplanillaproyecto pp
+            JOIN dbo.empleado e ON pp.idEmpleado = e.idEmpleado
+            JOIN dbo.estadopago est ON pp.idEstadoPago = est.idEstadoPago
+            JOIN dbo.metodopago mp ON pp.idMetodoPago = mp.idMetodoPago
+            WHERE pp.idProyecto = @id
+              AND (@desde IS NULL OR pp.fechaPago >= @desde)
+              AND (@hasta IS NULL OR pp.fechaPago <= @hasta)
+            ORDER BY pp.fechaPago DESC
+        `);
+
+        const pagosCliente = await req4().query(`
+            SELECT ct.numeroContrato, pc.fechaPago, pc.monto,
+                   est.nombreEstadoPago, mp.nombreMetodoPago
+            FROM dbo.pagocliente pc
+            JOIN dbo.contrato ct ON pc.idContrato = ct.idContrato
+            JOIN dbo.estadopago est ON pc.idEstadoPago = est.idEstadoPago
+            JOIN dbo.metodopago mp ON pc.idMetodoPago = mp.idMetodoPago
+            WHERE ct.idProyecto = @id
+              AND (@desde IS NULL OR pc.fechaPago >= @desde)
+              AND (@hasta IS NULL OR pc.fechaPago <= @hasta)
+            ORDER BY pc.fechaPago DESC
+        `);
+
+        const contratos = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT ct.numeroContrato, tc.nombreTipoContrato, ct.fechaFirma,
+                       ct.fechaInicio, ct.fechaVencimiento, ct.montoTotal,
+                       ec.nombreEstadoContrato
+                FROM dbo.contrato ct
+                JOIN dbo.tipocontrato tc ON ct.idTipoContrato = tc.idTipoContrato
+                JOIN dbo.estadocontrato ec ON ct.idEstadoContrato = ec.idEstadoContrato
+                WHERE ct.idProyecto = @id
+                ORDER BY ct.fechaFirma DESC
+            `);
+
+        const cotizaciones = await pool.request()
+            .input('id', sql.Int, req.params.id)
+            .query(`
+                SELECT cc.numeroCotizacionCliente AS numero, 'Cliente' AS tipo,
+                       cc.fechaCotizacion, ec.nombreEstadoCotizacion
+                FROM dbo.cotizacioncliente cc
+                JOIN dbo.estadocotizacion ec ON cc.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE cc.idProyecto = @id
+                UNION ALL
+                SELECT ci.numeroCotizacionInterna AS numero, 'Interna' AS tipo,
+                       ci.fechaCotizacion, ec.nombreEstadoCotizacion
+                FROM dbo.cotizacioninterna ci
+                JOIN dbo.estadocotizacion ec ON ci.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE ci.idProyecto = @id
+                ORDER BY fechaCotizacion DESC
+            `);
+
+        const num = arr => Number(arr.reduce((s, x) => s + Number(x || 0), 0).toFixed(2));
+        res.json({
+            proyecto: cab.recordset[0],
+            personal: personal.recordset,
+            materiales: materiales.recordset,
+            horas: horas.recordset,
+            planilla: planilla.recordset,
+            pagosCliente: pagosCliente.recordset,
+            contratos: contratos.recordset,
+            cotizaciones: cotizaciones.recordset,
+            totales: {
+                costoMateriales: num(materiales.recordset.map(m => m.costoTotal)),
+                totalPlanilla: num(planilla.recordset.map(p => p.montoPagado)),
+                totalPagosCliente: num(pagosCliente.recordset.map(p => p.monto)),
+                totalHoras: num(horas.recordset.map(h => h.horasTrabajadas)),
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.put('/:id', async (req, res) => {
     const { nombreProyecto, descripcion, idTipoProyecto, ubicacion, fechaInicio, fechaFinEstimada, idEstadoProyecto, idCliente } = req.body;
 

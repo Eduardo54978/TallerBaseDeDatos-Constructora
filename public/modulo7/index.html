@@ -28,7 +28,10 @@
       <div id="cli-stats"></div>
       <div class="table-header">
         <h3>Clientes Registrados</h3>
-        <input class="search" placeholder="Buscar cliente..." oninput="filtrarTabla('tbl-cli', this.value)">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input class="search" placeholder="Buscar cliente..." oninput="filtrarTabla('tbl-cli', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirClientes()">Imprimir / PDF</button>
+        </div>
       </div>
       <div id="cont-clientes"><p>Cargando...</p></div>
     </div>
@@ -157,6 +160,8 @@
 </div>
 
 <script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

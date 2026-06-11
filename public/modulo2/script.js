@@ -406,12 +406,16 @@ async function cargarInventario() {
   }
 }
 
+let _rangoUsos = { desde: '', hasta: '' };
 async function cargarUsos() {
   const mensaje = document.getElementById("mensajeUsos");
   const tabla = document.getElementById("tablaUsos");
+  const r = (typeof leerRango === 'function') ? leerRango('f-uso-desde', 'f-uso-hasta') : { desde: '', hasta: '' };
+  if (!r) return;
+  _rangoUsos = r;
 
   try {
-    const respuesta = await fetch(apiUsos);
+    const respuesta = await fetch(apiUsos + (typeof rangoQuery === 'function' ? rangoQuery(r.desde, r.hasta) : ''));
     const datos = await respuesta.json();
 
     if (!respuesta.ok) {
@@ -799,4 +803,22 @@ function formatearValor(valor) {
   }
 
   return valor;
+}
+// Imprime los materiales usados en proyectos (respetando el rango de fechas).
+function imprimirUsos() {
+  if (!Array.isArray(listaUsos) || !listaUsos.length) return alert('No hay registros para imprimir.');
+  const win = nuevaVentanaPDF();
+  const f = v => v ? String(v).substring(0, 10) : '-';
+  const n = v => Number(v || 0).toFixed(2);
+  const total = listaUsos.reduce((s, u) => s + Number(u.costoTotal || 0), 0);
+  const filas = listaUsos.map(u => [
+    u.nombreProyecto || '-', u.nombreMaterial || '-', u.nombreTipoMaterial || '-',
+    `${u.cantidadUtilizada} ${u.nombreUnidadMedida || ''}`.trim(), n(u.costoTotal), f(u.fechaRegistro),
+  ]);
+  const cuerpo =
+    pdfTabla('Materiales usados en proyectos',
+      ['Proyecto', 'Material', 'Tipo', 'Cantidad', 'Costo (Bs)', 'Fecha'], filas) +
+    `<div class="total">Costo total: Bs ${n(total)}</div>`;
+  imprimirReporte(win, 'Reporte de Materiales Usados',
+    etiquetaRango(_rangoUsos.desde, _rangoUsos.hasta), [cuerpo]);
 }

@@ -64,10 +64,16 @@ function msg(id, texto, tipo) {
   }, 4000);
 }
 
+let _rangoContratos = { desde: '', hasta: '' };
+let _dataContratos = [];
 async function cargarContratos() {
+  const r = (typeof leerRango === 'function') ? leerRango('f-con-desde', 'f-con-hasta') : { desde: '', hasta: '' };
+  if (!r) return;
+  _rangoContratos = r;
   try {
-    const data = await fetch(`${API}/contratos`).then(r => r.json());
+    const data = await fetch(`${API}/contratos${typeof rangoQuery === 'function' ? rangoQuery(r.desde, r.hasta) : ''}`).then(r => r.json());
     const ordenados = ordenarPorNumero(data, 'idContrato');
+    _dataContratos = ordenados;
 
     const activos = ordenados.filter(c => {
       const s = (c.nombreEstadoContrato || '').toLowerCase();
@@ -445,3 +451,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 cargarContratos();
+// Imprime el listado de contratos (respeta el rango de fechas).
+function imprimirContratos() {
+  if (!_dataContratos.length) return alert('No hay contratos para imprimir.');
+  const win = nuevaVentanaPDF();
+  const f = v => v ? String(v).substring(0, 10) : '-';
+  const n = v => Number(v || 0).toFixed(2);
+  const total = _dataContratos.reduce((s, c) => s + Number(c.montoTotal || 0), 0);
+  const filas = _dataContratos.map(c => [
+    c.numeroContrato, c.nombreProyecto || '-', c.nombreCliente || '-',
+    n(c.montoTotal), f(c.fechaContrato), f(c.fechaVencimiento), c.nombreEstadoContrato || '-',
+  ]);
+  const cuerpo =
+    pdfTabla('Contratos', ['Número', 'Proyecto', 'Cliente', 'Monto (Bs)', 'Fecha', 'Vencimiento', 'Estado'], filas) +
+    `<div class="total">Monto total: Bs ${n(total)}</div>`;
+  imprimirReporte(win, 'Reporte de Contratos',
+    etiquetaRango(_rangoContratos.desde, _rangoContratos.hasta), [cuerpo]);
+}

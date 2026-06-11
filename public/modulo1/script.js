@@ -600,6 +600,7 @@ function mostrarProyectos(datos) {
       <td>${estadoProyecto(p.nombreEstadoProyecto)}</td>
       <td>
         <button type="button" class="btn-inspeccionar" onclick="inspeccionarProyecto(${p.idProyecto})">Inspeccionar</button>
+        <button type="button" class="btn-tab" style="padding:4px 10px;font-size:.78rem;" onclick="imprimirReporteProyecto(${p.idProyecto})">Imprimir reporte</button>
         <button type="button" class="btn-eliminar" onclick="eliminarProyecto(${p.idProyecto})">Eliminar</button>
       </td>
     `;
@@ -1060,5 +1061,63 @@ async function eliminarProyecto(idProyecto) {
   } catch (error) {
     console.error("Error al eliminar proyecto:", error);
     alert("Error de conexión con el servidor.");
+  }
+}
+
+// Reporte consolidado del proyecto: cruza datos de todos los módulos
+// (materiales, personal, planilla, pagos de cliente, contratos, cotizaciones).
+async function imprimirReporteProyecto(idProyecto) {
+  const r = leerRango('f-proy-desde', 'f-proy-hasta');
+  if (!r) return;
+  const win = nuevaVentanaPDF();
+  try {
+    const d = await fetch(`${apiProyectos}/${idProyecto}/reporte${rangoQuery(r.desde, r.hasta)}`).then(x => x.json());
+    if (d.error) { win && win.close(); return alert('Error: ' + d.error); }
+    const p = d.proyecto;
+    const f = v => v ? String(v).substring(0, 10) : '-';
+    const n = v => Number(v || 0).toFixed(2);
+
+    const datos = pdfDatos([
+      ['Proyecto', p.nombreProyecto], ['Cliente', p.nombreCliente],
+      ['Tipo', p.nombreTipoProyecto], ['Estado', p.nombreEstadoProyecto],
+      ['Ubicación', p.ubicacion], ['Inicio', f(p.fechaInicio)],
+      ['Fin estimado', f(p.fechaFinEstimada)], ['Fin real', f(p.fechaFinReal)],
+      ['Descripción', p.descripcion],
+    ]);
+
+    const secciones = [
+      datos,
+      pdfTabla('Personal asignado',
+        ['Empleado', 'Cargo', 'Rol', 'Inicio', 'Fin'],
+        d.personal.map(x => [x.empleado, x.nombreCargo, x.nombreRolProyecto, f(x.fechaInicio), f(x.fechaFin)])),
+      pdfTabla('Materiales usados',
+        ['Material', 'Cantidad', 'Costo (Bs)', 'Fecha'],
+        d.materiales.map(x => [x.nombreMaterial, x.cantidadUtilizada, n(x.costoTotal), f(x.fechaRegistro)])) +
+        `<div class="total">Costo materiales: Bs ${n(d.totales.costoMateriales)}</div>`,
+      pdfTabla('Horas trabajadas',
+        ['Empleado', 'Fecha', 'Horas'],
+        d.horas.map(x => [x.empleado, f(x.fecha), x.horasTrabajadas])) +
+        `<div class="total">Total horas: ${n(d.totales.totalHoras)}</div>`,
+      pdfTabla('Pagos de planilla (empleados)',
+        ['Empleado', 'Fecha', 'Monto (Bs)', 'Estado', 'Método'],
+        d.planilla.map(x => [x.empleado, f(x.fechaPago), n(x.montoPagado), x.nombreEstadoPago, x.nombreMetodoPago])) +
+        `<div class="total">Total planilla: Bs ${n(d.totales.totalPlanilla)}</div>`,
+      pdfTabla('Pagos de cliente',
+        ['Contrato', 'Fecha', 'Monto (Bs)', 'Estado', 'Método'],
+        d.pagosCliente.map(x => [x.numeroContrato, f(x.fechaPago), n(x.monto), x.nombreEstadoPago, x.nombreMetodoPago])) +
+        `<div class="total">Total cobrado: Bs ${n(d.totales.totalPagosCliente)}</div>`,
+      pdfTabla('Contratos',
+        ['Número', 'Tipo', 'Firma', 'Inicio', 'Vencimiento', 'Monto (Bs)', 'Estado'],
+        d.contratos.map(x => [x.numeroContrato, x.nombreTipoContrato, f(x.fechaFirma), f(x.fechaInicio), f(x.fechaVencimiento), n(x.montoTotal), x.nombreEstadoContrato])),
+      pdfTabla('Cotizaciones',
+        ['Número', 'Tipo', 'Fecha', 'Estado'],
+        d.cotizaciones.map(x => [x.numero, x.tipo, f(x.fechaCotizacion), x.nombreEstadoCotizacion])),
+    ];
+
+    imprimirReporte(win, `Reporte de Proyecto — ${p.nombreProyecto}`,
+      etiquetaRango(r.desde, r.hasta), secciones);
+  } catch (e) {
+    win && win.close();
+    alert('Error al generar el reporte del proyecto.');
   }
 }
