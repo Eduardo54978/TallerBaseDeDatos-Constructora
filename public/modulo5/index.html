@@ -49,7 +49,7 @@
           <label>Proyecto *</label>
           <div class="ac-wrap">
             <input id="c-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
-                   oninput="acSearch('c-proy-nom','ac-c-proy','c-idproyecto','proyectos','idProyecto','nombreProyecto')">
+                   oninput="acSearch('c-proy-nom','ac-c-proy','c-idproyecto','proyectos','idProyecto','nombreProyecto','onProyectoContrato')">
             <div class="ac-drop" id="ac-c-proy"></div>
             <input type="hidden" id="c-idproyecto">
           </div>
@@ -91,8 +91,12 @@
           <small style="color:#718096;">Fecha en que ambas partes firmaron el contrato</small>
         </div>
       </div>
+
+      <!-- Cotización asociada + detalle de la obra (se llena al elegir proyecto) -->
+      <div id="c-preparacion" style="margin-top:6px;"></div>
+
       <br>
-      <button class="btn btn-primary" onclick="registrarContrato()">Crear Contrato</button>
+      <button class="btn btn-primary" id="c-btn-crear" onclick="registrarContrato()">Crear Contrato</button>
       <div id="msg-contrato" class="msg"></div>
     </div>
   </div>

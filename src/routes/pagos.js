@@ -116,7 +116,7 @@ router.get('/clientes', async (req, res) => {
                 pc.idPagoCliente,
                 pc.idContrato,
                 c.numeroContrato,
-                cl.nombre AS nombreCliente,
+                LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente,
                 p.nombreProyecto,
                 pc.idCuota,
                 cu.numeroCuota,
@@ -156,7 +156,7 @@ router.get('/clientes/:id', async (req, res) => {
                     pc.idEstadoPago,
                     pc.fechaPago,
                     pc.monto,
-                    c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + cl.nombre + ')' AS contratoDisplay,
+                    c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) + ')' AS contratoDisplay,
                     cu.numeroCuota,
                     mp.nombreMetodoPago AS metodoPago,
                     ep.nombreEstadoPago AS estadoPago

@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
                 p.fechaFinReal,
                 tp.nombreTipoProyecto,
                 ep.nombreEstadoProyecto,
-                c.nombre AS cliente
+                LTRIM(RTRIM(c.nombre + ' ' + ISNULL(c.apellido, ''))) AS cliente
             FROM proyecto p
             JOIN tipoproyecto tp ON p.idTipoProyecto = tp.idTipoProyecto
             JOIN estadoproyecto ep ON p.idEstadoProyecto = ep.idEstadoProyecto
@@ -59,7 +59,8 @@ router.get('/form/opciones', async (req, res) => {
         `);
 
         const clientes = await pool.request().query(`
-            SELECT TOP 300 *
+            SELECT TOP 300 *,
+                   LTRIM(RTRIM(nombre + ' ' + ISNULL(apellido, ''))) AS nombreCliente
             FROM dbo.cliente
             ORDER BY idCliente
         `);
@@ -297,7 +298,7 @@ router.get('/:id/inspeccion', async (req, res) => {
                 SELECT p.idProyecto, p.nombreProyecto, p.descripcion, p.ubicacion,
                        p.fechaInicio, p.fechaFinEstimada, p.fechaFinReal,
                        tp.nombreTipoProyecto, ep.nombreEstadoProyecto,
-                       cl.nombre AS nombreCliente
+                       LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente
                 FROM dbo.proyecto p
                 JOIN dbo.tipoproyecto tp ON p.idTipoProyecto = tp.idTipoProyecto
                 JOIN dbo.estadoproyecto ep ON p.idEstadoProyecto = ep.idEstadoProyecto
@@ -364,7 +365,7 @@ router.get('/:id/reporte', async (req, res) => {
                 SELECT p.idProyecto, p.nombreProyecto, p.descripcion, p.ubicacion,
                        p.fechaInicio, p.fechaFinEstimada, p.fechaFinReal,
                        tp.nombreTipoProyecto, ep.nombreEstadoProyecto,
-                       cl.nombre AS nombreCliente
+                       LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente
                 FROM dbo.proyecto p
                 JOIN dbo.tipoproyecto tp ON p.idTipoProyecto = tp.idTipoProyecto
                 JOIN dbo.estadoproyecto ep ON p.idEstadoProyecto = ep.idEstadoProyecto

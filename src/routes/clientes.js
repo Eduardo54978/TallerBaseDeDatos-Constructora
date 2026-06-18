@@ -10,6 +10,7 @@ router.get('/', async (req, res) => {
             SELECT
                 c.idCliente,
                 c.nombre,
+                c.apellido,
                 c.documentoID,
                 c.numCelular,
                 c.email,
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
                 tc.nombreTipoCliente
             FROM dbo.cliente c
             JOIN dbo.tipocliente tc ON c.idTipoCliente = tc.idTipoCliente
-            ORDER BY c.nombre
+            ORDER BY c.nombre, c.apellido
         `);
         res.json(result.recordset);
     } catch (err) {
@@ -33,7 +34,12 @@ router.get('/search', async (req, res) => {
         const pool = await sql.connect(config);
         const result = await pool.request()
             .input('q', sql.NVarChar, `%${q}%`)
-            .query(`SELECT TOP 10 idCliente, nombre FROM dbo.cliente WHERE nombre LIKE @q OR CAST(idCliente AS NVARCHAR) LIKE @q ORDER BY nombre`);
+            .query(`SELECT TOP 10 idCliente, nombre, apellido,
+                        LTRIM(RTRIM(nombre + ' ' + ISNULL(apellido, ''))) AS nombreCompleto
+                    FROM dbo.cliente
+                    WHERE nombre LIKE @q OR apellido LIKE @q
+                       OR (nombre + ' ' + apellido) LIKE @q OR CAST(idCliente AS NVARCHAR) LIKE @q
+                    ORDER BY nombre, apellido`);
         res.json(result.recordset);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -47,6 +53,7 @@ router.get('/:id', async (req, res) => {
                 SELECT
                     c.idCliente,
                     c.nombre,
+                    c.apellido,
                     c.documentoID,
                     c.numCelular,
                     c.email,
@@ -108,7 +115,7 @@ router.get('/tipos/lista', async (req, res) => {
 
 // â”€â”€ POST registrar cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/', async (req, res) => {
-    const { nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro } = req.body;
+    const { nombre, apellido, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro } = req.body;
 
     if (!nombre || !documentoID)
         return res.status(400).json({ error: 'nombre y documentoID son obligatorios' });
@@ -141,6 +148,7 @@ router.post('/', async (req, res) => {
 
         const result = await pool.request()
             .input('nombre',        sql.NVarChar,  nombre)
+            .input('apellido',      sql.NVarChar,  apellido      || '')
             .input('idTipo',        sql.Int,        idTipoCliente)
             .input('documentoID',   sql.NVarChar,  documentoID)
             .input('numCelular',    sql.NVarChar,  numCelular    || null)
@@ -148,9 +156,9 @@ router.post('/', async (req, res) => {
             .input('direccion',     sql.NVarChar,  direccion     || null)
             .input('fechaRegistro', sql.Date,       fechaRegistro || new Date().toISOString().slice(0, 10))
             .query(`
-                INSERT INTO dbo.cliente (nombre, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro)
+                INSERT INTO dbo.cliente (nombre, apellido, idTipoCliente, documentoID, numCelular, email, direccion, fechaRegistro)
                 OUTPUT INSERTED.idCliente
-                VALUES (@nombre, @idTipo, @documentoID, @numCelular, @email, @direccion, @fechaRegistro)
+                VALUES (@nombre, @apellido, @idTipo, @documentoID, @numCelular, @email, @direccion, @fechaRegistro)
             `);
         res.status(201).json({ idCliente: result.recordset[0].idCliente });
     } catch (err) {
@@ -160,7 +168,7 @@ router.post('/', async (req, res) => {
 
 // â”€â”€ PUT actualizar cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.put('/:id', async (req, res) => {
-    const { nombre, idTipoCliente, documentoID, numCelular, email, direccion } = req.body;
+    const { nombre, apellido, idTipoCliente, documentoID, numCelular, email, direccion } = req.body;
     const idCliente = req.params.id;
 
     try {
@@ -205,6 +213,7 @@ router.put('/:id', async (req, res) => {
         await pool.request()
             .input('id',          sql.Int,      idCliente)
             .input('nombre',      sql.NVarChar, nombre)
+            .input('apellido',    sql.NVarChar, apellido || '')
             .input('idTipo',      sql.Int,      idTipoCliente)
             .input('documentoID', sql.NVarChar, documentoID)
             .input('numCelular',  sql.NVarChar, numCelular || null)
@@ -213,6 +222,7 @@ router.put('/:id', async (req, res) => {
             .query(`
                 UPDATE dbo.cliente SET
                     nombre        = @nombre,
+                    apellido      = @apellido,
                     idTipoCliente = @idTipo,
                     documentoID   = @documentoID,
                     numCelular    = @numCelular,

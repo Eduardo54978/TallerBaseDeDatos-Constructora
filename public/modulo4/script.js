@@ -167,17 +167,9 @@ function msg(id, texto, tipo) {
   }, 5000);
 }
 
-function renderStatsCards(id, cards) {
-  const cont = document.getElementById(id);
-  if (!cont) return;
-
-  cont.innerHTML = cards.map(c => `
-    <div class="stat-box">
-      <div class="num">${c.n}</div>
-      <div class="lbl">${c.l}</div>
-    </div>
-  `).join('');
-}
+// Nota: el resumen usa renderStatsCards() de ../js/autocomplete.js (tarjetas con
+// estilo en grid). Antes había aquí una versión local que generaba .stat-box sin
+// estilos en styles.css, por eso el resumen se veía roto.
 
 let _rangoOrdenes = { desde: '', hasta: '' };
 let _dataOrdenes = [];
@@ -242,11 +234,13 @@ async function cargarOrdenes() {
 }
 
 async function crearOrden() {
+  const idCot = document.getElementById('no-idcot').value;
   const body = {
     fechaOrden: document.getElementById('no-fecha').value,
     idEstadoOrden: parseInt(document.getElementById('no-idestado').value),
     idProveedor: parseInt(document.getElementById('no-idproveedor').value),
-    montoTotal: parseFloat(document.getElementById('no-monto').value)
+    montoTotal: parseFloat(document.getElementById('no-monto').value),
+    idCotizacionInterna: idCot ? parseInt(idCot) : null
   };
 
   if (!body.fechaOrden || !body.idEstadoOrden || Number.isNaN(body.montoTotal)) {
@@ -276,11 +270,16 @@ async function crearOrden() {
       return msg('msg-orden', 'Error: ' + data.error, 'err');
     }
 
-    msg('msg-orden', `Orden creada con ID: ${data.idOrdenCompra}`, 'ok');
+    const aviso = idCot
+      ? ` Está basada en una cotización: ve a "Agregar Detalle" para confirmar y registrar sus materiales.`
+      : ` Para cargar materiales ve a "Agregar Detalle".`;
+    msg('msg-orden', `Orden creada con ID: ${data.idOrdenCompra}.${aviso}`, 'ok');
 
     document.querySelectorAll('#tab-nueva-orden input').forEach(i => {
       i.value = '';
     });
+    const cotPrev = document.getElementById('no-cot-preview');
+    if (cotPrev) { cotPrev.style.display = 'none'; cotPrev.innerHTML = ''; }
 
     const refPanel = document.getElementById('no-catalogo-ref');
 
@@ -362,8 +361,141 @@ async function onSelProveedorOrden(idProveedor) {
       <small style="color:#6b756d;">Usa estos precios para estimar el monto acordado de la orden.</small>
     `;
 
+    // Si ya hay una cotización elegida, refrescar su preview contra este proveedor.
+    cargarPreviewCotizacion();
+
   } catch (e) {
     panel.innerHTML = 'No se pudo cargar el catálogo del proveedor.';
+  }
+}
+
+// ── Cotización interna en Nueva Orden (la orden se crea BASADA en ella) ───────
+// Solo es una consulta: muestra qué materiales se podrían migrar. El detalle se
+// confirma luego en "Agregar Detalle".
+function onSelCotizacionOrden(idCot) {
+  cargarPreviewCotizacion();
+}
+
+async function cargarPreviewCotizacion() {
+  const prev = document.getElementById('no-cot-preview');
+  const idCot = document.getElementById('no-idcot').value;
+  const idProv = document.getElementById('no-idproveedor').value;
+  if (!prev) return;
+  if (!idCot) { prev.style.display = 'none'; prev.innerHTML = ''; return; }
+  prev.style.display = 'block';
+  if (!idProv) {
+    prev.innerHTML = '<b>Elige primero el proveedor</b> para ver qué materiales de la cotización se podrían migrar.';
+    return;
+  }
+  prev.innerHTML = 'Cargando materiales de la cotización...';
+  try {
+    const d = await fetch(`${API}/compras/preparacion-cotizacion?idCotizacionInterna=${idCot}&idProveedor=${idProv}`).then(r => r.json());
+    if (d.error) { prev.innerHTML = 'Error: ' + d.error; return; }
+
+    const filas = d.migrables.map(m => `<tr>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.cantidad}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.precioUnitario.toFixed(2)}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.subtotal.toFixed(2)}</td></tr>`).join('');
+
+    const omit = d.omitidos.length
+      ? `<small style="color:#922b21;display:block;margin-top:6px;">No los provee este proveedor (no se migrarán): ${d.omitidos.map(o => o.nombreMaterial).join(', ')}.</small>`
+      : '';
+
+    prev.innerHTML = `
+      <b style="color:#173F24;">Materiales de la cotización para esta orden (${d.migrables.length})</b>
+      ${d.migrables.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
+        <thead><tr style="background:#123823;color:#fff;">
+          <th style="text-align:left;padding:6px;">Material</th>
+          <th style="text-align:right;padding:6px;">Cantidad</th>
+          <th style="text-align:right;padding:6px;">Precio prov. (Bs)</th>
+          <th style="text-align:right;padding:6px;">Subtotal (Bs)</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+        <div style="text-align:right;font-weight:700;color:#173F24;margin-top:8px;">Total estimado: Bs ${d.total.toFixed(2)}</div>`
+        : '<p style="color:#922b21;margin-top:6px;">Ningún material de la cotización está en el catálogo de este proveedor.</p>'}
+      ${omit}
+      <small style="color:#6b756d;display:block;margin-top:4px;">Estos materiales se confirmarán y registrarán después en "Agregar Detalle".</small>`;
+
+    // Sugerir el monto de la orden con el total a migrar (si está vacío).
+    const monto = document.getElementById('no-monto');
+    if (monto && !monto.value && d.total > 0) monto.value = d.total.toFixed(2);
+  } catch (e) {
+    prev.innerHTML = 'No se pudo cargar la cotización.';
+  }
+}
+
+// ── Confirmar/registrar detalle desde cotización (pestaña Agregar Detalle) ────
+// Proveedor de la orden seleccionada actualmente (se setea en cargarMaterialesDeOrden).
+let _provOrdenActual = null;
+
+// Se dispara al elegir una cotización interna: muestra qué materiales se migrarán.
+function onSelCotizacionDetalle(idCot) {
+  previewCotizacionDetalle();
+}
+
+async function previewCotizacionDetalle() {
+  const prev = document.getElementById('ad-cot-preview');
+  const idCot = document.getElementById('ad-idcot').value;
+  if (!prev) return;
+  if (!idCot) { prev.style.display = 'none'; prev.innerHTML = ''; return; }
+  prev.style.display = 'block';
+  if (!_provOrdenActual) {
+    prev.innerHTML = '<b>Elige primero la orden de compra</b> (arriba) para ver qué materiales se pueden migrar.';
+    return;
+  }
+  prev.innerHTML = 'Cargando materiales de la cotización...';
+  try {
+    const d = await fetch(`${API}/compras/preparacion-cotizacion?idCotizacionInterna=${idCot}&idProveedor=${_provOrdenActual}`).then(r => r.json());
+    if (d.error) { prev.innerHTML = 'Error: ' + d.error; return; }
+
+    const filas = d.migrables.map(m => `<tr>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.cantidad}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.precioUnitario.toFixed(2)}</td>
+      <td style="padding:6px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.subtotal.toFixed(2)}</td></tr>`).join('');
+
+    const omit = d.omitidos.length
+      ? `<small style="color:#922b21;display:block;margin-top:6px;">No los provee este proveedor (se omiten): ${d.omitidos.map(o => o.nombreMaterial).join(', ')}.</small>`
+      : '';
+
+    prev.innerHTML = `
+      <b style="color:#173F24;">Materiales que se migrarán (${d.migrables.length})</b>
+      ${d.migrables.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:8px;">
+        <thead><tr style="background:#123823;color:#fff;">
+          <th style="text-align:left;padding:6px;">Material</th>
+          <th style="text-align:right;padding:6px;">Cantidad</th>
+          <th style="text-align:right;padding:6px;">Precio prov. (Bs)</th>
+          <th style="text-align:right;padding:6px;">Subtotal (Bs)</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+        <div style="text-align:right;font-weight:700;color:#173F24;margin-top:8px;">Total a migrar: Bs ${d.total.toFixed(2)}</div>`
+        : '<p style="color:#922b21;margin-top:6px;">Ningún material de la cotización está en el catálogo del proveedor de esta orden.</p>'}
+      ${omit}
+      <small style="color:#6b756d;display:block;margin-top:4px;">Revisa y pulsa "Migrar materiales al detalle" para agregarlos.</small>`;
+  } catch (e) {
+    prev.innerHTML = 'No se pudo cargar la cotización.';
+  }
+}
+
+// Inserta los materiales de la cotización en el detalle de la orden seleccionada.
+async function migrarCotizacionEnDetalle() {
+  const idOrden = document.getElementById('ad-idorden').value;
+  const idCot = document.getElementById('ad-idcot').value;
+  if (!idOrden) return msg('msg-agregar-detalle', 'Elige primero la orden de compra.', 'err');
+  if (!idCot) return msg('msg-agregar-detalle', 'Elige una cotización interna.', 'err');
+  try {
+    const res = await fetch(`${API}/compras/${idOrden}/detalle/desde-cotizacion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idCotizacionInterna: parseInt(idCot) })
+    });
+    const d = await res.json();
+    if (!res.ok) return msg('msg-agregar-detalle', 'Error: ' + d.error, 'err');
+    const omit = d.omitidos && d.omitidos.length ? ` Omitidos (fuera de catálogo): ${d.omitidos.join(', ')}.` : '';
+    msg('msg-agregar-detalle', `${d.insertados} material(es) migrado(s) al detalle.${omit}`, 'ok');
+    // Refrescar la consulta del detalle de la orden.
+    await renderPresupuestoOrden(idOrden);
+  } catch (e) {
+    msg('msg-agregar-detalle', 'Error de conexión al migrar.', 'err');
   }
 }
 
@@ -483,6 +615,25 @@ async function cargarMaterialesDeOrden(idOrden) {
     }
 
     _montoOrdenActual = Number(orden.montoTotal || 0);
+    _provOrdenActual = orden.idProveedor;
+
+    // Si la orden se creó basada en una cotización interna, cargarla automáticamente
+    // para la confirmación (doble verificación).
+    const status = document.getElementById('ad-cot-status');
+    const inCot = document.getElementById('ad-cot-nom');
+    const hidCot = document.getElementById('ad-idcot');
+    if (orden.idCotizacionInterna) {
+      if (hidCot) hidCot.value = orden.idCotizacionInterna;
+      if (inCot) inCot.value = `${orden.numeroCotizacionInterna || 'Cotización'} — ${orden.proyectoCotizacion || ''}`.trim();
+      if (status) status.innerHTML = `Esta orden está basada en la cotización <b>${orden.numeroCotizacionInterna || '#' + orden.idCotizacionInterna}</b>. Revisa abajo y confirma el detalle.`;
+      previewCotizacionDetalle();
+    } else {
+      if (status) status.innerHTML = 'Esta orden no se basó en una cotización. Puedes elegir una abajo o cargar materiales manualmente arriba.';
+      if (hidCot) hidCot.value = '';
+      if (inCot) inCot.value = '';
+      const prev = document.getElementById('ad-cot-preview');
+      if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+    }
 
     const catalogo = await fetch(`${API}/proveedores/${orden.idProveedor}/materiales`).then(r => r.json());
     catalogoOrden = Array.isArray(catalogo) ? catalogo : [];

@@ -10,9 +10,80 @@ router.get('/search', async (req, res) => {
         const pool = await sql.connect(config);
         const result = await pool.request()
             .input('q', sql.NVarChar, `%${q}%`)
-            .query(`SELECT TOP 10 c.idContrato, c.numeroContrato, p.nombreProyecto, cl.nombre AS nombreCliente, c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + cl.nombre + ')' AS display FROM dbo.contrato c JOIN dbo.proyecto p ON c.idProyecto = p.idProyecto JOIN dbo.cliente cl ON p.idCliente = cl.idCliente WHERE c.numeroContrato LIKE @q OR p.nombreProyecto LIKE @q OR cl.nombre LIKE @q OR CAST(c.idContrato AS NVARCHAR) LIKE @q ORDER BY c.numeroContrato`);
+            .query(`SELECT TOP 10 c.idContrato, c.numeroContrato, p.nombreProyecto, LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente, c.numeroContrato + ' — ' + p.nombreProyecto + ' (' + LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) + ')' AS display FROM dbo.contrato c JOIN dbo.proyecto p ON c.idProyecto = p.idProyecto JOIN dbo.cliente cl ON p.idCliente = cl.idCliente WHERE c.numeroContrato LIKE @q OR p.nombreProyecto LIKE @q OR cl.nombre LIKE @q OR cl.apellido LIKE @q OR CAST(c.idContrato AS NVARCHAR) LIKE @q ORDER BY c.numeroContrato`);
         res.json(result.recordset);
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── GET preparación de contrato para un proyecto ────────────────────────────
+// Devuelve la cotización cliente asociada (con su monto total y estado), y el
+// detalle de la obra: materiales a comprar y personal asignado, con costos, que
+// avalan el costo total. El frontend usa esto al elegir el proyecto.
+router.get('/proyecto/:idProyecto/preparacion', async (req, res) => {
+    const id = Number(req.params.idProyecto);
+    if (!id) return res.status(400).json({ error: 'Proyecto inválido' });
+    const n = v => Number(Number(v || 0).toFixed(2));
+    try {
+        const pool = await sql.connect(config);
+
+        // Cotización cliente del proyecto: se prioriza la Aprobada, luego la más reciente.
+        const cot = await pool.request().input('id', sql.Int, id).query(`
+            SELECT TOP 1
+                cc.numeroCotizacionCliente AS numero,
+                ec.nombreEstadoCotizacion  AS estado,
+                cc.fechaCotizacion,
+                ISNULL((SELECT SUM(dcc.cantidad * dcc.precioUnitario)
+                        FROM dbo.detallecotizacioncliente dcc
+                        WHERE dcc.idCotizacionCliente = cc.idCotizacionCliente), 0) AS total
+            FROM dbo.cotizacioncliente cc
+            JOIN dbo.estadocotizacion ec ON cc.idEstadoCotizacion = ec.idEstadoCotizacion
+            WHERE cc.idProyecto = @id
+            ORDER BY CASE WHEN ec.nombreEstadoCotizacion = 'Aprobada' THEN 0 ELSE 1 END,
+                     cc.fechaCotizacion DESC
+        `);
+
+        const materiales = await pool.request().input('id', sql.Int, id).query(`
+            SELECT m.nombreMaterial, mp.cantidadUtilizada, mp.costoTotal
+            FROM dbo.materialproyecto mp
+            JOIN dbo.material m ON mp.idMaterial = m.idMaterial
+            WHERE mp.idProyecto = @id
+            ORDER BY m.nombreMaterial
+        `);
+
+        const personal = await pool.request().input('id', sql.Int, id).query(`
+            SELECT e.nombre + ' ' + e.apellido AS empleado, c.nombreCargo,
+                   rp.nombreRolProyecto,
+                   c.pagoPorHora * ISNULL((SELECT SUM(rh.horasTrabajadas)
+                           FROM dbo.registrohoras rh
+                           WHERE rh.idEmpleado = ep.idEmpleado AND rh.idProyecto = ep.idProyecto), 0) AS costo
+            FROM dbo.empleadoproyecto ep
+            JOIN dbo.empleado e ON ep.idEmpleado = e.idEmpleado
+            JOIN dbo.cargo c ON e.idCargo = c.idCargo
+            JOIN dbo.rolproyecto rp ON ep.idRolProyecto = rp.idRolProyecto
+            WHERE ep.idProyecto = @id
+            ORDER BY e.nombre, e.apellido
+        `);
+
+        const c = cot.recordset[0];
+        const costoMaterial = materiales.recordset.reduce((s, x) => s + Number(x.costoTotal || 0), 0);
+        const costoPersonal = personal.recordset.reduce((s, x) => s + Number(x.costo || 0), 0);
+
+        res.json({
+            cotizacion: c
+                ? { existe: true, numero: c.numero, total: n(c.total),
+                    estado: c.estado, aprobada: c.estado === 'Aprobada' }
+                : { existe: false, aprobada: false },
+            materiales: materiales.recordset,
+            personal: personal.recordset,
+            totales: {
+                costoMaterial: n(costoMaterial),
+                costoPersonal: n(costoPersonal),
+                costoTotal: n(costoMaterial + costoPersonal),
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 router.get('/tipos/lista', async (req, res) => {
@@ -42,7 +113,7 @@ router.get('/', async (req, res) => {
             SELECT
                 c.idContrato, c.numeroContrato, c.fechaContrato, c.fechaInicio,
                 c.fechaVencimiento, c.montoTotal, tc.nombreTipoContrato,
-                ec.nombreEstadoContrato, p.nombreProyecto, cl.nombre AS nombreCliente
+                ec.nombreEstadoContrato, p.nombreProyecto, LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente
             FROM dbo.contrato c
             JOIN dbo.tipocontrato   tc ON c.idTipoContrato   = tc.idTipoContrato
             JOIN dbo.estadocontrato ec ON c.idEstadoContrato = ec.idEstadoContrato
@@ -67,7 +138,7 @@ router.get('/:id', async (req, res) => {
         const resultContrato = await pool.request()
             .input('id', sql.Int, req.params.id)
             .query(`
-                SELECT c.*, tc.nombreTipoContrato, ec.nombreEstadoContrato, p.nombreProyecto, cl.nombre AS nombreCliente
+                SELECT c.*, tc.nombreTipoContrato, ec.nombreEstadoContrato, p.nombreProyecto, LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente
                 FROM dbo.contrato c
                 JOIN dbo.tipocontrato   tc ON c.idTipoContrato   = tc.idTipoContrato
                 JOIN dbo.estadocontrato ec ON c.idEstadoContrato = ec.idEstadoContrato
@@ -135,6 +206,21 @@ router.post('/', async (req, res) => {
         // Validar proyecto y tipo
         const proyExiste = await pool.request().input('id', sql.Int, idProyecto).query(`SELECT 1 FROM dbo.proyecto WHERE idProyecto = @id`);
         if (proyExiste.recordset.length === 0) return res.status(400).json({ error: 'Proyecto no existe' });
+
+        // Regla de negocio: no se puede generar un contrato sin una cotización
+        // cliente asociada al proyecto y en estado APROBADA.
+        const cotAprobada = await pool.request()
+            .input('id', sql.Int, idProyecto)
+            .query(`
+                SELECT TOP 1 cc.numeroCotizacionCliente
+                FROM dbo.cotizacioncliente cc
+                JOIN dbo.estadocotizacion ec ON cc.idEstadoCotizacion = ec.idEstadoCotizacion
+                WHERE cc.idProyecto = @id AND ec.nombreEstadoCotizacion = 'Aprobada'
+            `);
+        if (cotAprobada.recordset.length === 0)
+            return res.status(400).json({
+                error: 'No se puede generar el contrato: el proyecto no tiene una cotización cliente en estado APROBADA.'
+            });
 
         // Buscar estado "Vigente"
         const estadoVigente = await pool.request().query(`SELECT idEstadoContrato FROM dbo.estadocontrato WHERE nombreEstadoContrato = 'Vigente'`);

@@ -108,7 +108,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-    const { fechaOrden, idEstadoOrden, idProveedor, montoTotal } = req.body;
+    const { fechaOrden, idEstadoOrden, idProveedor, montoTotal, idCotizacionInterna } = req.body;
 
     try {
         const pool = await sql.connect(config);
@@ -138,10 +138,11 @@ router.post('/', async (req, res) => {
             .input('idEstadoOrden', sql.Int, idEstadoOrden)
             .input('idProveedor', sql.Int, idProveedor)
             .input('montoTotal', sql.Decimal(18, 2), montoTotal)
+            .input('idCotizacionInterna', sql.Int, idCotizacionInterna || null)
             .query(`
-                INSERT INTO ordencompra (fechaOrden, idEstadoOrden, idProveedor, montoTotal)
+                INSERT INTO ordencompra (fechaOrden, idEstadoOrden, idProveedor, montoTotal, idCotizacionInterna)
                 OUTPUT INSERTED.idOrdenCompra
-                VALUES (@fechaOrden, @idEstadoOrden, @idProveedor, @montoTotal)
+                VALUES (@fechaOrden, @idEstadoOrden, @idProveedor, @montoTotal, @idCotizacionInterna)
             `);
 
         res.status(201).json({ idOrdenCompra: result.recordset[0].idOrdenCompra });
@@ -342,6 +343,114 @@ router.get('/search', async (req, res) => {
     }
 });
 
+// ── GET preparación: materiales de una cotización interna reconciliados con el
+// catálogo del proveedor. Devuelve los que SÍ se pueden migrar (están en el
+// catálogo, al precio del proveedor) y los omitidos (no los provee). ──────────
+router.get('/preparacion-cotizacion', async (req, res) => {
+    const idCot = Number(req.query.idCotizacionInterna);
+    const idProv = Number(req.query.idProveedor);
+    if (!idCot || !idProv)
+        return res.status(400).json({ error: 'idCotizacionInterna e idProveedor son obligatorios' });
+    try {
+        const pool = await sql.connect(config);
+        const r = await pool.request()
+            .input('idCot', sql.Int, idCot)
+            .input('idProv', sql.Int, idProv)
+            .query(`
+                SELECT dci.idMaterial, m.nombreMaterial, dci.cantidadEstimada AS cantidad,
+                       dci.costoUnitarioEstimado AS costoEstimado,
+                       pm.precioProveedor
+                FROM dbo.detallecotizacioninterna dci
+                JOIN dbo.material m ON dci.idMaterial = m.idMaterial
+                LEFT JOIN dbo.proveedormaterial pm
+                       ON pm.idProveedor = @idProv AND pm.idMaterial = dci.idMaterial
+                WHERE dci.idCotizacionInterna = @idCot
+                ORDER BY m.nombreMaterial
+            `);
+        const migrables = [], omitidos = [];
+        for (const x of r.recordset) {
+            if (x.precioProveedor == null) {
+                omitidos.push({ nombreMaterial: x.nombreMaterial });
+            } else {
+                migrables.push({
+                    idMaterial: x.idMaterial,
+                    nombreMaterial: x.nombreMaterial,
+                    cantidad: Number(x.cantidad),
+                    precioUnitario: Number(x.precioProveedor),
+                    subtotal: Number((Number(x.cantidad) * Number(x.precioProveedor)).toFixed(2)),
+                });
+            }
+        }
+        const total = Number(migrables.reduce((s, x) => s + x.subtotal, 0).toFixed(2));
+        res.json({ migrables, omitidos, total });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST migrar el detalle de una cotización interna a la orden de compra ─────
+// Inserta en detallecompra los materiales de la cotización que el proveedor de
+// la orden provee, usando el precio del catálogo del proveedor (para respetar
+// el trigger de validación). Omite los que no estén en el catálogo.
+router.post('/:id/detalle/desde-cotizacion', async (req, res) => {
+    const idOrden = Number(req.params.id);
+    const idCot = Number(req.body.idCotizacionInterna);
+    if (!idCot) return res.status(400).json({ error: 'idCotizacionInterna es obligatorio' });
+    try {
+        const pool = await sql.connect(config);
+
+        const orden = await pool.request()
+            .input('id', sql.Int, idOrden)
+            .query(`SELECT oc.idOrdenCompra, oc.idProveedor, eo.nombreEstadoOrden
+                    FROM dbo.ordencompra oc
+                    JOIN dbo.estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden
+                    WHERE oc.idOrdenCompra = @id`);
+        if (orden.recordset.length === 0)
+            return res.status(404).json({ error: 'Orden no encontrada' });
+        if (!esPendiente(orden.recordset[0].nombreEstadoOrden))
+            return res.status(400).json({ error: 'Solo se puede migrar el detalle a órdenes en estado Pendiente.' });
+
+        const idProv = orden.recordset[0].idProveedor;
+
+        // Insertar solo los materiales que el proveedor provee, al precio del catálogo.
+        const ins = await pool.request()
+            .input('idOrden', sql.Int, idOrden)
+            .input('idCot', sql.Int, idCot)
+            .input('idProv', sql.Int, idProv)
+            .query(`
+                INSERT INTO dbo.detallecompra (idOrdenCompra, idMaterial, cantidad, precioUnitario)
+                SELECT @idOrden, dci.idMaterial, dci.cantidadEstimada, pm.precioProveedor
+                FROM dbo.detallecotizacioninterna dci
+                JOIN dbo.proveedormaterial pm
+                     ON pm.idProveedor = @idProv AND pm.idMaterial = dci.idMaterial
+                WHERE dci.idCotizacionInterna = @idCot
+                  AND NOT EXISTS (SELECT 1 FROM dbo.detallecompra dcx
+                                  WHERE dcx.idOrdenCompra = @idOrden AND dcx.idMaterial = dci.idMaterial);
+                SELECT @@ROWCOUNT AS insertados;
+            `);
+
+        // Materiales de la cotización que el proveedor NO provee (se omiten).
+        const omit = await pool.request()
+            .input('idCot', sql.Int, idCot)
+            .input('idProv', sql.Int, idProv)
+            .query(`
+                SELECT m.nombreMaterial
+                FROM dbo.detallecotizacioninterna dci
+                JOIN dbo.material m ON dci.idMaterial = m.idMaterial
+                LEFT JOIN dbo.proveedormaterial pm
+                       ON pm.idProveedor = @idProv AND pm.idMaterial = dci.idMaterial
+                WHERE dci.idCotizacionInterna = @idCot AND pm.idProveedorMaterial IS NULL
+            `);
+
+        res.status(201).json({
+            insertados: ins.recordset[0].insertados,
+            omitidos: omit.recordset.map(x => x.nombreMaterial),
+        });
+    } catch (err) {
+        res.status(400).json({ error: errorAmigable(err) });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const pool = await sql.connect(config);
@@ -355,11 +464,16 @@ router.get('/:id', async (req, res) => {
                     oc.montoTotal,
                     oc.idProveedor,
                     oc.idEstadoOrden,
+                    oc.idCotizacionInterna,
+                    ci.numeroCotizacionInterna,
+                    pr.nombreProyecto AS proyectoCotizacion,
                     p.nombreProveedor,
                     eo.nombreEstadoOrden AS estadoOrden
                 FROM ordencompra oc
                 JOIN proveedor p ON oc.idProveedor = p.idProveedor
                 JOIN estadoorden eo ON oc.idEstadoOrden = eo.idEstadoOrden
+                LEFT JOIN cotizacioninterna ci ON oc.idCotizacionInterna = ci.idCotizacionInterna
+                LEFT JOIN proyecto pr ON ci.idProyecto = pr.idProyecto
                 WHERE oc.idOrdenCompra = @id
             `);
 

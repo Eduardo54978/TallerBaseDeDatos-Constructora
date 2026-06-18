@@ -44,8 +44,13 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Nombre *</label>
-          <input id="cli-nombre" placeholder="Nombre completo">
-          <small style="color:#6b756d;">Nombre de la persona o razón social de la empresa.</small>
+          <input id="cli-nombre" placeholder="Nombre o razón social">
+          <small style="color:#6b756d;">Nombre de pila de la persona, o razón social de la empresa.</small>
+        </div>
+        <div class="form-group">
+          <label>Apellido</label>
+          <input id="cli-apellido" placeholder="Apellido(s)">
+          <small style="color:#6b756d;">Solo para personas. En empresas déjalo vacío.</small>
         </div>
         <div class="form-group">
           <label>Documento ID *</label>
@@ -93,7 +98,7 @@
           <label>Buscar Cliente</label>
           <div class="ac-wrap">
             <input id="ec-cli-nom" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
-                   oninput="acSearch('ec-cli-nom','ac-ec-cli','ec-idcliente','clientes','idCliente','nombre','cargarFormEditarCliente')">
+                   oninput="acSearch('ec-cli-nom','ac-ec-cli','ec-idcliente','clientes','idCliente','nombreCompleto','cargarFormEditarCliente')">
             <div class="ac-drop" id="ac-ec-cli"></div>
             <input type="hidden" id="ec-idcliente">
           </div>
@@ -103,7 +108,11 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre *</label>
-            <input id="ec-nombre" placeholder="Nombre completo">
+            <input id="ec-nombre" placeholder="Nombre o razón social">
+          </div>
+          <div class="form-group">
+            <label>Apellido</label>
+            <input id="ec-apellido" placeholder="Apellido(s)">
           </div>
           <div class="form-group">
             <label>Documento ID</label>

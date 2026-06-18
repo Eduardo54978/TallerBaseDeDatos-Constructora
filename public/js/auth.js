@@ -8,12 +8,12 @@ if (!usuario) {
 // Módulos que puede ver cada rol
 const MODULOS_POR_ROL = {
     rol_gerente:    ['dashboard','proyectos','materiales','pagos','compras',
-                     'contratos','proveedores','clientes','empleados','cotizaciones','movimientos'],
+                     'contratos','proveedores','clientes','empleados','cotizaciones','reportes','movimientos'],
     rol_jefe_obra:  ['dashboard','proyectos','empleados','materiales'],
     rol_rrhh:       ['dashboard','empleados','cotizaciones'],
     rol_logistica:  ['dashboard','proveedores','materiales','compras'],
     rol_secretaria: ['dashboard','clientes','contratos'],
-    rol_contador:   ['dashboard','contratos','pagos'],
+    rol_contador:   ['dashboard','contratos','pagos','reportes'],
     rol_consulta:   ['dashboard','proyectos','materiales','contratos',
                      'proveedores','clientes','empleados','cotizaciones'],
 };
@@ -30,6 +30,7 @@ const NOMBRES_MODULOS = {
     clientes:     'M7 - Clientes',
     empleados:    'M8 - Empleados',
     cotizaciones: 'M9 - Cotizaciones',
+    reportes:     'M10 - Reportes',
     horas:        'Registro de Horas',
     inventario:   'Inventario',
     movimientos:  'Bitácora / Movimientos',
@@ -46,6 +47,7 @@ const LINKS_MODULOS = {
     clientes:     'modulo7/index.html',
     empleados:    'modulo8/index.html',
     cotizaciones: 'modulo9/index.html',
+    reportes:     'modulo10/index.html',
     movimientos:  'movimientos/index.html',
 };
 
