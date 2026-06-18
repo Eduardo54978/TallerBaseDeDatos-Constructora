@@ -156,7 +156,94 @@ async function imprimirContratoPDF(id) {
   }
 }
 
+// Estado de la preparación del contrato del proyecto seleccionado.
+let _prepContrato = null;
+const _bs = n => 'Bs ' + Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Se dispara al elegir un proyecto en el autocompletado: carga la cotización
+// cliente asociada y el detalle de la obra (material + personal con costos).
+async function onProyectoContrato(idProyecto) {
+  const cont = document.getElementById('c-preparacion');
+  const btn = document.getElementById('c-btn-crear');
+  cont.innerHTML = '<p style="color:#718096;">Cargando cotización y detalle de la obra...</p>';
+  try {
+    const data = await fetch(`${API}/contratos/proyecto/${idProyecto}/preparacion`).then(r => r.json());
+    _prepContrato = data;
+    const cot = data.cotizacion;
+    const t = data.totales;
+
+    // Aviso de la cotización según su estado.
+    let aviso, puede = false;
+    if (!cot.existe) {
+      aviso = `<div style="background:#fde8e8;color:#922b21;border-radius:8px;padding:12px 14px;font-weight:600;">
+        El proyecto no tiene una cotización cliente asociada. No se puede generar el contrato.</div>`;
+    } else if (!cot.aprobada) {
+      aviso = `<div style="background:#fde8e8;color:#922b21;border-radius:8px;padding:12px 14px;font-weight:600;">
+        Cotización N° ${cot.numero} está en estado "${cot.estado}". Debe estar APROBADA para generar el contrato.</div>`;
+    } else {
+      puede = true;
+      aviso = `<div style="background:#DFEAD8;color:#28512B;border-radius:8px;padding:12px 14px;">
+        <b>Cotización N° ${cot.numero}</b> — Monto total: <b>${_bs(cot.total)}</b>
+        <span style="background:#28512B;color:#fff;border-radius:12px;padding:2px 10px;font-size:.72rem;margin-left:6px;">APROBADA</span></div>`;
+      // Sugerir el monto de la cotización como monto del contrato.
+      const inputMonto = document.getElementById('c-monto');
+      if (inputMonto && !inputMonto.value) inputMonto.value = Number(cot.total).toFixed(2);
+    }
+
+    const tablaMat = data.materiales.length
+      ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:4px;">
+          <thead><tr style="background:#173F24;color:#fff;">
+            <th style="padding:6px 8px;text-align:left;">Material</th>
+            <th style="padding:6px 8px;text-align:right;">Cantidad</th>
+            <th style="padding:6px 8px;text-align:right;">Costo</th></tr></thead>
+          <tbody>${data.materiales.map(m => `<tr>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;">${m.nombreMaterial}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;text-align:right;">${m.cantidadUtilizada}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;text-align:right;">${_bs(m.costoTotal)}</td></tr>`).join('')}</tbody></table>`
+      : '<p style="color:#718096;font-size:.84rem;">Sin materiales registrados para este proyecto.</p>';
+
+    const tablaPer = data.personal.length
+      ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-top:4px;">
+          <thead><tr style="background:#173F24;color:#fff;">
+            <th style="padding:6px 8px;text-align:left;">Empleado</th>
+            <th style="padding:6px 8px;text-align:left;">Cargo</th>
+            <th style="padding:6px 8px;text-align:left;">Rol</th>
+            <th style="padding:6px 8px;text-align:right;">Costo</th></tr></thead>
+          <tbody>${data.personal.map(p => `<tr>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;">${p.empleado}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;">${p.nombreCargo}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;">${p.nombreRolProyecto}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e1e6dd;text-align:right;">${_bs(p.costo)}</td></tr>`).join('')}</tbody></table>`
+      : '<p style="color:#718096;font-size:.84rem;">Sin personal asignado para este proyecto.</p>';
+
+    cont.innerHTML = `${aviso}
+      <h4 style="color:#173F24;margin:16px 0 4px;">Detalle de la obra — Material a comprar</h4>${tablaMat}
+      <h4 style="color:#173F24;margin:16px 0 4px;">Detalle de la obra — Personal asignado</h4>${tablaPer}
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;">
+        <div style="background:#EEF4EA;border-radius:8px;padding:10px 16px;">
+          <div style="font-weight:800;color:#173F24;">${_bs(t.costoMaterial)}</div>
+          <div style="font-size:.7rem;color:#6b756d;text-transform:uppercase;">Costo material</div></div>
+        <div style="background:#EEF4EA;border-radius:8px;padding:10px 16px;">
+          <div style="font-weight:800;color:#173F24;">${_bs(t.costoPersonal)}</div>
+          <div style="font-size:.7rem;color:#6b756d;text-transform:uppercase;">Costo personal</div></div>
+        <div style="background:#DFEAD8;border-radius:8px;padding:10px 16px;">
+          <div style="font-weight:800;color:#173F24;">${_bs(t.costoTotal)}</div>
+          <div style="font-size:.7rem;color:#6b756d;text-transform:uppercase;">Costo total de la obra</div></div>
+      </div>`;
+
+    if (btn) { btn.disabled = !puede; btn.style.opacity = puede ? '1' : '.5'; btn.style.cursor = puede ? 'pointer' : 'not-allowed'; }
+  } catch (e) {
+    cont.innerHTML = '<p style="color:#922b21;">No se pudo cargar la cotización del proyecto.</p>';
+  }
+}
+
 async function registrarContrato() {
+  // Regla de negocio: requiere cotización cliente APROBADA asociada al proyecto.
+  if (!_prepContrato || !_prepContrato.cotizacion.aprobada) {
+    return msg('msg-contrato',
+      'No se puede generar el contrato: el proyecto debe tener una cotización cliente en estado APROBADA.', 'err');
+  }
+
   const body = {
     idProyecto: parseInt(document.getElementById('c-idproyecto').value),
     idTipoContrato: parseInt(document.getElementById('c-idtipo').value),
@@ -191,6 +278,8 @@ async function registrarContrato() {
     document.querySelectorAll('#tab-registrar input').forEach(input => {
       input.value = '';
     });
+    document.getElementById('c-preparacion').innerHTML = '';
+    _prepContrato = null;
 
     cargarContratos();
   } catch (e) {

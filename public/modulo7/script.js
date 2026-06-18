@@ -1,5 +1,8 @@
 const API = 'http://localhost:3000/api';
 
+// Nombre completo del cliente (nombre + apellido; las empresas no tienen apellido).
+const nomCli = c => `${c.nombre || ''} ${c.apellido || ''}`.trim();
+
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
 }
@@ -90,7 +93,7 @@ async function cargarClientes() {
         <tbody>
           ${ordenados.map(c => `<tr>
             <td>${c.idCliente}</td>
-            <td><b>${c.nombre}</b></td>
+            <td><b>${nomCli(c)}</b></td>
             <td>${badge(c.nombreTipoCliente)}</td>
             <td>${c.documentoID || '-'}</td>
             <td>${c.numCelular || '-'}</td>
@@ -148,6 +151,7 @@ async function cargarSelectTipos() {
 async function registrarCliente() {
   const body = {
     nombre: document.getElementById('cli-nombre').value.trim(),
+    apellido: document.getElementById('cli-apellido').value.trim(),
     documentoID: document.getElementById('cli-doc').value.trim(),
     idTipoCliente: parseInt(document.getElementById('cli-tipo').value),
     numCelular: document.getElementById('cli-cel').value.trim(),
@@ -175,7 +179,7 @@ async function registrarCliente() {
 
     msg('msg-cliente', 'Cliente registrado con ID: ' + data.idCliente, 'ok');
 
-    ['cli-nombre', 'cli-doc', 'cli-cel', 'cli-email', 'cli-fecha', 'cli-dir'].forEach(id => {
+    ['cli-nombre', 'cli-apellido', 'cli-doc', 'cli-cel', 'cli-email', 'cli-fecha', 'cli-dir'].forEach(id => {
       document.getElementById(id).value = '';
     });
 
@@ -226,6 +230,7 @@ async function cargarFormEditarCliente(idCliente) {
   try {
     const data = await fetch(`${API}/clientes/${idCliente}`).then(r => r.json());
     document.getElementById('ec-nombre').value = data.nombre || '';
+    document.getElementById('ec-apellido').value = data.apellido || '';
     document.getElementById('ec-doc').value = data.documentoID || '';
     document.getElementById('ec-cel').value = data.numCelular || '';
     document.getElementById('ec-email').value = data.email || '';
@@ -250,6 +255,7 @@ async function guardarEdicionCliente() {
   if (!id) return msg('msg-editar-cli', 'Seleccione un cliente de la lista.', 'err');
   const body = {
     nombre: document.getElementById('ec-nombre').value.trim(),
+    apellido: document.getElementById('ec-apellido').value.trim(),
     documentoID: document.getElementById('ec-doc').value.trim(),
     idTipoCliente: parseInt(document.getElementById('ec-tipo').value) || null,
     numCelular: document.getElementById('ec-cel').value.trim(),
@@ -291,7 +297,7 @@ function imprimirClientes() {
   const win = nuevaVentanaPDF();
   const f = v => v ? String(v).substring(0, 10) : '-';
   const filas = _dataClientes.map(c => [
-    c.nombre, c.nombreTipoCliente || '-', c.documentoID || '-',
+    nomCli(c), c.nombreTipoCliente || '-', c.documentoID || '-',
     c.numCelular || '-', c.email || '-', f(c.fechaRegistro),
   ]);
   const cuerpo = pdfTabla('Clientes', ['Nombre', 'Tipo', 'Documento', 'Celular', 'Email', 'Registro'], filas) +

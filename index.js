@@ -34,8 +34,10 @@ const materialproyectoRouter = require('./src/routes/materialproyecto');
 const proveedormaterialRouter = require('./src/routes/proveedormaterial');
 const bitacoraRouter = require('./src/routes/bitacora');
 const dashboardRouter = require('./src/routes/dashboard');
+const reportesRouter = require('./src/routes/reportes');
 
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/reportes', reportesRouter);
 app.use('/api/bitacora', bitacoraRouter);
 app.use('/api/empleadoproyecto', empleadoproyectoRouter);
 app.use('/api/materialproyecto', materialproyectoRouter);

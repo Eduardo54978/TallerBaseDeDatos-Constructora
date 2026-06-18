@@ -545,7 +545,7 @@ router.get('/cliente/:id/detalle', async (req, res) => {
             .query(`
                 SELECT cc.idCotizacionCliente, cc.numeroCotizacionCliente, cc.fechaCotizacion,
                        cc.fechaValidez, cc.observaciones, cc.idProyecto, p.nombreProyecto,
-                       cl.nombre AS nombreCliente, ec.nombreEstadoCotizacion AS estado,
+                       LTRIM(RTRIM(cl.nombre + ' ' + ISNULL(cl.apellido, ''))) AS nombreCliente, ec.nombreEstadoCotizacion AS estado,
                        cc.porcentajeUtilidad, cc.idCotizacionInterna,
                        ci.numeroCotizacionInterna AS numeroInterna
                 FROM dbo.cotizacioncliente cc

@@ -7,8 +7,8 @@ const { registrarAccion } = require('../middleware/bitacora');
 const permisosPorRol = {
     rol_gerente:    ['dashboard','proyectos','materiales','contratos','proveedores',
                      'inventario','clientes','empleados','horas','cotizaciones',
-                     'pagos','compras'],
-    rol_contador:   ['dashboard','contratos','pagos'],
+                     'pagos','compras','reportes'],
+    rol_contador:   ['dashboard','contratos','pagos','reportes'],
     rol_jefe_obra:  ['dashboard','proyectos','empleados','materiales','horas','inventario'],
     rol_rrhh:       ['dashboard','empleados','horas','cotizaciones'],
     rol_secretaria: ['dashboard','clientes','contratos'],
