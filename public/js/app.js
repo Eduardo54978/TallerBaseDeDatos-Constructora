@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 function show(name, el) {
     event.preventDefault();
@@ -88,7 +88,7 @@ async function cargarBalance() {
         const positivo = b.balance >= 0;
         const color = positivo ? '#1f7a3d' : '#b91c1c';
 
-        // Dónde ganamos/perdemos: proyectos ordenados por balance (peores primero).
+        // Donde ganamos/perdemos: proyectos ordenados por balance (peores primero).
         const conMovimiento = b.porProyecto.filter(p => p.ingresos !== 0 || p.egresos !== 0);
         const perdidas = conMovimiento.filter(p => p.balance < 0);
         const ganancias = [...conMovimiento].filter(p => p.balance >= 0).sort((a, c) => c.balance - a.balance);
@@ -114,24 +114,24 @@ async function cargarBalance() {
             <div style="flex:1;min-width:200px;background:#fff;border:1px solid #E1E6DD;border-radius:10px;padding:16px 20px;">
                 <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;">Egresos</div>
                 <div style="font-size:1.4rem;font-weight:700;color:#b91c1c;">${bs(b.egresosTotal)}</div>
-                <div style="font-size:.78rem;color:#6b756d;">Proveedores ${bs(b.egresosProveedores)} · Planilla ${bs(b.egresosPlanilla)}</div>
+                <div style="font-size:.78rem;color:#6b756d;">Proveedores ${bs(b.egresosProveedores)} Â· Planilla ${bs(b.egresosPlanilla)}</div>
             </div>
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:18px;">
             <div style="flex:1;min-width:300px;">
-                <h4 style="color:#b91c1c;margin-bottom:6px;">Dónde estamos perdiendo (${perdidas.length})</h4>
+                <h4 style="color:#b91c1c;margin-bottom:6px;">Donde estamos perdiendo (${perdidas.length})</h4>
                 ${perdidas.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
                     <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
                     <tbody>${perdidas.map(filaProy).join('')}</tbody></table>`
-                    : '<p style="color:#6b756d;">Ningún proyecto en pérdida.</p>'}
+                    : '<p style="color:#6b756d;">NingÃºn proyecto en pÃ©rdida.</p>'}
             </div>
             <div style="flex:1;min-width:300px;">
-                <h4 style="color:#1f7a3d;margin-bottom:6px;">Dónde estamos ganando (${ganancias.length})</h4>
+                <h4 style="color:#1f7a3d;margin-bottom:6px;">Donde estamos ganando (${ganancias.length})</h4>
                 ${ganancias.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
                     <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
                     <tbody>${ganancias.map(filaProy).join('')}</tbody></table>`
-                    : '<p style="color:#6b756d;">Sin proyectos con ganancia aún.</p>'}
+                    : '<p style="color:#6b756d;">Sin proyectos con ganancia aÃºn.</p>'}
             </div>
         </div>
         <p style="font-size:.76rem;color:#9aa39b;margin-top:10px;">Por proyecto: ingresos = pagos de clientes; egresos = planilla + materiales del proyecto.</p>`;
@@ -324,7 +324,7 @@ async function cargarCotizaciones() {
         const data = await fetch(`${API}/cotizaciones`).then(r=>r.json());
         document.getElementById('cont-cotizaciones').innerHTML = `
         <table id="tbl-cot"><thead><tr>
-            <th>Número</th><th>Proyecto</th><th>Fecha</th>
+            <th>NÃºmero</th><th>Proyecto</th><th>Fecha</th>
             <th>Validez</th><th>Observaciones</th><th>Estado</th>
         </tr></thead><tbody>
         ${data.map(c=>`<tr>
@@ -345,3 +345,4 @@ function toggleMenu() {
     menu.classList.toggle('oculto');
 }
 cargarDashboard();
+

@@ -1,4 +1,4 @@
-﻿const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 const PAG_SIZE = 10;
 
@@ -1034,3 +1034,4 @@ function imprimirOrdenes() {
   imprimirReporte(win, 'Reporte de Órdenes de Compra',
     etiquetaRango(_rangoOrdenes.desde, _rangoOrdenes.hasta), [cuerpo]);
 }
+

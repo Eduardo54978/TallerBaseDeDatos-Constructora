@@ -1,4 +1,4 @@
-﻿const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 function ordenarPorNumero(datos, campo) {
   return [...(datos || [])].sort((a, b) => Number(a[campo] || 0) - Number(b[campo] || 0));
@@ -557,3 +557,4 @@ function imprimirContratos() {
   imprimirReporte(win, 'Reporte de Contratos',
     etiquetaRango(_rangoContratos.desde, _rangoContratos.hasta), [cuerpo]);
 }
+

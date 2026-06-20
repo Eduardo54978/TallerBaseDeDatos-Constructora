@@ -1,0 +1,347 @@
+const API = 'http://localhost:3000/api';
+
+function show(name, el) {
+    event.preventDefault();
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    el.classList.add('active');
+    const titles = {
+        dashboard:'Principal', empleados:'Empleados', proyectos:'Proyectos',
+        materiales:'Materiales', contratos:'Contratos', proveedores:'Proveedores', inventario:'Inventario'
+    };
+    document.getElementById('page-title').textContent = titles[name];
+    if (name === 'empleados')   cargarEmpleados();
+    if (name === 'proyectos')   cargarProyectos();
+    if (name === 'materiales')  cargarMateriales();
+    if (name === 'contratos')   cargarContratos();
+    if (name === 'proveedores') cargarProveedores();
+    if (name === 'inventario')  cargarInventario();
+    if (name === 'clientes')     cargarClientes();
+    if (name === 'horas')        cargarHoras();
+    if (name === 'cotizaciones') cargarCotizaciones();
+}
+
+function filtrar(id, texto) {
+    const t = document.getElementById(id);
+    if (!t) return;
+    t.querySelectorAll('tbody tr').forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(texto.toLowerCase()) ? '' : 'none';
+    });
+}
+
+function badge(texto) {
+    const t = (texto||'').toLowerCase();
+    if (t.includes('ejecuci'))  return `<span class="badge badge-blue">${texto}</span>`;
+    if (t.includes('finaliz'))  return `<span class="badge badge-green">${texto}</span>`;
+    if (t.includes('suspendid'))return `<span class="badge badge-red">${texto}</span>`;
+    if (t.includes('planif'))   return `<span class="badge badge-yellow">${texto}</span>`;
+    if (t.includes('activo'))   return `<span class="badge badge-green">${texto}</span>`;
+    if (t.includes('inactivo')) return `<span class="badge badge-red">${texto}</span>`;
+    if (t.includes('vigente'))  return `<span class="badge badge-blue">${texto}</span>`;
+    if (t.includes('pendiente'))return `<span class="badge badge-yellow">${texto}</span>`;
+    if (t.includes('bajo'))     return `<span class="badge badge-red">${texto}</span>`;
+    return `<span class="badge badge-green">${texto}</span>`;
+}
+
+async function cargarDashboard() {
+    try {
+        const [emp, proy, cont, prov] = await Promise.all([
+            fetch(`${API}/empleados`).then(r=>r.json()),
+            fetch(`${API}/proyectos`).then(r=>r.json()),
+            fetch(`${API}/contratos`).then(r=>r.json()),
+            fetch(`${API}/proveedores`).then(r=>r.json()),
+        ]);
+        document.getElementById('s-emp').textContent  = emp.length;
+        document.getElementById('s-proy').textContent = proy.length;
+        document.getElementById('s-cont').textContent = cont.length;
+        document.getElementById('s-prov').textContent = prov.length;
+
+        const activos = proy.filter(p => p.nombreEstadoProyecto && p.nombreEstadoProyecto.includes('ejecuci'));
+        document.getElementById('dash-proyectos').innerHTML = `
+        <table><thead><tr><th>Proyecto</th><th>Tipo</th><th>Cliente</th><th>Inicio</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>${activos.map(p=>`
+            <tr>
+                <td>${p.nombreProyecto}</td>
+                <td>${p.nombreTipoProyecto||''}</td>
+                <td>${p.cliente||''}</td>
+                <td>${p.fechaInicio?p.fechaInicio.substring(0,10):''}</td>
+                <td>${badge(p.nombreEstadoProyecto)}</td>
+                <td>${typeof inspeccionarProyecto === 'function'
+                    ? `<button onclick="inspeccionarProyecto(${p.idProyecto})" style="background:#2F5F2F;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.8rem;">Inspeccionar</button>`
+                    : ''}</td>
+            </tr>`).join('')}
+        </tbody></table>`;
+        cargarBalance();
+    } catch(e) { console.error(e); }
+}
+
+function bs(n) { return 'Bs ' + Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+async function cargarBalance() {
+    const cont = document.getElementById('dash-balance');
+    if (!cont) return;
+    try {
+        const b = await fetch(`${API}/dashboard/balance`).then(r => r.json());
+        if (b.error) { cont.innerHTML = '<p style="color:red">No se pudo calcular el balance.</p>'; return; }
+
+        const positivo = b.balance >= 0;
+        const color = positivo ? '#1f7a3d' : '#b91c1c';
+
+        // Dónde ganamos/perdemos: proyectos ordenados por balance (peores primero).
+        const conMovimiento = b.porProyecto.filter(p => p.ingresos !== 0 || p.egresos !== 0);
+        const perdidas = conMovimiento.filter(p => p.balance < 0);
+        const ganancias = [...conMovimiento].filter(p => p.balance >= 0).sort((a, c) => c.balance - a.balance);
+
+        const filaProy = p => `<tr>
+            <td>${p.nombreProyecto}</td>
+            <td style="text-align:right;">${bs(p.ingresos)}</td>
+            <td style="text-align:right;">${bs(p.egresos)}</td>
+            <td style="text-align:right;font-weight:700;color:${p.balance >= 0 ? '#1f7a3d' : '#b91c1c'};">${bs(p.balance)}</td>
+        </tr>`;
+
+        cont.innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;margin-bottom:16px;">
+            <div style="flex:1;min-width:220px;background:${positivo ? '#EAF6EE' : '#FDECEC'};border-left:6px solid ${color};border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;letter-spacing:.5px;">Balance general</div>
+                <div style="font-size:1.9rem;font-weight:800;color:${color};">${bs(b.balance)}</div>
+                <div style="font-weight:700;color:${color};">${b.estado}</div>
+            </div>
+            <div style="flex:1;min-width:200px;background:#fff;border:1px solid #E1E6DD;border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;">Ingresos (pagos de clientes)</div>
+                <div style="font-size:1.4rem;font-weight:700;color:#1f7a3d;">${bs(b.ingresos)}</div>
+            </div>
+            <div style="flex:1;min-width:200px;background:#fff;border:1px solid #E1E6DD;border-radius:10px;padding:16px 20px;">
+                <div style="font-size:.8rem;color:#6b756d;text-transform:uppercase;">Egresos</div>
+                <div style="font-size:1.4rem;font-weight:700;color:#b91c1c;">${bs(b.egresosTotal)}</div>
+                <div style="font-size:.78rem;color:#6b756d;">Proveedores ${bs(b.egresosProveedores)} · Planilla ${bs(b.egresosPlanilla)}</div>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:18px;">
+            <div style="flex:1;min-width:300px;">
+                <h4 style="color:#b91c1c;margin-bottom:6px;">Dónde estamos perdiendo (${perdidas.length})</h4>
+                ${perdidas.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+                    <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
+                    <tbody>${perdidas.map(filaProy).join('')}</tbody></table>`
+                    : '<p style="color:#6b756d;">Ningún proyecto en pérdida.</p>'}
+            </div>
+            <div style="flex:1;min-width:300px;">
+                <h4 style="color:#1f7a3d;margin-bottom:6px;">Dónde estamos ganando (${ganancias.length})</h4>
+                ${ganancias.length ? `<table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+                    <thead><tr style="background:#123823;color:#fff;"><th style="text-align:left;padding:6px;">Proyecto</th><th style="text-align:right;padding:6px;">Ingresos</th><th style="text-align:right;padding:6px;">Egresos</th><th style="text-align:right;padding:6px;">Balance</th></tr></thead>
+                    <tbody>${ganancias.map(filaProy).join('')}</tbody></table>`
+                    : '<p style="color:#6b756d;">Sin proyectos con ganancia aún.</p>'}
+            </div>
+        </div>
+        <p style="font-size:.76rem;color:#9aa39b;margin-top:10px;">Por proyecto: ingresos = pagos de clientes; egresos = planilla + materiales del proyecto.</p>`;
+    } catch (e) {
+        cont.innerHTML = '<p style="color:red">Error al cargar el balance.</p>';
+    }
+}
+
+async function cargarEmpleados() {
+    try {
+        const data = await fetch(`${API}/empleados`).then(r=>r.json());
+        document.getElementById('cont-empleados').innerHTML = `
+        <table id="tbl-emp"><thead><tr>
+            <th>#</th><th>Nombre</th><th>Apellido</th><th>Cargo</th>
+            <th>Departamento</th><th>Salario</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(e=>`<tr>
+            <td>${e.idEmpleado}</td>
+            <td>${e.nombre}</td>
+            <td>${e.apellido}</td>
+            <td>${e.nombreCargo||''}</td>
+            <td>${e.nombreDepartamento||''}</td>
+            <td>Bs ${Number(e.salario||0).toLocaleString()}</td>
+            <td>${badge(e.nombreEstadoEmpleado)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-empleados').innerHTML = '<p style="color:red">Error al cargar empleados</p>';
+    }
+}
+
+async function cargarProyectos() {
+    try {
+        const data = await fetch(`${API}/proyectos`).then(r=>r.json());
+        document.getElementById('cont-proyectos').innerHTML = `
+        <table id="tbl-proy"><thead><tr>
+            <th>#</th><th>Proyecto</th><th>Tipo</th><th>Cliente</th>
+            <th>Inicio</th><th>Fin Estimado</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(p=>`<tr>
+            <td>${p.idProyecto}</td>
+            <td>${p.nombreProyecto}</td>
+            <td>${p.nombreTipoProyecto||''}</td>
+            <td>${p.cliente||''}</td>
+            <td>${p.fechaInicio?p.fechaInicio.substring(0,10):''}</td>
+            <td>${p.fechaFinEstimada?p.fechaFinEstimada.substring(0,10):''}</td>
+            <td>${badge(p.nombreEstadoProyecto)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-proyectos').innerHTML = '<p style="color:red">Error al cargar proyectos</p>';
+    }
+}
+
+async function cargarMateriales() {
+    try {
+        const data = await fetch(`${API}/materiales`).then(r=>r.json());
+        document.getElementById('cont-materiales').innerHTML = `
+        <table id="tbl-mat"><thead><tr>
+            <th>#</th><th>Material</th><th>Tipo</th><th>Unidad</th><th>Precio</th>
+        </tr></thead><tbody>
+        ${data.map(m=>`<tr>
+            <td>${m.idMaterial}</td>
+            <td>${m.nombreMaterial}</td>
+            <td>${m.nombreTipoMaterial||''}</td>
+            <td>${m.nombreUnidadMedida||''}</td>
+            <td>Bs ${Number(m.precioUnitario||0).toFixed(2)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-materiales').innerHTML = '<p style="color:red">Error al cargar materiales</p>';
+    }
+}
+
+async function cargarContratos() {
+    try {
+        const data = await fetch(`${API}/contratos`).then(r=>r.json());
+        document.getElementById('cont-contratos').innerHTML = `
+        <table id="tbl-cont"><thead><tr>
+            <th>Numero</th><th>Proyecto</th><th>Tipo</th>
+            <th>Monto Total</th><th>Vencimiento</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(c=>`<tr>
+            <td>${c.numeroContrato}</td>
+            <td>${c.nombreProyecto||''}</td>
+            <td>${c.nombreTipoContrato||''}</td>
+            <td>Bs ${Number(c.montoTotal||0).toLocaleString()}</td>
+            <td>${c.fechaVencimiento?c.fechaVencimiento.substring(0,10):''}</td>
+            <td>${badge(c.nombreEstadoContrato)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-contratos').innerHTML = '<p style="color:red">Error al cargar contratos</p>';
+    }
+}
+
+async function cargarProveedores() {
+    try {
+        const data = await fetch(`${API}/proveedores`).then(r=>r.json());
+        document.getElementById('cont-proveedores').innerHTML = `
+        <table id="tbl-prov"><thead><tr>
+            <th>#</th><th>Proveedor</th><th>Ciudad</th><th>Telefono</th><th>Email</th>
+        </tr></thead><tbody>
+        ${data.map(p=>`<tr>
+            <td>${p.idProveedor}</td>
+            <td>${p.nombreProveedor}</td>
+            <td>${p.ciudad||''}</td>
+            <td>${p.numCelular||''}</td>
+            <td>${p.email||''}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-proveedores').innerHTML = '<p style="color:red">Error al cargar proveedores</p>';
+    }
+}
+
+async function cargarInventario() {
+    try {
+        const data = await fetch(`${API}/inventario`).then(r=>r.json());
+        document.getElementById('cont-inventario').innerHTML = `
+        <table id="tbl-inv"><thead><tr>
+            <th>Material</th><th>Stock Actual</th><th>Stock Minimo</th><th>Ubicacion</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(i=>{
+            const bajo = parseFloat(i.stockActual) < parseFloat(i.stockMinimo);
+            return `<tr>
+                <td>${i.nombreMaterial}</td>
+                <td>${i.stockActual}</td>
+                <td>${i.stockMinimo}</td>
+                <td>${i.ubicacion||''}</td>
+                <td>${badge(bajo ? 'STOCK BAJO' : 'OK')}</td>
+            </tr>`;
+        }).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-inventario').innerHTML = '<p style="color:red">Error al cargar inventario</p>';
+    }
+}
+// MODULO 7: CLIENTES
+async function cargarClientes() {
+    try {
+        const data = await fetch(`${API}/clientes`).then(r=>r.json());
+        document.getElementById('cont-clientes').innerHTML = `
+        <table id="tbl-cli"><thead><tr>
+            <th>#</th><th>Nombre</th><th>Tipo</th><th>Documento</th>
+            <th>Celular</th><th>Email</th><th>Fecha Registro</th>
+        </tr></thead><tbody>
+        ${data.map(c=>`<tr>
+            <td>${c.idCliente}</td>
+            <td>${c.nombre}</td>
+            <td>${badge(c.nombreTipoCliente)}</td>
+            <td>${c.documentoID||''}</td>
+            <td>${c.numCelular||''}</td>
+            <td>${c.email||''}</td>
+            <td>${c.fechaRegistro?c.fechaRegistro.substring(0,10):''}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-clientes').innerHTML = '<p style="color:red">Error al cargar clientes</p>';
+    }
+}
+
+// MODULO 8: REGISTRO DE HORAS
+async function cargarHoras() {
+    try {
+        const data = await fetch(`${API}/horas`).then(r=>r.json());
+        document.getElementById('cont-horas').innerHTML = `
+        <table id="tbl-horas"><thead><tr>
+            <th>#</th><th>Empleado</th><th>Proyecto</th>
+            <th>Fecha</th><th>Horas</th><th>Pago/Hora</th><th>Total</th>
+        </tr></thead><tbody>
+        ${data.map(h=>`<tr>
+            <td>${h.idRegistroHoras}</td>
+            <td>${h.nombre} ${h.apellido}</td>
+            <td>${h.nombreProyecto||''}</td>
+            <td>${h.fecha?h.fecha.substring(0,10):''}</td>
+            <td>${h.horasTrabajadas}</td>
+            <td>Bs ${Number(h.pagoPorHora||0).toFixed(2)}</td>
+            <td>Bs ${Number(h.totalPago||0).toFixed(2)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-horas').innerHTML = '<p style="color:red">Error al cargar horas</p>';
+    }
+}
+
+// MODULO 9: COTIZACIONES
+async function cargarCotizaciones() {
+    try {
+        const data = await fetch(`${API}/cotizaciones`).then(r=>r.json());
+        document.getElementById('cont-cotizaciones').innerHTML = `
+        <table id="tbl-cot"><thead><tr>
+            <th>Número</th><th>Proyecto</th><th>Fecha</th>
+            <th>Validez</th><th>Observaciones</th><th>Estado</th>
+        </tr></thead><tbody>
+        ${data.map(c=>`<tr>
+            <td>${c.numeroCotizacionCliente}</td>
+            <td>${c.nombreProyecto||''}</td>
+            <td>${c.fechaCotizacion?c.fechaCotizacion.substring(0,10):''}</td>
+            <td>${c.fechaValidez?c.fechaValidez.substring(0,10):''}</td>
+            <td>${c.observaciones||''}</td>
+            <td>${badge(c.nombreEstadoCotizacion)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    } catch(e) {
+        document.getElementById('cont-cotizaciones').innerHTML = '<p style="color:red">Error al cargar cotizaciones</p>';
+    }
+}
+function toggleMenu() {
+    const menu = document.getElementById('menu-items');
+    menu.classList.toggle('oculto');
+}
+cargarDashboard();

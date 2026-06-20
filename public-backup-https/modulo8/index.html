@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 8 - Empleados</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .emp-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:18px; }
+    .emp-stats .sb { background:#fff; border:1px solid #E1E6DD; border-top:4px solid #2F5F2F; border-radius:10px;
+                     padding:14px 16px; text-align:center; box-shadow:0 2px 8px rgba(23,63,36,.06); }
+    .emp-stats .sb .n { font-size:1.7rem; font-weight:800; color:#173F24; line-height:1; }
+    .emp-stats .sb .l { font-size:.72rem; color:#6b756d; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
+    .emp-filtros { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px; }
+    .emp-filtros .form-group { min-width:160px; }
+    .emp-filtros label { font-size:.78rem; font-weight:600; color:#173F24; display:block; margin-bottom:4px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 8 - Recursos Humanos</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Empleados</button>
+    <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Empleado</button>
+    <button class="tab-btn" onclick="switchTab('editar-emp', this)">Editar Empleado</button>
+    <button class="tab-btn" onclick="switchTab('horas', this)">Registrar Horas</button>
+    <button class="tab-btn" onclick="switchTab('consultar-horas', this)">Consultar Horas</button>
+    <button class="tab-btn" onclick="switchTab('bonificacion', this)">Bonificacion</button>
+    <button class="tab-btn" onclick="switchTab('maestras', this)">Tablas Maestras</button>
+  </div>
+
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div id="emp-stats" class="emp-stats"></div>
+
+      <div class="table-header">
+        <h3>Empleados Registrados</h3>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="emp-buscar" class="search" placeholder="Buscar nombre, apellido o CI..." oninput="renderEmpleados()">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirEmpleados()">Imprimir / PDF</button>
+        </div>
+      </div>
+
+      <div class="emp-filtros">
+        <div class="form-group">
+          <label>Cargo</label>
+          <select id="emp-f-cargo" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Departamento</label>
+          <select id="emp-f-depto" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="emp-f-estado" onchange="renderEmpleados()">
+            <option value="">— Todos —</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">De baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Proyecto asignado</label>
+          <select id="emp-f-proyecto" onchange="renderEmpleados()"><option value="">— Todos —</option></select>
+        </div>
+      </div>
+
+      <div id="cont-empleados"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-registrar">
+    <div class="card">
+      <h3>Registrar Nuevo Empleado</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input id="emp-nombre" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label>Apellido *</label>
+          <input id="emp-apellido" placeholder="Apellido">
+        </div>
+        <div class="form-group">
+          <label>CI *</label>
+          <input id="emp-ci" placeholder="Cedula de identidad">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="emp-email" type="email" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label>Celular</label>
+          <input id="emp-cel" placeholder="Numero de celular">
+        </div>
+        <div class="form-group">
+          <label>Salario (Bs)</label>
+          <input id="emp-salario" type="number" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Contratacion</label>
+          <input id="emp-contrat" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Nacimiento</label>
+          <input id="emp-nacim" type="date">
+        </div>
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="emp-cargo"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Departamento *</label>
+          <select id="emp-depto"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado *</label>
+          <select id="emp-estado"><option value="">-- Seleccionar --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Especialidad</label>
+          <input id="emp-esp" placeholder="Especialidad">
+        </div>
+        <div class="form-group full">
+          <label>Direccion</label>
+          <input id="emp-dir" placeholder="Direccion">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarEmpleado()">Registrar Empleado</button>
+      <div id="msg-emp" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-editar-emp">
+    <div class="card">
+      <h3>Editar Empleado</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Buscar Empleado</label>
+          <div class="ac-wrap">
+            <input id="ee-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('ee-emp-nom','ac-ee-emp','ee-idemplrado','empleados','idEmpleado','nombreCompleto','cargarFormEditarEmp')">
+            <div class="ac-drop" id="ac-ee-emp"></div>
+            <input type="hidden" id="ee-idemplrado">
+          </div>
+        </div>
+      </div>
+
+      <div id="form-editar-emp" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input id="ee-nombre" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input id="ee-apellido" placeholder="Apellido">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="ee-email" type="email">
+          </div>
+          <div class="form-group">
+            <label>Celular</label>
+            <input id="ee-cel">
+          </div>
+          <div class="form-group">
+            <label>Salario (Bs)</label>
+            <input id="ee-salario" type="number" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <select id="ee-cargo"><option value="">-- Seleccionar --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Departamento</label>
+            <select id="ee-depto"><option value="">-- Seleccionar --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="ee-estado">
+              <option value="1">Activo</option>
+              <option value="2">Inactivo</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Direccion</label>
+            <input id="ee-dir">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionEmpleado()">Guardar Cambios</button>
+        <div id="msg-editar-emp" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-horas">
+    <div class="card">
+      <h3>Registrar Horas Trabajadas</h3>
+      <p style="color:#718096; margin-bottom:12px;">Registra las horas que un empleado trabajó en un proyecto. El pago por hora se toma del cargo del empleado, pero puedes ajustarlo.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Empleado *</label>
+          <div class="ac-wrap">
+            <input id="h-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('h-emp-nom','ac-h-emp','h-empleado','empleados','idEmpleado','nombreCompleto','onSelEmpleadoHoras')">
+            <div class="ac-drop" id="ac-h-emp"></div>
+            <input type="hidden" id="h-empleado">
+          </div>
+          <small style="color:#6b756d;">Escribe el nombre o ID del empleado</small>
+          <small id="h-emp-proyectos" style="color:#276749; display:block; margin-top:4px;"></small>
+        </div>
+        <div class="form-group">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="h-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('h-proy-nom','ac-h-proy','h-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-h-proy"></div>
+            <input type="hidden" id="h-proyecto">
+          </div>
+          <small style="color:#6b756d;">Proyecto donde se realizaron las horas</small>
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input id="h-fecha" type="date">
+          <small style="color:#6b756d;">Día en que se trabajaron las horas</small>
+        </div>
+        <div class="form-group">
+          <label>Horas Trabajadas *</label>
+          <input id="h-horas" type="number" step="0.5" placeholder="Ej: 8">
+          <small style="color:#6b756d;">Cantidad de horas del día (ej: 8, 4.5)</small>
+        </div>
+        <div class="form-group">
+          <label>Pago por Hora (Bs) *</label>
+          <input id="h-pago" type="number" step="0.01" placeholder="Ej: 25.00">
+          <small style="color:#6b756d;">Tarifa acordada — el total se calcula automáticamente</small>
+        </div>
+        <div class="form-group" style="justify-content:flex-end; padding-top: 22px;">
+          <div id="h-preview" style="font-size:0.9rem; color: #276749; font-weight:600;"></div>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarHoras()">Registrar Horas</button>
+      <div id="msg-horas" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-consultar-horas">
+    <div class="card">
+      <h3>Consultar Horas por Empleado</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Empleado</label>
+          <div class="ac-wrap">
+            <input id="ch-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('ch-emp-nom','ac-ch-emp','ch-id','empleados','idEmpleado','nombreCompleto')">
+            <div class="ac-drop" id="ac-ch-emp"></div>
+            <input type="hidden" id="ch-id">
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="consultarHoras()">Buscar</button>
+      </div>
+      <div id="resumen-horas"></div>
+      <div id="cont-horas-emp" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-bonificacion">
+    <div class="card">
+      <h3>Registrar Bonificacion</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Empleado *</label>
+          <div class="ac-wrap">
+            <input id="b-emp-nom" type="text" placeholder="Buscar empleado por nombre..." autocomplete="off"
+                   oninput="acSearch('b-emp-nom','ac-b-emp','b-emp','empleados','idEmpleado','nombreCompleto')">
+            <div class="ac-drop" id="ac-b-emp"></div>
+            <input type="hidden" id="b-emp">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="b-proy-nom" type="text" placeholder="Buscar proyecto por nombre..." autocomplete="off"
+                   oninput="acSearch('b-proy-nom','ac-b-proy','b-proyecto','proyectos','idProyecto','nombreProyecto')">
+            <div class="ac-drop" id="ac-b-proy"></div>
+            <input type="hidden" id="b-proyecto">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo de Bonificacion *</label>
+          <input id="b-tipo" placeholder="Ej: Antiguedad">
+        </div>
+
+        <div class="form-group">
+          <label>Años de Antiguedad *</label>
+          <input id="b-anios" type="number" placeholder="Años trabajados" oninput="sugerirPorcentaje()">
+        </div>
+
+        <div class="form-group">
+          <label>Porcentaje Bono (%) *</label>
+          <input id="b-pct" type="number" placeholder="Se sugiere automaticamente" oninput="calcularMonto()">
+        </div>
+
+        <div class="form-group">
+          <label>Salario Base del Proyecto (Bs) *</label>
+          <input id="b-salario" type="number" placeholder="Salario base del proyecto" oninput="calcularMonto()">
+        </div>
+
+        <div class="form-group">
+          <label>Gestion (Año) *</label>
+          <input id="b-gestion" type="number" placeholder="Ej: 2025">
+        </div>
+
+        <div class="form-group full">
+          <label>Descripcion</label>
+          <input id="b-desc" placeholder="Descripcion opcional">
+        </div>
+      </div>
+
+      <div id="b-preview" class="resumen-box" style="display:none;"></div>
+      <br>
+      <button class="btn btn-green" onclick="registrarBonificacion()">Registrar Bonificacion</button>
+      <div id="msg-bono" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Tabla de Porcentajes por Antiguedad</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Años</th>
+            <th>Porcentaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>0 - 2 años</td><td>0%</td></tr>
+          <tr><td>3 - 5 años</td><td>10%</td></tr>
+          <tr><td>6 - 10 años</td><td>15%</td></tr>
+          <tr><td>11+ años</td><td>25%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-maestras">
+    <div class="maestras-grid">
+
+      <div class="card">
+        <h3>Registrar Cargo</h3>
+        <div class="form-group">
+          <label>Nombre del Cargo *</label>
+          <input id="c-nombre" placeholder="Ej: Albanil, Ingeniero">
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Descripcion</label>
+          <input id="c-desc" placeholder="Descripcion">
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="registrarCargo()">Guardar</button>
+        <div id="msg-cargo" class="msg"></div>
+        <div id="cont-cargos" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Registrar Departamento</h3>
+        <div class="form-group">
+          <label>Nombre del Departamento *</label>
+          <input id="d-nombre" placeholder="Ej: Obras, Administracion">
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Descripcion</label>
+          <input id="d-desc" placeholder="Descripcion">
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="registrarDepto()">Guardar</button>
+        <div id="msg-depto" class="msg"></div>
+        <div id="cont-deptos" style="margin-top:16px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

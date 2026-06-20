@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 // Nombre completo del cliente (nombre + apellido; las empresas no tienen apellido).
 const nomCli = c => `${c.nombre || ''} ${c.apellido || ''}`.trim();
@@ -119,7 +119,7 @@ async function cargarTipos() {
           <tr>
             <th>ID</th>
             <th>Nombre</th>
-            <th>Descripción</th>
+            <th>DescripciÃ³n</th>
           </tr>
         </thead>
         <tbody>
@@ -187,7 +187,7 @@ async function registrarCliente() {
 
     cargarClientes();
   } catch (e) {
-    msg('msg-cliente', 'Error de conexión', 'err');
+    msg('msg-cliente', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -222,7 +222,7 @@ async function registrarTipo() {
     cargarTipos();
     cargarSelectTipos();
   } catch (e) {
-    msg('msg-tipo', 'Error de conexión', 'err');
+    msg('msg-tipo', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -274,19 +274,19 @@ async function guardarEdicionCliente() {
     msg('msg-editar-cli', 'Cliente actualizado correctamente', 'ok');
     cargarClientes();
   } catch (e) {
-    msg('msg-editar-cli', 'Error de conexión', 'err');
+    msg('msg-editar-cli', 'Error de conexiÃ³n', 'err');
   }
 }
 
 async function eliminarCliente(id) {
-  if (!confirm(`¿Eliminar el cliente ID ${id}? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`Â¿Eliminar el cliente ID ${id}? Esta acciÃ³n no se puede deshacer.`)) return;
   try {
     const res = await fetch(`${API}/clientes/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) return alert('Error: ' + data.error);
     cargarClientes();
   } catch (e) {
-    alert('Error de conexión');
+    alert('Error de conexiÃ³n');
   }
 }
 
@@ -304,3 +304,4 @@ function imprimirClientes() {
     `<div class="total">Total: ${_dataClientes.length} clientes</div>`;
   imprimirReporte(win, 'Reporte de Clientes', '', [cuerpo]);
 }
+

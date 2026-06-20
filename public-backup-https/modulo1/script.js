@@ -1,0 +1,1123 @@
+﻿const apiProyectos = "/api/proyectos";
+const apiPersonal = "/api/empleadoproyecto";
+const apiOpcionesProyecto = "/api/proyectos/form/opciones";
+const apiRegistrarProyecto = "/api/proyectos/registrar";
+const apiTiposProyecto = "/api/proyectos/parametros/tipos";
+const apiEstadosProyecto = "/api/proyectos/parametros/estados";
+
+let listaProyectos = [];
+let listaPersonal = [];
+
+document.addEventListener("DOMContentLoaded", () => {
+  cargarProyectos();
+  cargarPersonal();
+  cargarOpcionesProyecto();
+  cargarParametrosProyecto();
+
+  const buscarProyecto = document.getElementById("buscarProyecto");
+  const buscarPersonal = document.getElementById("buscarPersonal");
+  const formProyecto = document.getElementById("formProyecto");
+  const formTipoProyecto = document.getElementById("formTipoProyecto");
+  const formEstadoProyecto = document.getElementById("formEstadoProyecto");
+  const formCambiarEstadoProyecto = document.getElementById("formCambiarEstadoProyecto");
+  const formEditarProyecto = document.getElementById("formEditarProyecto");
+
+  if (formEditarProyecto) {
+    formEditarProyecto.addEventListener("submit", guardarEdicionProyecto);
+  }
+
+  const formAsignar = document.getElementById("formAsignar");
+  if (formAsignar) {
+    formAsignar.addEventListener("submit", asignarEmpleado);
+  }
+
+  if (buscarProyecto) {
+    buscarProyecto.addEventListener("input", e => {
+      buscarProyectos(e.target.value);
+    });
+  }
+
+  if (buscarPersonal) {
+    buscarPersonal.addEventListener("input", e => {
+      buscarPersonalAsignado(e.target.value);
+    });
+  }
+
+  if (formProyecto) {
+    formProyecto.addEventListener("submit", guardarProyecto);
+  }
+
+  if (formTipoProyecto) {
+    formTipoProyecto.addEventListener("submit", guardarTipoProyecto);
+  }
+
+  if (formEstadoProyecto) {
+    formEstadoProyecto.addEventListener("submit", guardarEstadoProyecto);
+  }
+
+  if (formCambiarEstadoProyecto) {
+    formCambiarEstadoProyecto.addEventListener("submit", guardarCambioEstadoProyecto);
+  }
+});
+
+function cambiarTab(nombre, boton) {
+  document.querySelectorAll(".contenido").forEach(item => {
+    item.classList.remove("activo");
+  });
+
+  document.querySelectorAll(".btn-tab").forEach(item => {
+    item.classList.remove("activo");
+  });
+
+  const tab = document.getElementById(`tab-${nombre}`);
+
+  if (tab) {
+    tab.classList.add("activo");
+  }
+
+  if (boton) {
+    boton.classList.add("activo");
+  }
+
+  if (nombre === "proyectos") {
+    cargarProyectos();
+  }
+
+  if (nombre === "personal") {
+    cargarPersonal();
+  }
+
+  if (nombre === "cambiar-estado") {
+    cargarOpcionesProyecto();
+    cargarTablaProyectosEstado();
+  }
+
+  if (nombre === "editar") {
+    cargarOpcionesEditarProyecto();
+  }
+
+  if (nombre === "asignar") {
+    cargarRolesAsignar();
+    cargarCargosAsignar();
+    cargarDisponibilidad();
+  }
+}
+
+async function cargarRolesAsignar() {
+  const data = await fetch("/api/empleadoproyecto/roles/lista").then(r => r.json()).catch(() => []);
+  const opciones = `<option value="">Seleccione...</option>` +
+    data.map(r => `<option value="${r.idRolProyecto}">${r.nombreRolProyecto}</option>`).join("");
+  const sel = document.getElementById("as-rol");
+  if (sel) sel.innerHTML = opciones;
+  const selMs = document.getElementById("ms-rol");
+  if (selMs) selMs.innerHTML = opciones;
+}
+
+async function cargarCargosAsignar() {
+  const data = await fetch("/api/empleados/cargos/lista").then(r => r.json()).catch(() => []);
+  const sel = document.getElementById("as-filtro-cargo");
+  if (sel) sel.innerHTML = `<option value="">— Todos los cargos —</option>` +
+    data.map(c => `<option value="${c.idCargo}">${c.nombreCargo}</option>`).join("");
+  const selFiltro = document.getElementById("filtro-disp-cargo");
+  if (selFiltro) selFiltro.innerHTML = `<option value="">— Todos —</option>` +
+    data.map(c => `<option value="${c.nombreCargo}">${c.nombreCargo}</option>`).join("");
+}
+
+function limpiarSeleccionEmpleado() {
+  const nom = document.getElementById("as-emp-nom");
+  const hid = document.getElementById("as-idempleado");
+  const drop = document.getElementById("ac-as-emp");
+  if (nom) nom.value = "";
+  if (hid) hid.value = "";
+  if (drop) { drop.innerHTML = ""; drop.style.display = "none"; }
+}
+
+async function buscarEmpleadoDisponible() {
+  const inputEl = document.getElementById("as-emp-nom");
+  const drop = document.getElementById("ac-as-emp");
+  const hiddenEl = document.getElementById("as-idempleado");
+  if (!inputEl || !drop) return;
+  const q = inputEl.value.trim();
+  if (!q) { drop.innerHTML = ""; drop.style.display = "none"; return; }
+  const idCargo = document.getElementById("as-filtro-cargo")?.value || "";
+  const url = `/api/empleadoproyecto/disponibles/search?q=${encodeURIComponent(q)}${idCargo ? "&idCargo=" + idCargo : ""}`;
+  try {
+    const data = await fetch(url).then(r => r.json());
+    if (!Array.isArray(data) || !data.length) {
+      drop.innerHTML = '<div class="ac-empty">Sin resultados</div>';
+      drop.style.display = "block";
+      return;
+    }
+    drop.innerHTML = data.slice(0, 10).map(emp => {
+      const name = String(emp.nombreCompleto || "").replace(/'/g, "&#39;");
+      return `<div class="ac-item" onmousedown="acPick('as-emp-nom','ac-as-emp','as-idempleado',${emp.idEmpleado},'${name}')">${emp.nombreCompleto}</div>`;
+    }).join("");
+    drop.style.display = "block";
+  } catch (e) {
+    drop.style.display = "none";
+  }
+}
+
+let _disponibilidad = [];        // datos crudos del servidor
+let _seleccionados = new Set();   // ids de empleados marcados
+
+async function cargarDisponibilidad() {
+  _disponibilidad = await fetch("/api/empleadoproyecto/empleados-estado").then(r => r.json()).catch(() => []);
+  _seleccionados.clear();
+  renderDisponibilidad();
+}
+
+function renderDisponibilidad() {
+  const tbody = document.getElementById("tablaDisponibilidad");
+  if (!tbody) return;
+  const texto = (document.getElementById("filtro-disp-texto")?.value || "").toLowerCase();
+  const cargo = document.getElementById("filtro-disp-cargo")?.value || "";
+  const estado = document.getElementById("filtro-disp-estado")?.value || "";
+
+  const filtrados = _disponibilidad.filter(e => {
+    if (texto && !(`${e.nombreCompleto} ${e.idEmpleado}`.toLowerCase().includes(texto))) return false;
+    if (cargo && e.nombreCargo !== cargo) return false;
+    if (estado !== "" && String(e.disponible) !== estado) return false;
+    return true;
+  });
+
+  if (!filtrados.length) {
+    tbody.innerHTML = `<tr><td colspan="5">Sin empleados que coincidan con el filtro.</td></tr>`;
+    actualizarConteoSeleccion();
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(e => {
+    const marcado = _seleccionados.has(e.idEmpleado) ? "checked" : "";
+    const chk = e.disponible
+      ? `<input type="checkbox" ${marcado} onclick="toggleSeleccion(${e.idEmpleado}, this.checked)">`
+      : `<span title="Ocupado: no se puede asignar" style="color:#bbb;">—</span>`;
+    return `<tr style="${e.disponible ? '' : 'opacity:.6;'}">
+      <td>${chk}</td>
+      <td>${e.idEmpleado}</td>
+      <td>${e.nombreCompleto}</td>
+      <td>${e.nombreCargo || '-'}</td>
+      <td>${e.disponible ? '<span class="estado verde">Disponible</span>' : '<span class="estado amarillo">Ocupado</span>'}</td>
+    </tr>`;
+  }).join("");
+  actualizarConteoSeleccion();
+}
+
+function toggleSeleccion(id, marcado) {
+  if (marcado) _seleccionados.add(id); else _seleccionados.delete(id);
+  actualizarConteoSeleccion();
+}
+
+function marcarTodosDisponibles(marcar) {
+  const texto = (document.getElementById("filtro-disp-texto")?.value || "").toLowerCase();
+  const cargo = document.getElementById("filtro-disp-cargo")?.value || "";
+  _disponibilidad.forEach(e => {
+    if (!e.disponible) return;
+    if (texto && !(`${e.nombreCompleto} ${e.idEmpleado}`.toLowerCase().includes(texto))) return;
+    if (cargo && e.nombreCargo !== cargo) return;
+    if (marcar) _seleccionados.add(e.idEmpleado); else _seleccionados.delete(e.idEmpleado);
+  });
+  renderDisponibilidad();
+}
+
+function actualizarConteoSeleccion() {
+  const span = document.getElementById("ms-count");
+  if (span) span.textContent = _seleccionados.size;
+}
+
+function previsualizarAsignacion() {
+  const msg = document.getElementById("mensajeMultiAsignar");
+  const idProyecto = document.getElementById("ms-idproyecto").value;
+  const proyNom = document.getElementById("ms-proy-nom").value;
+  const rolSel = document.getElementById("ms-rol");
+  const idRol = rolSel.value;
+  const rolNom = rolSel.options[rolSel.selectedIndex]?.text || "";
+
+  if (!_seleccionados.size) { msg.textContent = "Marca al menos un empleado disponible."; msg.classList.add("error"); return; }
+  if (!idProyecto) { msg.textContent = "Selecciona el proyecto destino."; msg.classList.add("error"); return; }
+  if (!idRol) { msg.textContent = "Selecciona el rol en el proyecto."; msg.classList.add("error"); return; }
+  msg.textContent = ""; msg.classList.remove("error");
+
+  const seleccionados = _disponibilidad.filter(e => _seleccionados.has(e.idEmpleado));
+  const filas = seleccionados.map(e => `<tr>
+      <td>${e.idEmpleado}</td><td>${e.nombreCompleto}</td><td>${e.nombreCargo || '-'}</td>
+      <td>${proyNom}</td><td>${rolNom}</td>
+    </tr>`).join("");
+
+  let modal = document.getElementById("modal-multiasignar");
+  if (modal) modal.remove();
+  modal = document.createElement("div");
+  modal.id = "modal-multiasignar";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:1000;padding:40px 16px;overflow:auto;";
+  modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+      <h2 style="margin-bottom:6px;">Confirmar asignación de ${seleccionados.length} empleado(s)</h2>
+      <p style="color:#6b756d;margin-bottom:12px;">Revisa la lista. Al aplicar, cada empleado quedará asignado al proyecto <b>${proyNom}</b> con el rol <b>${rolNom}</b>.</p>
+      <div class="tabla"><table>
+        <thead><tr><th>ID</th><th>Empleado</th><th>Cargo</th><th>Proyecto</th><th>Rol</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-limpiar" onclick="document.getElementById('modal-multiasignar').remove()">Cancelar</button>
+        <button class="btn-guardar" onclick="aplicarAsignacionesLote()">Aplicar asignaciones</button>
+      </div>
+      <div id="msg-modal-multi" class="mensaje" style="margin-top:10px;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function aplicarAsignacionesLote() {
+  const idProyecto = document.getElementById("ms-idproyecto").value;
+  const idRol = document.getElementById("ms-rol").value;
+  const fechaInicio = document.getElementById("ms-fechaInicio").value || null;
+  const msgModal = document.getElementById("msg-modal-multi");
+  const ids = [..._seleccionados];
+  let ok = 0; const errores = [];
+
+  for (const idEmpleado of ids) {
+    try {
+      const res = await fetch("/api/empleadoproyecto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idEmpleado, idProyecto, idRolProyecto: idRol, fechaInicio, fechaFin: null })
+      });
+      const data = await res.json();
+      if (res.ok) ok++; else errores.push(`#${idEmpleado}: ${data.error}`);
+    } catch (e) {
+      errores.push(`#${idEmpleado}: error de conexión`);
+    }
+  }
+
+  if (msgModal) {
+    msgModal.innerHTML = `Asignados: ${ok}. ${errores.length ? 'Con errores: ' + errores.length : ''}`;
+    if (errores.length) msgModal.innerHTML += `<br><small style="color:#b91c1c;">${errores.join('<br>')}</small>`;
+  }
+  _seleccionados.clear();
+  await cargarDisponibilidad();
+  cargarPersonal();
+  if (!errores.length) {
+    setTimeout(() => { const m = document.getElementById("modal-multiasignar"); if (m) m.remove(); }, 1200);
+  }
+}
+
+async function asignarEmpleado(e) {
+  e.preventDefault();
+  const mensaje = document.getElementById("mensajeAsignar");
+  const body = {
+    idProyecto: document.getElementById("as-idproyecto").value,
+    idEmpleado: document.getElementById("as-idempleado").value,
+    idRolProyecto: document.getElementById("as-rol").value,
+    fechaInicio: document.getElementById("as-fechaInicio").value || null,
+    fechaFin: document.getElementById("as-fechaFin").value || null
+  };
+  if (!body.idProyecto) { mensaje.textContent = "Seleccione un proyecto."; mensaje.classList.add("error"); return; }
+  if (!body.idEmpleado) { mensaje.textContent = "Seleccione un empleado disponible."; mensaje.classList.add("error"); return; }
+  if (!body.idRolProyecto) { mensaje.textContent = "Seleccione el rol."; mensaje.classList.add("error"); return; }
+  try {
+    const res = await fetch("/api/empleadoproyecto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) { mensaje.textContent = "Error: " + data.error; mensaje.classList.add("error"); return; }
+    mensaje.textContent = "Empleado asignado correctamente.";
+    mensaje.classList.remove("error");
+    document.getElementById("formAsignar").reset();
+    ["as-proy-nom", "as-idproyecto", "as-emp-nom", "as-idempleado"].forEach(id => { document.getElementById(id).value = ""; });
+    cargarDisponibilidad();
+    cargarPersonal();
+  } catch (error) {
+    mensaje.textContent = "Error de conexion";
+    mensaje.classList.add("error");
+  }
+}
+
+async function cargarTablaProyectosEstado() {
+  const tbody = document.getElementById("tablaProyectosEstado");
+  if (!tbody) return;
+  const datos = ordenarProyectosPorId(listaProyectos);
+  if (!datos.length) { tbody.innerHTML = `<tr><td colspan="5">Sin proyectos.</td></tr>`; return; }
+  tbody.innerHTML = datos.map(p => `
+    <tr>
+      <td>${p.idProyecto}</td>
+      <td>${p.nombreProyecto || '-'}</td>
+      <td>${p.cliente || p.nombreCliente || '-'}</td>
+      <td>${estadoProyecto(p.nombreEstadoProyecto)}</td>
+      <td><button type="button" class="btn-tab" style="padding:4px 10px;font-size:.78rem;" onclick="seleccionarProyectoEstado(${p.idProyecto}, '${(p.nombreProyecto || '').replace(/'/g, "&#39;")}')">Seleccionar</button></td>
+    </tr>`).join("");
+}
+
+function seleccionarProyectoEstado(id, nombre) {
+  document.getElementById("cambioIdProyecto").value = id;
+  document.getElementById("cambio-proy-nom").value = nombre;
+  document.getElementById("cambio-proy-nom").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+let opcionesEditarCargadas = false;
+
+async function cargarOpcionesEditarProyecto() {
+  try {
+    const respuesta = await fetch(apiOpcionesProyecto);
+    const datos = await respuesta.json();
+    if (!respuesta.ok) return;
+
+    const tiposOrdenados = ordenarTiposProyectoPorId(datos.tipos);
+    const estadosOrdenados = ordenarEstadosProyectoPorId(datos.estados);
+
+    llenarSelect("ep-tipo", tiposOrdenados, "idTipoProyecto", "nombreTipoProyecto");
+    llenarSelect("ep-estado", estadosOrdenados, "idEstadoProyecto", "nombreEstadoProyecto");
+
+    const selCliente = document.getElementById("ep-cliente");
+    if (selCliente) {
+      selCliente.innerHTML = `<option value="">Seleccione...</option>`;
+      (datos.clientes || []).forEach(item => {
+        const nombre = item.nombreCliente || item.nombre || `Cliente ${item.idCliente}`;
+        selCliente.innerHTML += `<option value="${item.idCliente}">${nombre}</option>`;
+      });
+    }
+    opcionesEditarCargadas = true;
+  } catch (error) {}
+}
+
+async function cargarFormEditarProyecto(idProyecto) {
+  if (!opcionesEditarCargadas) {
+    await cargarOpcionesEditarProyecto();
+  }
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${idProyecto}`);
+    const p = await respuesta.json();
+    if (!respuesta.ok) {
+      document.getElementById("mensajeEditarProyecto").textContent = p.error || "Error al cargar el proyecto";
+      document.getElementById("mensajeEditarProyecto").classList.add("error");
+      return;
+    }
+    document.getElementById("ep-idproyecto").value = p.idProyecto;
+    document.getElementById("ep-proy-nom").value = p.nombreProyecto || "";
+    document.getElementById("ep-nombre").value = p.nombreProyecto || "";
+    document.getElementById("ep-descripcion").value = p.descripcion || "";
+    document.getElementById("ep-ubicacion").value = p.ubicacion || "";
+    document.getElementById("ep-fechaInicio").value = p.fechaInicio ? String(p.fechaInicio).substring(0, 10) : "";
+    document.getElementById("ep-fechaFin").value = p.fechaFinEstimada ? String(p.fechaFinEstimada).substring(0, 10) : "";
+    document.getElementById("ep-tipo").value = p.idTipoProyecto || "";
+    document.getElementById("ep-cliente").value = p.idCliente || "";
+    document.getElementById("ep-estado").value = p.idEstadoProyecto || "";
+    document.getElementById("formEditarProyecto").style.display = "grid";
+    aplicarReglasEdicion(Number(p.idEstadoProyecto));
+  } catch (error) {
+    document.getElementById("mensajeEditarProyecto").textContent = "Error de conexion";
+    document.getElementById("mensajeEditarProyecto").classList.add("error");
+  }
+}
+
+function aplicarReglasEdicion(idEstado) {
+  const form = document.getElementById("formEditarProyecto");
+  const regla = document.getElementById("ep-regla");
+  const campos = ["ep-nombre", "ep-tipo", "ep-cliente", "ep-estado", "ep-descripcion", "ep-ubicacion", "ep-fechaInicio", "ep-fechaFin"];
+  const btn = form.querySelector("button[type=submit]");
+
+  // Habilitar todo por defecto
+  campos.forEach(c => { const el = document.getElementById(c); if (el) el.disabled = false; });
+  if (btn) btn.disabled = false;
+
+  if (idEstado === 3) { // Finalizado
+    form.style.display = "none";
+    regla.textContent = "Este proyecto está FINALIZADO y no se puede editar.";
+    regla.style.color = "#c0392b";
+    return;
+  }
+
+  if (idEstado === 2) { // En ejecución → solo fecha fin estimada
+    campos.forEach(c => {
+      if (c !== "ep-fechaFin") { const el = document.getElementById(c); if (el) el.disabled = true; }
+    });
+    regla.textContent = "Proyecto En ejecución: solo puedes modificar la fecha fin estimada.";
+    regla.style.color = "#b7791f";
+    return;
+  }
+
+  // Planificación (1) o Suspendido (4): edición completa
+  regla.textContent = "Proyecto editable por completo.";
+  regla.style.color = "#276749";
+}
+
+async function guardarEdicionProyecto(e) {
+  e.preventDefault();
+  const id = document.getElementById("ep-idproyecto").value;
+  const mensaje = document.getElementById("mensajeEditarProyecto");
+  if (!id) {
+    mensaje.textContent = "Busque un proyecto primero.";
+    mensaje.classList.add("error");
+    return;
+  }
+  const datos = {
+    nombreProyecto: document.getElementById("ep-nombre").value.trim(),
+    descripcion: document.getElementById("ep-descripcion").value.trim(),
+    idTipoProyecto: document.getElementById("ep-tipo").value,
+    ubicacion: document.getElementById("ep-ubicacion").value.trim(),
+    fechaInicio: document.getElementById("ep-fechaInicio").value || null,
+    fechaFinEstimada: document.getElementById("ep-fechaFin").value || null,
+    idEstadoProyecto: document.getElementById("ep-estado").value,
+    idCliente: document.getElementById("ep-cliente").value
+  };
+  if (datos.fechaInicio && datos.fechaFinEstimada && datos.fechaFinEstimada <= datos.fechaInicio) {
+    mensaje.textContent = "La fecha fin estimada debe ser posterior a la fecha de inicio.";
+    mensaje.classList.add("error");
+    return;
+  }
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos)
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) {
+      mensaje.textContent = "Error: " + (resultado.error || "No se pudo actualizar");
+      mensaje.classList.add("error");
+      return;
+    }
+    mensaje.textContent = "Proyecto actualizado correctamente.";
+    mensaje.classList.remove("error");
+    await cargarProyectos();
+  } catch (error) {
+    mensaje.textContent = "Error de conexion";
+    mensaje.classList.add("error");
+  }
+}
+
+function ordenarProyectosPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idProyecto) - Number(b.idProyecto));
+}
+
+function ordenarPersonalPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idEmpleadoProyecto) - Number(b.idEmpleadoProyecto));
+}
+
+function ordenarTiposProyectoPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idTipoProyecto) - Number(b.idTipoProyecto));
+}
+
+function ordenarEstadosProyectoPorId(datos) {
+  return [...(datos || [])].sort((a, b) => Number(a.idEstadoProyecto) - Number(b.idEstadoProyecto));
+}
+
+async function cargarProyectos() {
+  const mensaje = document.getElementById("mensajeProyectos");
+  const tabla = document.getElementById("tablaProyectos");
+
+  try {
+    const respuesta = await fetch(apiProyectos);
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(datos.error || "No se pudieron cargar los proyectos");
+    }
+
+    const datosOrdenados = ordenarProyectosPorId(datos);
+
+    listaProyectos = datosOrdenados;
+    mostrarProyectos(datosOrdenados);
+    contarProyectos(datosOrdenados);
+
+    if (mensaje) {
+      mensaje.textContent = "";
+      mensaje.classList.remove("error");
+    }
+  } catch (error) {
+    if (tabla) {
+      tabla.innerHTML = "";
+    }
+
+    if (mensaje) {
+      mensaje.textContent = "Error al cargar proyectos";
+      mensaje.classList.add("error");
+    }
+  }
+}
+
+async function cargarPersonal() {
+  const mensaje = document.getElementById("mensajePersonal");
+  const tabla = document.getElementById("tablaPersonal");
+
+  try {
+    const respuesta = await fetch(apiPersonal);
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(datos.error || "No se pudo cargar el personal");
+    }
+
+    const datosOrdenados = ordenarPersonalPorId(datos);
+
+    listaPersonal = datosOrdenados;
+    mostrarPersonal(datosOrdenados);
+    contarPersonal(datosOrdenados);
+
+    if (mensaje) {
+      mensaje.textContent = "";
+      mensaje.classList.remove("error");
+    }
+  } catch (error) {
+    if (tabla) {
+      tabla.innerHTML = "";
+    }
+
+    if (mensaje) {
+      mensaje.textContent = "Error al cargar personal";
+      mensaje.classList.add("error");
+    }
+  }
+}
+
+function mostrarProyectos(datos) {
+  const tabla = document.getElementById("tablaProyectos");
+
+  if (!tabla) return;
+
+  tabla.innerHTML = "";
+
+  if (!datos || datos.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="9">No se encontraron proyectos.</td></tr>`;
+    return;
+  }
+
+  datos.forEach(p => {
+    const fila = document.createElement("tr");
+
+    fila.innerHTML = `
+      <td>${p.idProyecto}</td>
+      <td>
+        <strong>${p.nombreProyecto || "-"}</strong><br>
+        <small>${p.descripcion || ""}</small>
+      </td>
+      <td>${p.cliente || p.nombreCliente || "-"}</td>
+      <td>${p.nombreTipoProyecto || "-"}</td>
+      <td>${p.ubicacion || "-"}</td>
+      <td>${fecha(p.fechaInicio)}</td>
+      <td>${fecha(p.fechaFinEstimada)}</td>
+      <td>${estadoProyecto(p.nombreEstadoProyecto)}</td>
+      <td>
+        <button type="button" class="btn-inspeccionar" onclick="inspeccionarProyecto(${p.idProyecto})">Inspeccionar</button>
+        <button type="button" class="btn-tab" style="padding:4px 10px;font-size:.78rem;" onclick="imprimirReporteProyecto(${p.idProyecto})">Imprimir reporte</button>
+        <button type="button" class="btn-eliminar" onclick="eliminarProyecto(${p.idProyecto})">Eliminar</button>
+      </td>
+    `;
+
+    tabla.appendChild(fila);
+  });
+}
+
+function mostrarPersonal(datos) {
+  const tabla = document.getElementById("tablaPersonal");
+
+  if (!tabla) return;
+
+  tabla.innerHTML = "";
+
+  if (!datos || datos.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="11">No se encontraron registros.</td></tr>`;
+    return;
+  }
+
+  datos.forEach(p => {
+    const fila = document.createElement("tr");
+    const activo = (p.estadoAsignacion || "").toLowerCase().includes("activo");
+    const accion = activo
+      ? `<button class="btn-tab" style="padding:5px 12px;font-size:.78rem;background:#b7791f;color:#fff;border-color:#b7791f;" onclick="finalizarAsignacion(${p.idEmpleadoProyecto}, '${(p.empleado || '').replace(/'/g, "&#39;")}')">Finalizar</button>`
+      : '<span style="color:#6B756D;">—</span>';
+
+    fila.innerHTML = `
+      <td>${p.idEmpleadoProyecto}</td>
+      <td><strong>${p.empleado || "-"}</strong></td>
+      <td>${p.ci || "-"}</td>
+      <td>${p.nombreCargo || "-"}</td>
+      <td>${p.nombreProyecto || "-"}</td>
+      <td>${p.nombreTipoProyecto || "-"}</td>
+      <td>${p.nombreRolProyecto || "-"}</td>
+      <td>${fecha(p.fechaInicio)}</td>
+      <td>${fecha(p.fechaFin)}</td>
+      <td>${estadoAsignacion(p.estadoAsignacion)}</td>
+      <td>${accion}</td>
+    `;
+
+    tabla.appendChild(fila);
+  });
+}
+
+async function finalizarAsignacion(id, empleado) {
+  if (!confirm(`¿Finalizar la asignación de ${empleado}? Quedará disponible para un nuevo proyecto.`)) return;
+  try {
+    const res = await fetch(`/api/empleadoproyecto/${id}/finalizar`, { method: "PUT" });
+    const data = await res.json();
+    if (!res.ok) return alert("Error: " + data.error);
+    await cargarPersonal();
+    if (typeof cargarDisponibilidad === "function") cargarDisponibilidad();
+  } catch (e) {
+    alert("Error de conexión");
+  }
+}
+
+function contarProyectos(datos) {
+  const total = document.getElementById("totalProyectos");
+  const ejecucion = document.getElementById("proyectosEjecucion");
+
+  const enEjecucion = datos.filter(p => {
+    const estado = (p.nombreEstadoProyecto || "").toLowerCase();
+    return estado.includes("ejec") || estado.includes("activo") || estado.includes("proceso");
+  }).length;
+
+  if (total) total.textContent = datos.length;
+  if (ejecucion) ejecucion.textContent = enEjecucion;
+}
+
+function contarPersonal(datos) {
+  const total = document.getElementById("totalAsignaciones");
+  const activosTexto = document.getElementById("asignacionesActivas");
+
+  const activos = datos.filter(p => {
+    return (p.estadoAsignacion || "").toLowerCase().includes("activo");
+  }).length;
+
+  if (total) total.textContent = datos.length;
+  if (activosTexto) activosTexto.textContent = activos;
+}
+
+function buscarProyectos(texto) {
+  const valor = texto.toLowerCase();
+
+  const filtrados = listaProyectos.filter(p => {
+    return (
+      String(p.idProyecto).includes(valor) ||
+      (p.nombreProyecto || "").toLowerCase().includes(valor) ||
+      (p.descripcion || "").toLowerCase().includes(valor) ||
+      (p.cliente || "").toLowerCase().includes(valor) ||
+      (p.nombreCliente || "").toLowerCase().includes(valor) ||
+      (p.nombreTipoProyecto || "").toLowerCase().includes(valor) ||
+      (p.nombreEstadoProyecto || "").toLowerCase().includes(valor) ||
+      (p.ubicacion || "").toLowerCase().includes(valor)
+    );
+  });
+
+  mostrarProyectos(ordenarProyectosPorId(filtrados));
+}
+
+function buscarPersonalAsignado(texto) {
+  const valor = texto.toLowerCase();
+
+  const filtrados = listaPersonal.filter(p => {
+    return (
+      String(p.idEmpleadoProyecto).includes(valor) ||
+      (p.empleado || "").toLowerCase().includes(valor) ||
+      (p.ci || "").toLowerCase().includes(valor) ||
+      (p.nombreCargo || "").toLowerCase().includes(valor) ||
+      (p.nombreProyecto || "").toLowerCase().includes(valor) ||
+      (p.nombreTipoProyecto || "").toLowerCase().includes(valor) ||
+      (p.nombreRolProyecto || "").toLowerCase().includes(valor) ||
+      (p.estadoAsignacion || "").toLowerCase().includes(valor)
+    );
+  });
+
+  mostrarPersonal(ordenarPersonalPorId(filtrados));
+}
+
+async function cargarOpcionesProyecto() {
+  try {
+    const respuesta = await fetch(apiOpcionesProyecto);
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(datos.error || "No se pudieron cargar las opciones");
+    }
+
+    const tiposOrdenados = ordenarTiposProyectoPorId(datos.tipos);
+    const estadosOrdenados = ordenarEstadosProyectoPorId(datos.estados);
+
+    llenarSelect("nuevoTipoProyecto", tiposOrdenados, "idTipoProyecto", "nombreTipoProyecto");
+    llenarSelect("nuevoEstadoProyecto", estadosOrdenados, "idEstadoProyecto", "nombreEstadoProyecto");
+    llenarSelect("cambioEstadoProyecto", estadosOrdenados, "idEstadoProyecto", "nombreEstadoProyecto");
+    llenarClientes(datos.clientes);
+  } catch (error) {}
+}
+
+function llenarSelect(id, datos, valor, texto) {
+  const select = document.getElementById(id);
+
+  if (!select) return;
+
+  select.innerHTML = `<option value="">Seleccione...</option>`;
+
+  datos.forEach(item => {
+    select.innerHTML += `<option value="${item[valor]}">${item[texto]}</option>`;
+  });
+}
+
+function llenarClientes(datos) {
+  const select = document.getElementById("nuevoCliente");
+
+  if (!select) return;
+
+  select.innerHTML = `<option value="">Seleccione...</option>`;
+
+  datos.forEach(item => {
+    const nombre =
+      item.nombreCliente ||
+      item.razonSocial ||
+      item.nombreCompleto ||
+      item.nombre ||
+      item.cliente ||
+      `Cliente ${item.idCliente}`;
+
+    select.innerHTML += `<option value="${item.idCliente}">${nombre}</option>`;
+  });
+}
+
+async function guardarProyecto(e) {
+  e.preventDefault();
+
+  const datos = {
+    nombreProyecto: document.getElementById("nuevoNombreProyecto").value.trim(),
+    descripcion: document.getElementById("nuevoDescripcion").value.trim(),
+    idTipoProyecto: document.getElementById("nuevoTipoProyecto").value,
+    ubicacion: document.getElementById("nuevoUbicacion").value.trim(),
+    fechaInicio: document.getElementById("nuevoFechaInicio").value,
+    fechaFinEstimada: document.getElementById("nuevoFechaFin").value,
+    idEstadoProyecto: document.getElementById("nuevoEstadoProyecto").value,
+    idCliente: document.getElementById("nuevoCliente").value
+  };
+
+  if (datos.fechaInicio && datos.fechaFinEstimada && datos.fechaFinEstimada < datos.fechaInicio) {
+    return alert('La fecha fin estimada no puede ser anterior a la fecha de inicio.');
+  }
+
+  try {
+    const respuesta = await fetch(apiRegistrarProyecto, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(datos)
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo guardar el proyecto");
+    }
+
+    document.getElementById("formProyecto").reset();
+
+    await cargarProyectos();
+    alert("Proyecto registrado");
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function guardarCambioEstadoProyecto(e) {
+  e.preventDefault();
+
+  const idProyecto = document.getElementById("cambioIdProyecto").value;
+  const idEstadoProyecto = document.getElementById("cambioEstadoProyecto").value;
+  const mensaje = document.getElementById("mensajeCambioEstado");
+
+  if (!idProyecto || !idEstadoProyecto) {
+    if (mensaje) {
+      mensaje.textContent = "Complete los datos.";
+      mensaje.classList.add("error");
+    }
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${idProyecto}/estado`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idEstadoProyecto })
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo cambiar el estado");
+    }
+
+    if (mensaje) {
+      mensaje.textContent = "Estado actualizado correctamente.";
+      mensaje.classList.remove("error");
+    }
+
+    document.getElementById("formCambiarEstadoProyecto").reset();
+    const nomEl = document.getElementById('cambio-proy-nom');
+    if (nomEl) nomEl.value = '';
+
+    await cargarProyectos();
+  } catch (error) {
+    if (mensaje) {
+      mensaje.textContent = "Error: " + error.message;
+      mensaje.classList.add("error");
+    }
+  }
+}
+
+async function cargarParametrosProyecto() {
+  try {
+    const tiposResp = await fetch(apiTiposProyecto);
+    const estadosResp = await fetch(apiEstadosProyecto);
+
+    const tipos = await tiposResp.json();
+    const estados = await estadosResp.json();
+
+    if (!tiposResp.ok) {
+      throw new Error(tipos.error || "No se pudieron cargar los tipos");
+    }
+
+    if (!estadosResp.ok) {
+      throw new Error(estados.error || "No se pudieron cargar los estados");
+    }
+
+    mostrarTiposProyecto(ordenarTiposProyectoPorId(tipos));
+    mostrarEstadosProyecto(ordenarEstadosProyectoPorId(estados));
+  } catch (error) {}
+}
+
+function mostrarTiposProyecto(datos) {
+  const tabla = document.getElementById("tablaTiposProyecto");
+
+  if (!tabla) return;
+
+  tabla.innerHTML = "";
+
+  if (!datos || datos.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="2">Sin registros</td></tr>`;
+    return;
+  }
+
+  datos.forEach(item => {
+    const fila = document.createElement("tr");
+
+    fila.innerHTML = `
+      <td>${item.idTipoProyecto}</td>
+      <td>${item.nombreTipoProyecto}</td>
+    `;
+
+    tabla.appendChild(fila);
+  });
+}
+
+function mostrarEstadosProyecto(datos) {
+  const tabla = document.getElementById("tablaEstadosProyecto");
+
+  if (!tabla) return;
+
+  tabla.innerHTML = "";
+
+  if (!datos || datos.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="2">Sin registros</td></tr>`;
+    return;
+  }
+
+  datos.forEach(item => {
+    const fila = document.createElement("tr");
+
+    fila.innerHTML = `
+      <td>${item.idEstadoProyecto}</td>
+      <td>${item.nombreEstadoProyecto}</td>
+    `;
+
+    tabla.appendChild(fila);
+  });
+}
+
+async function guardarTipoProyecto(e) {
+  e.preventDefault();
+
+  const nombreTipoProyecto = document.getElementById("nombreTipoProyecto").value.trim();
+
+  try {
+    const respuesta = await fetch(apiTiposProyecto, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ nombreTipoProyecto })
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo guardar el tipo");
+    }
+
+    document.getElementById("formTipoProyecto").reset();
+
+    await cargarParametrosProyecto();
+    await cargarOpcionesProyecto();
+
+    alert("Tipo registrado");
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function guardarEstadoProyecto(e) {
+  e.preventDefault();
+
+  const nombreEstadoProyecto = document.getElementById("nombreEstadoProyecto").value.trim();
+
+  try {
+    const respuesta = await fetch(apiEstadosProyecto, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ nombreEstadoProyecto })
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo guardar el estado");
+    }
+
+    document.getElementById("formEstadoProyecto").reset();
+
+    await cargarParametrosProyecto();
+    await cargarOpcionesProyecto();
+
+    alert("Estado registrado");
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function fecha(valor) {
+  if (!valor) return "-";
+  return String(valor).substring(0, 10);
+}
+
+function estadoProyecto(valor) {
+  const texto = valor || "Sin estado";
+  const estado = texto.toLowerCase();
+
+  if (estado.includes("ejec") || estado.includes("activo") || estado.includes("proceso")) {
+    return `<span class="estado azul">${texto}</span>`;
+  }
+
+  if (estado.includes("final") || estado.includes("termin") || estado.includes("conclu")) {
+    return `<span class="estado verde">${texto}</span>`;
+  }
+
+  return `<span class="estado amarillo">${texto}</span>`;
+}
+
+function estadoAsignacion(valor) {
+  const texto = valor || "Sin estado";
+  const estado = texto.toLowerCase();
+
+  if (estado.includes("activo")) {
+    return `<span class="estado azul">${texto}</span>`;
+  }
+
+  return `<span class="estado verde">${texto}</span>`;
+}
+
+async function eliminarProyecto(idProyecto) {
+  const proyecto = listaProyectos.find(p => Number(p.idProyecto) === Number(idProyecto));
+  const nombreProyecto = proyecto ? proyecto.nombreProyecto : "";
+
+  const confirmar = confirm(
+    `¿Estás seguro de eliminar el proyecto ${nombreProyecto ? `"${nombreProyecto}"` : ""}? Esta acción no se puede deshacer.`
+  );
+
+  if (!confirmar) {
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`${apiProyectos}/${idProyecto}`, {
+      method: "DELETE"
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      alert(resultado.error || "No se pudo eliminar el proyecto.");
+      return;
+    }
+
+    alert(resultado.mensaje || "Proyecto eliminado correctamente.");
+
+    await cargarProyectos();
+    await cargarPersonal();
+
+    if (typeof cargarDisponibilidad === "function") {
+      await cargarDisponibilidad();
+    }
+
+  } catch (error) {
+    console.error("Error al eliminar proyecto:", error);
+    alert("Error de conexión con el servidor.");
+  }
+}
+
+// Reporte consolidado del proyecto: cruza datos de todos los módulos
+// (materiales, personal, planilla, pagos de cliente, contratos, cotizaciones).
+async function imprimirReporteProyecto(idProyecto) {
+  const r = leerRango('f-proy-desde', 'f-proy-hasta');
+  if (!r) return;
+  const win = nuevaVentanaPDF();
+  try {
+    const d = await fetch(`${apiProyectos}/${idProyecto}/reporte${rangoQuery(r.desde, r.hasta)}`).then(x => x.json());
+    if (d.error) { win && win.close(); return alert('Error: ' + d.error); }
+    const p = d.proyecto;
+    const f = v => v ? String(v).substring(0, 10) : '-';
+    const n = v => Number(v || 0).toFixed(2);
+
+    const datos = pdfDatos([
+      ['Proyecto', p.nombreProyecto], ['Cliente', p.nombreCliente],
+      ['Tipo', p.nombreTipoProyecto], ['Estado', p.nombreEstadoProyecto],
+      ['Ubicación', p.ubicacion], ['Inicio', f(p.fechaInicio)],
+      ['Fin estimado', f(p.fechaFinEstimada)], ['Fin real', f(p.fechaFinReal)],
+      ['Descripción', p.descripcion],
+    ]);
+
+    const secciones = [
+      datos,
+      pdfTabla('Personal asignado',
+        ['Empleado', 'Cargo', 'Rol', 'Inicio', 'Fin'],
+        d.personal.map(x => [x.empleado, x.nombreCargo, x.nombreRolProyecto, f(x.fechaInicio), f(x.fechaFin)])),
+      pdfTabla('Materiales usados',
+        ['Material', 'Cantidad', 'Costo (Bs)', 'Fecha'],
+        d.materiales.map(x => [x.nombreMaterial, x.cantidadUtilizada, n(x.costoTotal), f(x.fechaRegistro)])) +
+        `<div class="total">Costo materiales: Bs ${n(d.totales.costoMateriales)}</div>`,
+      pdfTabla('Horas trabajadas',
+        ['Empleado', 'Fecha', 'Horas'],
+        d.horas.map(x => [x.empleado, f(x.fecha), x.horasTrabajadas])) +
+        `<div class="total">Total horas: ${n(d.totales.totalHoras)}</div>`,
+      pdfTabla('Pagos de planilla (empleados)',
+        ['Empleado', 'Fecha', 'Monto (Bs)', 'Estado', 'Método'],
+        d.planilla.map(x => [x.empleado, f(x.fechaPago), n(x.montoPagado), x.nombreEstadoPago, x.nombreMetodoPago])) +
+        `<div class="total">Total planilla: Bs ${n(d.totales.totalPlanilla)}</div>`,
+      pdfTabla('Pagos de cliente',
+        ['Contrato', 'Fecha', 'Monto (Bs)', 'Estado', 'Método'],
+        d.pagosCliente.map(x => [x.numeroContrato, f(x.fechaPago), n(x.monto), x.nombreEstadoPago, x.nombreMetodoPago])) +
+        `<div class="total">Total cobrado: Bs ${n(d.totales.totalPagosCliente)}</div>`,
+      pdfTabla('Contratos',
+        ['Número', 'Tipo', 'Firma', 'Inicio', 'Vencimiento', 'Monto (Bs)', 'Estado'],
+        d.contratos.map(x => [x.numeroContrato, x.nombreTipoContrato, f(x.fechaFirma), f(x.fechaInicio), f(x.fechaVencimiento), n(x.montoTotal), x.nombreEstadoContrato])),
+      pdfTabla('Cotizaciones',
+        ['Número', 'Tipo', 'Fecha', 'Estado'],
+        d.cotizaciones.map(x => [x.numero, x.tipo, f(x.fechaCotizacion), x.nombreEstadoCotizacion])),
+    ];
+
+    imprimirReporte(win, `Reporte de Proyecto — ${p.nombreProyecto}`,
+      etiquetaRango(r.desde, r.hasta), secciones);
+  } catch (e) {
+    win && win.close();
+    alert('Error al generar el reporte del proyecto.');
+  }
+}

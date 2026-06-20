@@ -1,0 +1,373 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Modulo 2 - Materiales</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="topbar">
+  <h1>Modulo 2 - Materiales e Inventario</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <section class="resumen">
+    <div class="card dato">
+      <h3>Total materiales</h3>
+      <p id="totalMateriales">-</p>
+    </div>
+    <div class="card dato">
+      <h3>Items inventario</h3>
+      <p id="totalInventario">-</p>
+    </div>
+    <div class="card dato rojo">
+      <h3>Stock bajo</h3>
+      <p id="stockBajo">-</p>
+    </div>
+    <div class="card dato">
+      <h3>Usos en proyectos</h3>
+      <p id="totalUsos">-</p>
+    </div>
+  </section>
+
+  <section class="botones">
+    <button class="btn-tab activo" onclick="cambiarTab('materiales', this)">Materiales</button>
+    <button class="btn-tab" onclick="cambiarTab('nuevo-material', this)">Nuevo Material</button>
+    <button class="btn-tab" onclick="cambiarTab('editar-material', this)">Editar Material</button>
+    <button class="btn-tab" onclick="cambiarTab('inventario', this)">Inventario</button>
+    <button class="btn-tab" onclick="cambiarTab('gestionar-stock', this)">Gestionar Stock</button>
+    <button class="btn-tab" onclick="cambiarTab('usos', this)">Uso en Proyectos</button>
+    <button class="btn-tab" onclick="cambiarTab('registrar-uso', this)">Registrar Uso</button>
+    <button class="btn-tab" onclick="cambiarTab('comparativo', this)">Cotizado vs Gastado</button>
+    <button class="btn-tab" onclick="cambiarTab('alertas', this)">Alertas Stock</button>
+  </section>
+
+  <section id="tab-materiales" class="card contenido activo">
+    <div class="cabecera">
+      <div>
+        <h2>Listado de Materiales</h2>
+        <p>Materiales registrados en el sistema.</p>
+      </div>
+      <input type="text" id="buscarMaterial" placeholder="Buscar material...">
+    </div>
+    <div id="mensajeMateriales" class="mensaje">Cargando materiales...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Material</th>
+            <th>Tipo</th>
+            <th>Unidad</th>
+            <th>Precio unitario</th>
+            <th>Descripcion</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaMateriales"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-nuevo-material" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Registrar Nuevo Material</h2>
+        <p>Alta de material en el catalogo.</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del material *</label>
+        <input id="nm-nombre" type="text" placeholder="Ej: Cemento Portland">
+        <small style="color:#6b756d;">No puede repetirse: el sistema rechaza materiales con el mismo nombre.</small>
+      </div>
+      <div class="form-group">
+        <label>Tipo de material *</label>
+        <select id="nm-tipo"><option value="">-- Cargando... --</option></select>
+        <small style="color:#6b756d;">Categoría del material (ej: cemento, acero, eléctrico).</small>
+      </div>
+      <div class="form-group">
+        <label>Unidad de medida *</label>
+        <select id="nm-unidad"><option value="">-- Cargando... --</option></select>
+        <small style="color:#6b756d;">Cómo se mide y compra (bolsa, m³, unidad, kg...).</small>
+      </div>
+      <div class="form-group">
+        <label>Precio unitario (Bs) *</label>
+        <input id="nm-precio" type="number" step="0.01" placeholder="0.00">
+        <small style="color:#6b756d;">Precio de referencia por unidad. Debe ser mayor a 0.</small>
+      </div>
+      <div class="form-group">
+        <label>Descripcion</label>
+        <input id="nm-desc" type="text" placeholder="Descripcion opcional">
+        <small style="color:#6b756d;">Opcional.</small>
+      </div>
+    </div>
+    <br>
+    <button class="btn btn-primary" onclick="registrarMaterial()">Registrar material</button>
+    <div id="msg-nuevo-material" class="mensaje"></div>
+  </section>
+
+  <section id="tab-editar-material" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Editar Material</h2>
+        <p>Busca un material para modificar o eliminar.</p>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Buscar material</label>
+      <div class="ac-wrap">
+        <input id="em-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
+               oninput="acSearch('em-mat-nom','ac-em-mat','em-idmaterial','materiales','idMaterial','nombreMaterial','cargarFormEditarMaterial')">
+        <div class="ac-drop" id="ac-em-mat"></div>
+        <input type="hidden" id="em-idmaterial">
+      </div>
+    </div>
+    <div id="form-editar-material" style="display:none; margin-top:16px;">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre del material *</label>
+          <input id="em-nombre" type="text">
+        </div>
+        <div class="form-group">
+          <label>Tipo de material *</label>
+          <select id="em-tipo"><option value="">-- Cargando... --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Unidad de medida *</label>
+          <select id="em-unidad"><option value="">-- Cargando... --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Precio unitario (Bs) *</label>
+          <input id="em-precio" type="number" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Descripcion</label>
+          <input id="em-desc" type="text">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="guardarEdicionMaterial()">Guardar cambios</button>
+      <button class="btn btn-red" onclick="eliminarMaterialDesdeForm()">Eliminar material</button>
+      <div id="msg-editar-material" class="mensaje"></div>
+    </div>
+  </section>
+
+  <section id="tab-inventario" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Inventario</h2>
+        <p>Stock actual de materiales.</p>
+      </div>
+      <input type="text" id="buscarInventario" placeholder="Buscar en inventario...">
+    </div>
+    <div id="mensajeInventario" class="mensaje">Cargando inventario...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Material</th>
+            <th>Stock actual</th>
+            <th>Stock minimo</th>
+            <th>Ubicacion</th>
+            <th>Actualizacion</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaInventario"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-gestionar-stock" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Gestionar Stock</h2>
+        <p>Crea un registro de inventario o ajusta el stock de un material.</p>
+      </div>
+    </div>
+    <h3>Nuevo registro de inventario</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Material *</label>
+        <div class="ac-wrap">
+          <input id="ni-mat-nom" type="text" placeholder="Buscar material por nombre..." autocomplete="off"
+                 oninput="acSearch('ni-mat-nom','ac-ni-mat','ni-idmaterial','materiales','idMaterial','nombreMaterial')">
+          <div class="ac-drop" id="ac-ni-mat"></div>
+          <input type="hidden" id="ni-idmaterial">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Stock actual *</label>
+        <input id="ni-stock" type="number" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Stock minimo *</label>
+        <input id="ni-minimo" type="number" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Ubicacion</label>
+        <input id="ni-ubicacion" type="text" placeholder="Ej: Almacen A">
+      </div>
+    </div>
+    <br>
+    <button class="btn btn-primary" onclick="crearInventario()">Crear registro</button>
+    <div id="msg-nuevo-inv" class="mensaje"></div>
+
+    <div class="separador" style="margin:24px 0;"></div>
+
+    <h3>Ajustar registro existente</h3>
+    <div id="form-editar-inv" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Material</label>
+          <input id="ei-mat-nom" type="text" disabled>
+        </div>
+        <div class="form-group">
+          <label>Stock actual *</label>
+          <input id="ei-stock" type="number" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Stock minimo *</label>
+          <input id="ei-minimo" type="number" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Ubicacion</label>
+          <input id="ei-ubicacion" type="text">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="guardarEdicionInventario()">Guardar ajuste</button>
+      <input type="hidden" id="ei-idinv">
+      <div id="msg-editar-inv" class="mensaje"></div>
+    </div>
+    <p id="hint-editar-inv" style="color:#6b756d;">Selecciona "Ajustar" en la tabla de Inventario para editar un registro aqui.</p>
+  </section>
+
+  <section id="tab-usos" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Uso en Proyectos</h2>
+        <p>Materiales utilizados por proyecto.</p>
+      </div>
+      <input type="text" id="buscarUso" placeholder="Buscar proyecto o material...">
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; font-size:.85rem; color:#555;">
+      <label>Desde <input type="date" id="f-uso-desde"></label>
+      <label>Hasta <input type="date" id="f-uso-hasta"></label>
+      <button class="btn" type="button" onclick="cargarUsos()">Buscar</button>
+      <button class="btn" type="button" onclick="imprimirUsos()">Imprimir / PDF</button>
+    </div>
+    <div id="mensajeUsos" class="mensaje">Cargando registros...</div>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proyecto</th>
+            <th>Material</th>
+            <th>Tipo</th>
+            <th>Unidad</th>
+            <th>Cantidad</th>
+            <th>Fecha</th>
+            <th>Costo total</th>
+          </tr>
+        </thead>
+        <tbody id="tablaUsos"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-registrar-uso" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Registrar Uso de Material</h2>
+        <p>Registro de materiales utilizados en proyectos.</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Proyecto * (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="ru-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+                 oninput="acSearch('ru-proy-nom','ac-ru-proy','ru-idproyecto','proyectos','idProyecto','nombreProyecto')">
+          <div class="ac-drop" id="ac-ru-proy"></div>
+          <input type="hidden" id="ru-idproyecto">
+        </div>
+        <small style="color:#6b756d;">Solo proyectos En ejecución admiten registro de uso.</small>
+      </div>
+      <div class="form-group">
+        <label>Material * (nombre o ID)</label>
+        <div class="ac-wrap">
+          <input id="ru-mat-nom" type="text" placeholder="Escribe el nombre del material o su ID..." autocomplete="off"
+                 oninput="acSearch('ru-mat-nom','ac-ru-mat','ru-idmaterial','materiales','idMaterial','nombreMaterial','onSelMaterialUso')">
+          <div class="ac-drop" id="ac-ru-mat"></div>
+          <input type="hidden" id="ru-idmaterial">
+        </div>
+        <small id="ru-mat-info" style="color:#276749; display:block; margin-top:4px;"></small>
+      </div>
+      <div class="form-group">
+        <label>Cantidad utilizada</label>
+        <input id="ru-cantidad" type="number" step="0.01" placeholder="Ej: 5" oninput="sugerirCostoUso()">
+        <small id="ru-stock-aviso" style="display:block; margin-top:4px;"></small>
+      </div>
+      <div class="form-group">
+        <label>Costo total</label>
+        <input id="ru-costo" type="number" step="0.01" placeholder="Ej: 375">
+        <small style="color:#6b756d;">Se sugiere cantidad × precio unitario; puedes ajustarlo.</small>
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input id="ru-fecha" type="date">
+      </div>
+    </div>
+    <br>
+    <button class="btn btn-primary" onclick="registrarUsoMaterial()">Registrar uso</button>
+    <div id="msg-registrar-uso" class="mensaje"></div>
+  </section>
+
+  <section id="tab-comparativo" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Cotizado vs Gastado</h2>
+        <p>Compara los materiales cotizados (cotización interna) contra el uso real registrado.</p>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Proyecto (nombre o ID)</label>
+      <div class="ac-wrap">
+        <input id="cmp-proy-nom" type="text" placeholder="Escribe el nombre del proyecto o su ID..." autocomplete="off"
+               oninput="acSearch('cmp-proy-nom','ac-cmp-proy','cmp-idproyecto','proyectos','idProyecto','nombreProyecto','cargarComparativo')">
+        <div class="ac-drop" id="ac-cmp-proy"></div>
+        <input type="hidden" id="cmp-idproyecto">
+      </div>
+    </div>
+    <div id="mensajeComparativo" class="mensaje" style="margin-top:12px;">Selecciona un proyecto para ver el comparativo.</div>
+    <div class="tabla" id="contenedorComparativo" style="margin-top:12px;"></div>
+  </section>
+
+  <section id="tab-alertas" class="card contenido">
+    <div class="cabecera">
+      <div>
+        <h2>Alertas de Stock</h2>
+        <p>Materiales con stock bajo o en revision.</p>
+      </div>
+      <button class="btn-tab activo" onclick="cargarAlertas()">Actualizar</button>
+    </div>
+    <div id="mensajeAlertas" class="mensaje">Presiona actualizar para cargar alertas.</div>
+    <div class="tabla" id="contenedorAlertas"></div>
+  </section>
+
+</div>
+
+<script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

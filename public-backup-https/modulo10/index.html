@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 10 - Reportes Generales</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Tarjetas de resumen del panel */
+    .rep-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:20px; }
+    .rep-stats .sb { background:#fff; border:1px solid var(--border); border-top:4px solid var(--accent);
+                     border-radius:10px; padding:14px 16px; text-align:center; box-shadow:var(--shadow); }
+    .rep-stats .sb.warn { border-top-color:#C0392B; }
+    .rep-stats .sb .n { font-size:1.55rem; font-weight:800; color:var(--primary); line-height:1.1; }
+    .rep-stats .sb .l { font-size:.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
+
+    /* Buscador global */
+    .rep-buscador { position:relative; max-width:640px; }
+    .rep-buscador input { width:100%; padding:13px 16px; border:2px solid var(--primary);
+                          border-radius:8px; font-size:1rem; }
+    .rep-tipos { display:flex; gap:6px; flex-wrap:wrap; margin:12px 0 4px; }
+    .rep-tipo { padding:6px 14px; border:1.5px solid var(--border); background:#fff; color:var(--text-muted);
+                border-radius:20px; cursor:pointer; font-size:.8rem; font-weight:600; }
+    .rep-tipo.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+    /* Resultados de la búsqueda */
+    .rep-resultados { margin-top:14px; display:grid; gap:8px; }
+    .rep-item { display:flex; align-items:center; gap:12px; padding:12px 14px; background:#fff;
+                border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all .15s; }
+    .rep-item:hover { border-color:var(--accent); box-shadow:var(--shadow); transform:translateX(2px); }
+    .rep-item .ico { font-size:1.2rem; width:34px; height:34px; display:flex; align-items:center;
+                     justify-content:center; border-radius:8px; background:var(--bg-soft); flex-shrink:0; }
+    .rep-item .info { flex:1; min-width:0; }
+    .rep-item .info .t { font-weight:700; color:var(--primary); }
+    .rep-item .info .s { font-size:.8rem; color:var(--text-muted); }
+    .rep-item .chip { font-size:.68rem; text-transform:uppercase; letter-spacing:.4px; font-weight:700;
+                      padding:3px 9px; border-radius:12px; background:var(--badge-bg); color:var(--badge-text); }
+
+    /* Ficha del detalle */
+    .ficha-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+    .ficha-datos { display:flex; flex-wrap:wrap; gap:8px 28px; margin:10px 0 4px; }
+    .ficha-datos div { font-size:.86rem; }
+    .ficha-datos .k { color:var(--text-muted); }
+    .ficha-datos .v { font-weight:600; color:var(--text); }
+    .rep-tabla { width:100%; border-collapse:collapse; font-size:.84rem; margin-top:6px; }
+    .rep-tabla th { background:var(--primary); color:#fff; padding:8px 10px; text-align:left; font-weight:600; }
+    .rep-tabla th.num, .rep-tabla td.num { text-align:right; }
+    .rep-tabla td { padding:7px 10px; border-bottom:1px solid var(--border); }
+    .rep-tabla tbody tr:nth-child(even) { background:var(--bg); }
+    .rep-seccion h4 { color:var(--primary); margin:20px 0 6px; font-size:.98rem;
+                      border-bottom:2px solid var(--accent); padding-bottom:5px; }
+    .rep-vacio { color:var(--text-muted); font-size:.84rem; padding:6px 0; }
+    .rep-totales { display:flex; flex-wrap:wrap; gap:12px; margin-top:16px; }
+    .rep-totales .tt { background:var(--bg-soft); border-radius:8px; padding:10px 16px; }
+    .rep-totales .tt.warn { background:#fde8e8; }
+    .rep-totales .tt .n { font-weight:800; color:var(--primary); font-size:1.1rem; }
+    .rep-totales .tt.warn .n { color:#922b21; }
+    .rep-totales .tt .l { font-size:.7rem; color:var(--text-muted); text-transform:uppercase; }
+    .rango-fechas { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px; }
+    .rango-fechas .form-group label { font-size:.78rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px; }
+    .rango-fechas input { padding:8px 10px; border:1.5px solid var(--border); border-radius:6px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 10 - Reportes Generales</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <!-- Tarjetas de resumen -->
+  <div id="rep-stats" class="rep-stats"></div>
+
+  <!-- Buscador global -->
+  <div class="card">
+    <h3>Buscador general</h3>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:10px;">
+      Busca por <b>ID</b> o <b>nombre</b>: proyectos, empleados, materiales o clientes.
+    </p>
+    <div class="rep-buscador">
+      <input id="rep-q" placeholder="Escribe un ID o nombre…" oninput="buscarGlobal()" autocomplete="off">
+    </div>
+    <div class="rep-tipos" id="rep-tipos">
+      <span class="rep-tipo active" data-tipo="" onclick="setTipo(this)">Todo</span>
+      <span class="rep-tipo" data-tipo="proyecto" onclick="setTipo(this)">Proyectos</span>
+      <span class="rep-tipo" data-tipo="empleado" onclick="setTipo(this)">Empleados</span>
+      <span class="rep-tipo" data-tipo="material" onclick="setTipo(this)">Materiales</span>
+      <span class="rep-tipo" data-tipo="cliente" onclick="setTipo(this)">Clientes</span>
+    </div>
+    <div id="rep-resultados" class="rep-resultados"></div>
+  </div>
+
+  <!-- Ficha / detalle del registro seleccionado -->
+  <div id="rep-detalle" class="card" style="display:none;"></div>
+
+</div>
+
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

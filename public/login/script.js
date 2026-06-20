@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 // Elementos del DOM
 const btnLogin  = document.getElementById('btn-login');
@@ -7,7 +7,7 @@ const loadEl    = document.getElementById('loading');
 const inputUser = document.getElementById('username');
 const inputPass = document.getElementById('password');
 
-// Iniciar sesión al presionar Enter
+// Iniciar sesiÃ³n al presionar Enter
 inputPass.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') iniciarSesion();
 });
@@ -16,7 +16,7 @@ inputUser.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') iniciarSesion();
 });
 
-// Iniciar sesión al click
+// Iniciar sesiÃ³n al click
 btnLogin.addEventListener('click', iniciarSesion);
 
 async function iniciarSesion() {
@@ -29,7 +29,7 @@ async function iniciarSesion() {
 
     // Validar campos
     if (!username || !password) {
-        mostrarError('⚠️ Ingresa usuario y contraseña');
+        mostrarError('âš ï¸ Ingresa usuario y contraseÃ±a');
         return;
     }
 
@@ -49,11 +49,11 @@ async function iniciarSesion() {
         btnLogin.disabled    = false;
 
         if (!res.ok) {
-            mostrarError('❌ ' + data.error);
+            mostrarError('âŒ ' + data.error);
             return;
         }
 
-        // Guardar sesión
+        // Guardar sesiÃ³n
         localStorage.setItem('usuario', JSON.stringify(data));
 
         // Redirigir al sistema
@@ -62,7 +62,7 @@ async function iniciarSesion() {
     } catch (e) {
         loadEl.style.display = 'none';
         btnLogin.disabled    = false;
-        mostrarError('❌ Error de conexión con el servidor');
+        mostrarError('âŒ Error de conexiÃ³n con el servidor');
     }
 }
 

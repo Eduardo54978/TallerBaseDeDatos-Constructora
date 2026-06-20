@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+﻿const API = '/api';
 
 let tipoCotActual = 'cliente';
 
@@ -47,7 +47,7 @@ async function cargarListaCotizaciones() {
       _dataCot = data;
       if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones de cliente registradas.</p>'; return; }
       cont.innerHTML = `<table id="tbl-cot"><thead><tr>
-        <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
+        <th>ID</th><th>NÃºmero</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
       </tr></thead><tbody>
         ${data.map(c => `<tr>
           <td>${c.idCotizacionCliente}</td>
@@ -68,7 +68,7 @@ async function cargarListaCotizaciones() {
       _dataCot = data;
       if (!data.length) { cont.innerHTML = '<p>No hay cotizaciones internas registradas.</p>'; return; }
       cont.innerHTML = `<table id="tbl-cot"><thead><tr>
-        <th>ID</th><th>Número</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
+        <th>ID</th><th>NÃºmero</th><th>Proyecto</th><th>Fecha</th><th>Total Est. (Bs)</th><th>Estado</th><th>Acciones</th>
       </tr></thead><tbody>
         ${data.map(c => `<tr>
           <td>${c.idCotizacionInterna}</td>
@@ -108,7 +108,7 @@ function imprimirListaCotizaciones() {
   ]);
   const titulo = esCliente ? 'Cotizaciones de Cliente' : 'Cotizaciones Internas';
   const cuerpo =
-    pdfTabla(titulo, ['Número', 'Proyecto', 'Fecha', 'Total Est. (Bs)', 'Estado'], filas) +
+    pdfTabla(titulo, ['NÃºmero', 'Proyecto', 'Fecha', 'Total Est. (Bs)', 'Estado'], filas) +
     `<div class="total">Total estimado: Bs ${n(total)}</div>`;
   imprimirReporte(win, `Reporte de ${titulo}`,
     etiquetaRango(_rangoCot.desde, _rangoCot.hasta), [cuerpo]);
@@ -206,14 +206,14 @@ async function onMatDmPicked(idMaterial) {
     const data = await res.json();
     if (!res.ok) { hint.textContent = ''; return; }
 
-    const partes = [`Catálogo: Bs ${parseFloat(data.precioCatalogo).toFixed(2)}`];
+    const partes = [`CatÃ¡logo: Bs ${parseFloat(data.precioCatalogo).toFixed(2)}`];
     if (data.ultimaCompra) {
       const fecha = new Date(data.ultimaCompra.fecha).toLocaleDateString('es-BO');
-      partes.push(`Última compra: Bs ${parseFloat(data.ultimaCompra.precio).toFixed(2)} (${fecha})`);
+      partes.push(`Ãšltima compra: Bs ${parseFloat(data.ultimaCompra.precio).toFixed(2)} (${fecha})`);
     } else {
       partes.push('Sin compras registradas');
     }
-    hint.textContent = partes.join(' · ');
+    hint.textContent = partes.join(' Â· ');
   } catch (e) {
     hint.textContent = '';
   }
@@ -250,7 +250,7 @@ async function crearCotizacionInterna() {
   };
 
   if (!body.idProyecto || !body.numeroCotizacion || !body.fechaCotizacion) {
-    return msg('msg-ci', 'Proyecto, número y fecha son obligatorios', 'err');
+    return msg('msg-ci', 'Proyecto, nÃºmero y fecha son obligatorios', 'err');
   }
 
   try {
@@ -266,14 +266,14 @@ async function crearCotizacionInterna() {
       return msg('msg-ci', 'Error: ' + data.error, 'err');
     }
 
-    msg('msg-ci', `Cotización interna creada con ID: ${data.idCotizacionInterna}`, 'ok');
+    msg('msg-ci', `CotizaciÃ³n interna creada con ID: ${data.idCotizacionInterna}`, 'ok');
 
     ['ci-proy-nom', 'ci-proyecto', 'ci-num', 'ci-fecha', 'ci-obs'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
   } catch (e) {
-    msg('msg-ci', 'Error de conexión', 'err');
+    msg('msg-ci', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -314,7 +314,7 @@ async function agregarMateriales() {
     const hintDm = document.getElementById('dm-precio-hint');
     if (hintDm) hintDm.textContent = '';
   } catch (e) {
-    msg('msg-dm', 'Error de conexión', 'err');
+    msg('msg-dm', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -358,7 +358,7 @@ async function agregarManoObra() {
       prev.textContent = '';
     }
   } catch (e) {
-    msg('msg-mo', 'Error de conexión', 'err');
+    msg('msg-mo', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -385,7 +385,7 @@ async function buscarPorProyecto() {
            <thead>
              <tr>
                <th>ID</th>
-               <th>Número</th>
+               <th>NÃºmero</th>
                <th>Fecha</th>
                <th>Validez</th>
                <th>Estado</th>
@@ -414,7 +414,7 @@ async function buscarPorProyecto() {
            <thead>
              <tr>
                <th>ID</th>
-               <th>Número</th>
+               <th>NÃºmero</th>
                <th>Fecha</th>
                <th>Estado</th>
                <th>Acciones</th>
@@ -496,14 +496,14 @@ async function cargarFormEditarCotizacion(id, nombre) {
     }
     document.getElementById('form-editar-cot').style.display = 'block';
   } catch (e) {
-    msg('msg-editar-cot', 'Error al cargar la cotización', 'err');
+    msg('msg-editar-cot', 'Error al cargar la cotizaciÃ³n', 'err');
   }
 }
 
 async function guardarEdicionCotizacion() {
   const tipo = document.getElementById('ed-tipo').value;
   const id = document.getElementById('ed-id').value;
-  if (!id) return msg('msg-editar-cot', 'Busque una cotización primero.', 'err');
+  if (!id) return msg('msg-editar-cot', 'Busque una cotizaciÃ³n primero.', 'err');
   const body = {
     numeroCotizacion: document.getElementById('ed-numero').value.trim(),
     fechaCotizacion: document.getElementById('ed-fecha').value,
@@ -511,7 +511,7 @@ async function guardarEdicionCotizacion() {
   };
   if (tipo === 'cliente') body.fechaValidez = document.getElementById('ed-validez').value || null;
   if (!body.numeroCotizacion || !body.fechaCotizacion) {
-    return msg('msg-editar-cot', 'Número y fecha son obligatorios.', 'err');
+    return msg('msg-editar-cot', 'NÃºmero y fecha son obligatorios.', 'err');
   }
   try {
     const res = await fetch(`${API}/cotizaciones/${tipo}/${id}`, {
@@ -521,10 +521,10 @@ async function guardarEdicionCotizacion() {
     });
     const data = await res.json();
     if (!res.ok) return msg('msg-editar-cot', 'Error: ' + data.error, 'err');
-    msg('msg-editar-cot', 'Cotización actualizada correctamente', 'ok');
+    msg('msg-editar-cot', 'CotizaciÃ³n actualizada correctamente', 'ok');
     cargarCotizaciones();
   } catch (e) {
-    msg('msg-editar-cot', 'Error de conexión', 'err');
+    msg('msg-editar-cot', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -597,7 +597,7 @@ async function cambiarEstado() {
     resetBuscadorEstado();
     cargarCotizaciones();
   } catch (e) {
-    msg('msg-est', 'Error de conexión', 'err');
+    msg('msg-est', 'Error de conexiÃ³n', 'err');
   }
 }
 
@@ -610,7 +610,7 @@ async function cargarSelectCargos9() {
 }
 
 async function eliminarCotizacion(tipo, id) {
-  if (!confirm(`¿Eliminar la cotización ${tipo} ID ${id}? Se borrarán también sus detalles. Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`Â¿Eliminar la cotizaciÃ³n ${tipo} ID ${id}? Se borrarÃ¡n tambiÃ©n sus detalles. Esta acciÃ³n no se puede deshacer.`)) return;
   try {
     const res = await fetch(`${API}/cotizaciones/${tipo}/${id}`, { method: 'DELETE' });
     const data = await res.json();
@@ -619,11 +619,11 @@ async function eliminarCotizacion(tipo, id) {
     const ppId = document.getElementById('pp-id');
     if (ppId && ppId.value) buscarPorProyecto();
   } catch (e) {
-    alert('Error de conexión');
+    alert('Error de conexiÃ³n');
   }
 }
 
-// ── Ver detalles de una cotización (monto total, proyecto, ítems, personal) ──
+// â”€â”€ Ver detalles de una cotizaciÃ³n (monto total, proyecto, Ã­tems, personal) â”€â”€
 function cerrarModalCot() {
   const m = document.getElementById('modal-cot');
   if (m) m.remove();
@@ -654,7 +654,7 @@ async function verDetalleCotizacion(tipo, id) {
       </div>`;
 
     if (tipo === 'cliente') {
-      cuerpo += tablaSimple('Ítems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
+      cuerpo += tablaSimple('Ãtems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
         (d.items || []).map(i => [i.concepto, i.cantidad, Number(i.precioUnitario).toFixed(2), Number(i.subtotal).toFixed(2)]));
     } else {
       cuerpo += tablaSimple('Materiales', ['Material', 'Cantidad', 'Costo Unit (Bs)', 'Subtotal (Bs)'],
@@ -662,7 +662,7 @@ async function verDetalleCotizacion(tipo, id) {
       cuerpo += tablaSimple('Personal asignado (mano de obra)', ['Cargo', 'Personas', 'Horas', 'Pago/Hora (Bs)', 'Subtotal (Bs)'],
         (d.personal || []).map(i => [i.nombreCargo, i.cantidadPersonas, i.horasEstimadas, Number(i.pagoPorHora).toFixed(2), Number(i.subtotal).toFixed(2)]));
       cuerpo += `<div style="margin-top:10px;font-size:.85rem;color:#445;">
-        Materiales: <b>Bs ${Number(d.totalMateriales).toFixed(2)}</b> &nbsp;·&nbsp;
+        Materiales: <b>Bs ${Number(d.totalMateriales).toFixed(2)}</b> &nbsp;Â·&nbsp;
         Mano de obra: <b>Bs ${Number(d.totalManoObra).toFixed(2)}</b></div>`;
     }
 
@@ -677,7 +677,7 @@ async function verDetalleCotizacion(tipo, id) {
     modal.innerHTML = `
       <div style="background:#fff;border-radius:10px;max-width:760px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #2F5F2F;padding-bottom:10px;margin-bottom:14px;">
-          <h3 style="color:#173F24;">Detalle de cotización ${tipo === 'cliente' ? 'cliente' : 'interna'} — ${numero}</h3>
+          <h3 style="color:#173F24;">Detalle de cotizaciÃ³n ${tipo === 'cliente' ? 'cliente' : 'interna'} â€” ${numero}</h3>
           <div style="display:flex;gap:8px;">
             <button onclick="imprimirCotizacionPDF('${tipo}', ${id})" style="background:#2F5F2F;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Imprimir / PDF</button>
             <button onclick="cerrarModalCot()" style="background:#B91C1C;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">Cerrar</button>
@@ -687,11 +687,11 @@ async function verDetalleCotizacion(tipo, id) {
       </div>`;
     document.body.appendChild(modal);
   } catch (e) {
-    alert('Error al cargar el detalle de la cotización');
+    alert('Error al cargar el detalle de la cotizaciÃ³n');
   }
 }
 
-// ── Imprimir una cotización (interna o cliente) en PDF ───────────────────────
+// â”€â”€ Imprimir una cotizaciÃ³n (interna o cliente) en PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function imprimirCotizacionPDF(tipo, id) {
   const win = nuevaVentanaPDF();
   try {
@@ -701,7 +701,7 @@ async function imprimirCotizacionPDF(tipo, id) {
     const numero = d.numeroCotizacionCliente || d.numeroCotizacionInterna || ('#' + id);
     const esCliente = tipo === 'cliente';
 
-    let cuerpo = `<h1>Cotización ${esCliente ? 'Cliente' : 'Interna'} — ${numero}</h1>`;
+    let cuerpo = `<h1>CotizaciÃ³n ${esCliente ? 'Cliente' : 'Interna'} â€” ${numero}</h1>`;
     cuerpo += pdfDatos([
       ['Proyecto', d.nombreProyecto],
       ['Cliente', d.nombreCliente],
@@ -715,7 +715,7 @@ async function imprimirCotizacionPDF(tipo, id) {
     ]);
 
     if (esCliente) {
-      cuerpo += pdfTabla('Ítems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
+      cuerpo += pdfTabla('Ãtems cotizados', ['Concepto', 'Cantidad', 'P. Unit (Bs)', 'Subtotal (Bs)'],
         (d.items || []).map(i => [i.concepto, i.cantidad, Number(i.precioUnitario).toFixed(2), Number(i.subtotal).toFixed(2)]));
     } else {
       cuerpo += pdfTabla('Materiales', ['Material', 'Cantidad', 'Costo Unit (Bs)', 'Subtotal (Bs)'],
@@ -729,14 +729,14 @@ async function imprimirCotizacionPDF(tipo, id) {
     }
     cuerpo += `<div class="total">Monto total: Bs ${Number(d.montoTotal).toFixed(2)}</div>`;
 
-    escribirImpresionPDF(win, `Cotización ${numero}`, cuerpo);
+    escribirImpresionPDF(win, `CotizaciÃ³n ${numero}`, cuerpo);
   } catch (e) {
     if (win) win.close();
-    alert('Error al generar el PDF de la cotización');
+    alert('Error al generar el PDF de la cotizaciÃ³n');
   }
 }
 
-// ── Generar cotización cliente a partir de una interna aprobada ──────────────
+// â”€â”€ Generar cotizaciÃ³n cliente a partir de una interna aprobada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let gcInternaData = null;
 
 async function onInternaGcPicked(idInterna) {
@@ -748,7 +748,7 @@ async function onInternaGcPicked(idInterna) {
   } catch (e) {
     gcInternaData = null;
     document.getElementById('gc-resumen').innerHTML = '';
-    msg('msg-gc', 'Error al cargar la cotización interna', 'err');
+    msg('msg-gc', 'Error al cargar la cotizaciÃ³n interna', 'err');
   }
 }
 
@@ -774,14 +774,14 @@ function calcPreviewGenerar() {
   cont.innerHTML = `
     <div style="background:#f7f8f6;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.88rem;">
       <div style="margin-bottom:8px;">
-        <b>Interna:</b> ${gcInternaData.numeroCotizacionInterna || ''} · ${gcInternaData.nombreProyecto || ''} · Estado: ${badge(estado)}
+        <b>Interna:</b> ${gcInternaData.numeroCotizacionInterna || ''} Â· ${gcInternaData.nombreProyecto || ''} Â· Estado: ${badge(estado)}
       </div>
-      ${aprobada ? '' : '<div style="color:#991B1B;font-weight:600;margin-bottom:8px;">⚠ La interna no está Aprobada; no se podrá generar hasta que lo esté.</div>'}
+      ${aprobada ? '' : '<div style="color:#991B1B;font-weight:600;margin-bottom:8px;">âš  La interna no estÃ¡ Aprobada; no se podrÃ¡ generar hasta que lo estÃ©.</div>'}
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="border-bottom:2px solid #123823;">
           <th style="text-align:left;padding:5px;">Concepto</th>
           <th style="text-align:right;padding:5px;">Costo interno</th>
-          <th style="text-align:right;padding:5px;">+${pct}% → Cliente</th>
+          <th style="text-align:right;padding:5px;">+${pct}% â†’ Cliente</th>
         </tr></thead>
         <tbody>
           ${fila('Materiales', mat, matCli)}
@@ -806,9 +806,9 @@ async function generarCotizacionCliente() {
     observaciones: document.getElementById('gc-obs').value.trim()
   };
 
-  if (!idInterna) return msg('msg-gc', 'Selecciona una cotización interna', 'err');
-  if (isNaN(body.porcentaje) || body.porcentaje < 0) return msg('msg-gc', 'Indica un porcentaje válido (≥ 0)', 'err');
-  if (!body.numeroCotizacion || !body.fechaCotizacion) return msg('msg-gc', 'Número y fecha son obligatorios', 'err');
+  if (!idInterna) return msg('msg-gc', 'Selecciona una cotizaciÃ³n interna', 'err');
+  if (isNaN(body.porcentaje) || body.porcentaje < 0) return msg('msg-gc', 'Indica un porcentaje vÃ¡lido (â‰¥ 0)', 'err');
+  if (!body.numeroCotizacion || !body.fechaCotizacion) return msg('msg-gc', 'NÃºmero y fecha son obligatorios', 'err');
 
   try {
     const res = await fetch(`${API}/cotizaciones/interna/${idInterna}/generar-cliente`, {
@@ -819,7 +819,7 @@ async function generarCotizacionCliente() {
     const data = await res.json();
     if (!res.ok) return msg('msg-gc', 'Error: ' + data.error, 'err');
 
-    msg('msg-gc', `Cotización cliente generada (ID ${data.idCotizacionCliente}). Total: Bs ${Number(data.montoTotal).toFixed(2)}`, 'ok');
+    msg('msg-gc', `CotizaciÃ³n cliente generada (ID ${data.idCotizacionCliente}). Total: Bs ${Number(data.montoTotal).toFixed(2)}`, 'ok');
     ['gc-int-nom', 'gc-int', 'gc-num', 'gc-validez', 'gc-obs'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -828,7 +828,7 @@ async function generarCotizacionCliente() {
     document.getElementById('gc-resumen').innerHTML = '';
     cargarCotizaciones();
   } catch (e) {
-    msg('msg-gc', 'Error de conexión', 'err');
+    msg('msg-gc', 'Error de conexiÃ³n', 'err');
   }
 }
 

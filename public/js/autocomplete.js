@@ -1,6 +1,6 @@
-// ── Identidad de sesión en cada petición (para la bitácora) ──────────────────
-// Envuelve fetch para adjuntar quién es el usuario logueado en las cabeceras
-// X-Usuario-*. El backend usa esto para registrar quién hizo cada movimiento.
+﻿// â”€â”€ Identidad de sesiÃ³n en cada peticiÃ³n (para la bitÃ¡cora) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Envuelve fetch para adjuntar quiÃ©n es el usuario logueado en las cabeceras
+// X-Usuario-*. El backend usa esto para registrar quiÃ©n hizo cada movimiento.
 (function () {
   if (window.__fetchConSesion) return;       // evitar envolver dos veces
   const fetchOriginal = window.fetch.bind(window);
@@ -17,13 +17,13 @@
         if (u.nombreCompleto)    headers.set('X-Usuario-Nombre', encodeURIComponent(u.nombreCompleto));
         opciones.headers = headers;
       }
-    } catch (e) { /* sin sesión: se envía la petición tal cual */ }
+    } catch (e) { /* sin sesiÃ³n: se envÃ­a la peticiÃ³n tal cual */ }
     return fetchOriginal(url, opciones);
   };
   window.__fetchConSesion = true;
 })();
 
-// Tarjetas de estadísticas reutilizables para la cabecera de cada módulo.
+// Tarjetas de estadÃ­sticas reutilizables para la cabecera de cada mÃ³dulo.
 // Uso: renderStatsCards('id-contenedor', [{ n: 12, l: 'Total' }, ...])
 function renderStatsCards(containerId, cards) {
   const cont = document.getElementById(containerId);
@@ -37,7 +37,7 @@ function renderStatsCards(containerId, cards) {
     </div>`).join('');
 }
 
-const AC_API = 'http://localhost:3000/api';
+const AC_API = '/api';
 
 async function acSearch(inputId, dropId, hiddenId, endpoint, idField, nameField, cbName) {
   const drop = document.getElementById(dropId);
@@ -86,3 +86,4 @@ document.addEventListener('click', function(e) {
     });
   }
 });
+

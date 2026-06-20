@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 3 - Pagos y Cuotas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 3 - Gestion de Pagos y Cuotas</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pagos-clientes', this)">Pagos Clientes</button>
+    <button class="tab-btn" onclick="switchTab('pagos-proveedores', this)">Pagos Proveedores</button>
+    <button class="tab-btn" onclick="switchTab('pagos-planilla', this)">Pagos Planilla</button>
+    <button class="tab-btn" onclick="switchTab('cuotas', this)">Cuotas</button>
+    <button class="tab-btn" onclick="switchTab('cuotas-contrato', this)">Cuotas por Contrato</button>
+    <button class="tab-btn" onclick="switchTab('registrar-pago', this)">Pago Cliente</button>
+    <button class="tab-btn" onclick="switchTab('registrar-pago-prov', this)">Pago Proveedor</button>
+    <button class="tab-btn" onclick="switchTab('registrar-pago-plan', this)">Pago Planilla</button>
+  </div>
+
+  <!-- TAB: PAGOS CLIENTES -->
+  <div class="tab-content active" id="tab-pagos-clientes">
+    <div class="card">
+      <div id="pago-stats"></div>
+      <div class="table-header">
+        <h3>Pagos de Clientes</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-cli-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-cli-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosClientes()">Buscar</button>
+          <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-cli', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosClientes()">Imprimir / PDF</button>
+        </div>
+      </div>
+      <div id="cont-pagos-clientes"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: PAGOS PROVEEDORES -->
+  <div class="tab-content" id="tab-pagos-proveedores">
+    <div class="card">
+      <div class="table-header">
+        <h3>Pagos a Proveedores</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-prov-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-prov-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosProveedores()">Buscar</button>
+          <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-prov', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosProveedores()">Imprimir / PDF</button>
+        </div>
+      </div>
+      <div id="cont-pagos-proveedores"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: PAGOS PLANILLA -->
+  <div class="tab-content" id="tab-pagos-planilla">
+    <div class="card">
+      <div class="table-header">
+        <h3>Pagos de Planilla</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.8rem;color:#555;">Desde <input type="date" id="f-plan-desde" class="search" style="padding:5px;"></label>
+          <label style="font-size:.8rem;color:#555;">Hasta <input type="date" id="f-plan-hasta" class="search" style="padding:5px;"></label>
+          <button class="btn" style="padding:6px 12px;" onclick="cargarPagosPlanilla()">Buscar</button>
+          <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-pagos-plan', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirPagosPlanilla()">Imprimir / PDF</button>
+        </div>
+      </div>
+      <div id="cont-pagos-planilla"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: CUOTAS -->
+  <div class="tab-content" id="tab-cuotas">
+    <div class="card">
+      <h3>Cuotas</h3>
+      <div class="sub-btns">
+        <button class="btn btn-primary" onclick="cargarCuotas('todas')">Todas</button>
+        <button class="btn btn-accent" onclick="cargarCuotas('pendientes')">Pendientes</button>
+        <button class="btn btn-red" onclick="cargarCuotas('vencidas')">Vencidas</button>
+      </div>
+      <div class="table-header">
+        <span></span>
+        <input class="search" placeholder="Buscar..." oninput="filtrarTabla('tbl-cuotas', this.value)">
+      </div>
+      <div id="cont-cuotas"><p>Seleccione un filtro arriba.</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: CUOTAS POR CONTRATO -->
+  <div class="tab-content" id="tab-cuotas-contrato">
+    <div class="card">
+      <h3>Cuotas por Contrato</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="form-group" style="min-width:340px;">
+          <label>Contrato a consultar</label>
+          <div class="ac-wrap">
+            <input id="cc-cont-nom" type="text" placeholder="Escribe Nº de contrato, proyecto o cliente..." autocomplete="off"
+                   oninput="acSearch('cc-cont-nom','ac-cc-cont','cc-idcontrato','contratos','idContrato','display')">
+            <div class="ac-drop" id="ac-cc-cont"></div>
+            <input type="hidden" id="cc-idcontrato">
+          </div>
+          <small style="color:#6b756d;">Busca por número de contrato, nombre del proyecto o del cliente. Luego presiona "Ver cuotas".</small>
+        </div>
+        <button class="btn btn-primary" onclick="buscarCuotasContrato()">Ver cuotas</button>
+      </div>
+      <div id="cont-cuotas-contrato"></div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTRAR PAGO -->
+  <div class="tab-content" id="tab-registrar-pago">
+    <div class="card">
+      <h3>Registrar Pago de Cliente</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Contrato *</label>
+          <div class="ac-wrap">
+            <input id="rp-cont-nom" type="text" placeholder="Escribe Nº de contrato, proyecto o cliente..." autocomplete="off"
+                   oninput="acSearch('rp-cont-nom','ac-rp-cont','rp-idcontrato','contratos','idContrato','display','cargarCuotasSelect')">
+            <div class="ac-drop" id="ac-rp-cont"></div>
+            <input type="hidden" id="rp-idcontrato">
+          </div>
+          <small style="color:#6b756d;">Al elegir el contrato se cargan sus cuotas abajo.</small>
+        </div>
+        <div class="form-group">
+          <label>Cuota *</label>
+          <select id="rp-idcuota" onchange="onSelCuotaPago()">
+            <option value="">-- Selecciona un contrato primero --</option>
+          </select>
+          <small style="color:#6b756d;">Elige qué cuota se está pagando. El monto se autocompleta.</small>
+          <small id="rp-cuota-info" style="color:#28512b; display:block; margin-top:4px;"></small>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Pago *</label>
+          <input id="rp-fechapago" type="date">
+          <small style="color:#6b756d;">Fecha real en que se recibió el pago</small>
+        </div>
+        <div class="form-group">
+          <label>Monto (Bs) *</label>
+          <input id="rp-monto" type="number" step="0.01" placeholder="0.00" oninput="onMontoPagoInput()">
+          <small style="color:#6b756d;">Puede ser diferente al de la cuota si es pago parcial</small>
+          <small id="rp-monto-info" style="display:block; margin-top:4px;"></small>
+        </div>
+        <div class="form-group">
+          <label>Metodo de Pago *</label>
+          <select id="rp-idmetodo">
+            <option value="">-- Cargando... --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado de Pago *</label>
+          <select id="rp-idestado">
+            <option value="">-- Cargando... --</option>
+          </select>
+        </div>
+      </div>
+      <br>
+      <button id="btn-pago-cli" class="btn btn-primary" onclick="registrarPago()">Registrar Pago</button>
+      <button id="btn-cancelar-edit-cli" class="btn" style="display:none;background:#6b756d;color:#fff;" onclick="cancelarEdicionPago('clientes')">Cancelar edición</button>
+      <div id="msg-pago" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTRAR PAGO PROVEEDOR -->
+  <div class="tab-content" id="tab-registrar-pago-prov">
+    <div class="card">
+      <h3>Registrar Pago a Proveedor</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Proveedor *</label>
+          <div class="ac-wrap">
+            <input id="pp-prov-nom" type="text" placeholder="Buscar proveedor..." autocomplete="off"
+                   oninput="acSearch('pp-prov-nom','ac-pp-prov','pp-idprov','proveedores','idProveedor','nombreProveedor')">
+            <div class="ac-drop" id="ac-pp-prov"></div>
+            <input type="hidden" id="pp-idprov">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Pago *</label>
+          <input id="pp-fecha" type="date">
+        </div>
+        <div class="form-group">
+          <label>Monto (Bs) *</label>
+          <input id="pp-monto" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Metodo de Pago *</label>
+          <select id="pp-idmetodo"><option value="">-- Cargando... --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Factura</label>
+          <input id="pp-factura" type="text" placeholder="Nro. de factura (opcional)">
+        </div>
+      </div>
+      <br>
+      <button id="btn-pago-prov" class="btn btn-primary" onclick="registrarPagoProveedor()">Registrar Pago</button>
+      <button id="btn-cancelar-edit-prov" class="btn" style="display:none;background:#6b756d;color:#fff;" onclick="cancelarEdicionPago('proveedores')">Cancelar edición</button>
+      <div id="msg-pago-prov" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTRAR PAGO PLANILLA -->
+  <div class="tab-content" id="tab-registrar-pago-plan">
+    <div class="card">
+      <h3>Registrar Pago de Planilla</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Empleado *</label>
+          <div class="ac-wrap">
+            <input id="pl-emp-nom" type="text" placeholder="Buscar empleado..." autocomplete="off"
+                   oninput="acSearch('pl-emp-nom','ac-pl-emp','pl-idempleado','empleados','idEmpleado','nombreCompleto','onSelEmpleadoPlanilla')">
+            <div class="ac-drop" id="ac-pl-emp"></div>
+            <input type="hidden" id="pl-idempleado">
+          </div>
+          <small style="color:#6b756d;">Busca y elige al empleado. Luego elige el proyecto.</small>
+          <small id="pl-emp-proyectos" style="color:#28512b; display:block; margin-top:4px;"></small>
+        </div>
+        <div class="form-group">
+          <label>Proyecto *</label>
+          <div class="ac-wrap">
+            <input id="pl-proy-nom" type="text" placeholder="Buscar proyecto..." autocomplete="off"
+                   oninput="acSearch('pl-proy-nom','ac-pl-proy','pl-idproyecto','proyectos','idProyecto','nombreProyecto','onSelProyectoPlanilla')">
+            <div class="ac-drop" id="ac-pl-proy"></div>
+            <input type="hidden" id="pl-idproyecto">
+          </div>
+          <small style="color:#6b756d;">Al elegir empleado y proyecto se cargan sus bonos de antigüedad.</small>
+        </div>
+        <div class="form-group">
+          <label>Bono de Antigüedad *</label>
+          <select id="pl-idbono" onchange="onSelBonoPlanilla()">
+            <option value="">-- Elige primero empleado y proyecto --</option>
+          </select>
+          <small style="color:#6b756d;">Obligatorio: cada pago de planilla se asocia al bono del empleado en ese proyecto. El monto se autocompleta con el salario final.</small>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Pago *</label>
+          <input id="pl-fecha" type="date">
+          <small style="color:#6b756d;">Fecha real en que se paga la planilla.</small>
+        </div>
+        <div class="form-group">
+          <label>Monto Pagado (Bs) *</label>
+          <input id="pl-monto" type="number" step="0.01" placeholder="0.00">
+          <small style="color:#6b756d;">Se autocompleta con el salario final del bono; puedes ajustarlo.</small>
+        </div>
+        <div class="form-group" style="grid-column:1 / -1;">
+          <div id="pl-horas-info" style="display:none; background:#EEF4EA; border-left:4px solid #2F5F2F; border-radius:6px; padding:10px 14px; font-size:.85rem; color:#1F2A24;"></div>
+        </div>
+        <div class="form-group">
+          <label>Metodo de Pago *</label>
+          <select id="pl-idmetodo"><option value="">-- Cargando... --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estado de Pago *</label>
+          <select id="pl-idestado"><option value="">-- Cargando... --</option></select>
+        </div>
+      </div>
+      <br>
+      <button id="btn-pago-plan" class="btn btn-primary" onclick="registrarPagoPlanilla()">Registrar Pago</button>
+      <button id="btn-cancelar-edit-plan" class="btn" style="display:none;background:#6b756d;color:#fff;" onclick="cancelarEdicionPago('planilla')">Cancelar edición</button>
+      <div id="msg-pago-plan" class="msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

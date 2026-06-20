@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 7 - Clientes</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Modulo 7 - Gestion de Clientes</h1>
+  <a href="../index.html">Volver al sistema</a>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('lista', this)">Lista de Clientes</button>
+    <button class="tab-btn" onclick="switchTab('registrar', this)">Registrar Cliente</button>
+    <button class="tab-btn" onclick="switchTab('editar', this)">Editar Cliente</button>
+    <button class="tab-btn" onclick="switchTab('tipos', this)">Tipos de Cliente</button>
+  </div>
+
+  <!-- TAB: LISTA -->
+  <div class="tab-content active" id="tab-lista">
+    <div class="card">
+      <div id="cli-stats"></div>
+      <div class="table-header">
+        <h3>Clientes Registrados</h3>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input class="search" placeholder="Buscar cliente..." oninput="filtrarTabla('tbl-cli', this.value)">
+          <button class="btn btn-accent" style="padding:6px 12px;" onclick="imprimirClientes()">Imprimir / PDF</button>
+        </div>
+      </div>
+      <div id="cont-clientes"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTRAR CLIENTE -->
+  <div class="tab-content" id="tab-registrar">
+    <div class="card">
+      <h3>Registrar Nuevo Cliente</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input id="cli-nombre" placeholder="Nombre o razón social">
+          <small style="color:#6b756d;">Nombre de pila de la persona, o razón social de la empresa.</small>
+        </div>
+        <div class="form-group">
+          <label>Apellido</label>
+          <input id="cli-apellido" placeholder="Apellido(s)">
+          <small style="color:#6b756d;">Solo para personas. En empresas déjalo vacío.</small>
+        </div>
+        <div class="form-group">
+          <label>Documento ID *</label>
+          <input id="cli-doc" placeholder="CI / NIT">
+          <small style="color:#6b756d;">No puede repetirse: cada cliente tiene un CI o NIT único.</small>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Cliente *</label>
+          <select id="cli-tipo"><option value="">-- Seleccionar --</option></select>
+          <small style="color:#6b756d;">Si no aparece el tipo, créalo en la pestaña "Tipos de Cliente".</small>
+        </div>
+        <div class="form-group">
+          <label>Celular</label>
+          <input id="cli-cel" placeholder="Numero de celular">
+          <small style="color:#6b756d;">Opcional.</small>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="cli-email" type="email" placeholder="correo@ejemplo.com">
+          <small style="color:#6b756d;">Opcional, pero no puede repetirse entre clientes.</small>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Registro</label>
+          <input id="cli-fecha" type="date">
+          <small style="color:#6b756d;">Si la dejas vacía se usa la fecha de hoy.</small>
+        </div>
+        <div class="form-group full">
+          <label>Direccion</label>
+          <input id="cli-dir" placeholder="Direccion completa">
+          <small style="color:#6b756d;">Opcional.</small>
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-primary" onclick="registrarCliente()">Registrar Cliente</button>
+      <div id="msg-cliente" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- TAB: EDITAR CLIENTE -->
+  <div class="tab-content" id="tab-editar">
+    <div class="card">
+      <h3>Editar Cliente</h3>
+      <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="form-group">
+          <label>Buscar Cliente</label>
+          <div class="ac-wrap">
+            <input id="ec-cli-nom" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
+                   oninput="acSearch('ec-cli-nom','ac-ec-cli','ec-idcliente','clientes','idCliente','nombreCompleto','cargarFormEditarCliente')">
+            <div class="ac-drop" id="ac-ec-cli"></div>
+            <input type="hidden" id="ec-idcliente">
+          </div>
+        </div>
+      </div>
+      <div id="form-editar-cliente" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input id="ec-nombre" placeholder="Nombre o razón social">
+          </div>
+          <div class="form-group">
+            <label>Apellido</label>
+            <input id="ec-apellido" placeholder="Apellido(s)">
+          </div>
+          <div class="form-group">
+            <label>Documento ID</label>
+            <input id="ec-doc" placeholder="CI / NIT">
+          </div>
+          <div class="form-group">
+            <label>Tipo de Cliente</label>
+            <select id="ec-tipo"><option value="">-- Seleccionar --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Celular</label>
+            <input id="ec-cel" placeholder="Numero de celular">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="ec-email" type="email" placeholder="correo@ejemplo.com">
+          </div>
+          <div class="form-group full">
+            <label>Direccion</label>
+            <input id="ec-dir" placeholder="Direccion completa">
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-accent" onclick="guardarEdicionCliente()">Guardar Cambios</button>
+        <div id="msg-editar-cli" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: TIPOS -->
+  <div class="tab-content" id="tab-tipos">
+    <div class="card">
+      <h3>Registrar Tipo de Cliente</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre del Tipo *</label>
+          <input id="tipo-nombre" placeholder="Ej: Empresa, Persona Natural">
+        </div>
+        <div class="form-group">
+          <label>Descripcion</label>
+          <input id="tipo-desc" placeholder="Descripcion opcional">
+        </div>
+      </div>
+      <br>
+      <button class="btn btn-accent" onclick="registrarTipo()">Guardar Tipo</button>
+      <div id="msg-tipo" class="msg"></div>
+    </div>
+    <div class="card">
+      <h3>Tipos Registrados</h3>
+      <div id="cont-tipos"><p>Cargando...</p></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/autocomplete.js"></script>
+<script src="../js/imprimirPDF.js"></script>
+<script src="../js/reportes.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
