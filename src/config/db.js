@@ -2,9 +2,9 @@
 
 const config = {
   user: 'sa',
-  password: '1704',
+  password: 'Admin1234',
   server: '127.0.0.1',
-  port: 1433,
+  port: 63049,
   database: 'constructora',
   options: {
     encrypt: false,
